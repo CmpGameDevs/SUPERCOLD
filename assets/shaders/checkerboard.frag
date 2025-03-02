@@ -12,5 +12,12 @@ uniform int size = 32;
 uniform vec3 colors[2];
 
 void main(){
-    frag_color = vec4(colors[0], 1.0);
+    // NOTE: this line gets in which coordinate we are in the screen
+    ivec2 coord = ivec2(gl_FragCoord.xy) / size;
+
+    // NOTE: this line checks if the sum of the coordinates is even or odd
+    // which basically is how you know you are black or which in chess
+    int checker = (coord.x + coord.y) % 2;
+
+    frag_color = vec4(colors[checker], 1.0);
 }
