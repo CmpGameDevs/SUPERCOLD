@@ -28,7 +28,7 @@ our::Texture2D *our::texture_utils::loadImage(const std::string &filename, bool 
     //- 3: RGB
     //- 4: RGB and Alpha (RGBA)
     // Note: channels (the 4th argument) always returns the original number of channels in the file
-    unsigned char *pixels = stbi_load(filename.c_str(), &size.x, &size.y, &channels, 4);
+    unsigned char *pixels = stbi_load(filename.c_str(), &size.x, &size.y, &channels, 0);
     if (pixels == nullptr)
     {
         std::cerr << "Failed to load image: " << filename << std::endl;
@@ -61,7 +61,7 @@ our::Texture2D *our::texture_utils::loadImage(const std::string &filename, bool 
     // Bind the texture to GL_TEXTURE_2D
     texture->bind();
     // Upload the image data to the texture
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, size.x, size.y, 0, sourceImageFormat, GL_UNSIGNED_BYTE, pixels);
+    glTexImage2D(GL_TEXTURE_2D, 0, sourceImageFormat, size.x, size.y, 0, sourceImageFormat, GL_UNSIGNED_BYTE, pixels);
     // Apply mipmapping if requested
     if (generate_mipmap)
     {
