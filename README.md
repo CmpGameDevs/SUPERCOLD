@@ -16,17 +16,27 @@
 
 ## Engine parts
 
-- [x] Shader
-- [x] Mesh
-- [x] Transform
-- [x] Pipeline State
-- [x] Texture
-- [x] Sampler
-- [x] Material
-- [x] ECS
-- [ ] Forward Renderer
-- [ ] Sky Renderer
-- [ ] Postprocessing
+ :white_check_mark: Shader
+ 
+ :white_check_mark: Mesh
+ 
+ :white_check_mark: Transform
+ 
+ :white_check_mark: Pipeline State
+ 
+ :white_check_mark: Texture
+ 
+ :white_check_mark: Sampler
+ 
+ :white_check_mark: Material
+ 
+ :white_check_mark: ECS
+ 
+ :white_check_mark: Forward Renderer
+ 
+ :white_large_square: Sky Renderer
+
+ :white_large_square: Postprocessing
 
 ---
 
