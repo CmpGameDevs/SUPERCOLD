@@ -34,21 +34,11 @@
  
  :white_check_mark: Forward Renderer
  
- :white_large_square: Sky Renderer
+ :white_check_mark: Sky Renderer
 
- :white_large_square: Postprocessing
+ :white_check_mark: Postprocessing
 
 ---
-
-## 📹 Overview
-
-
-**SUPERCOLD** is a first-person shooter where time moves only when you do. Beware: stand still for too long, and you'll freeze as time slips away.
-
-- **Time only moves when you move.**
-- **Standing still for too long freezed your time, and moves time around you.**
-
-
 
 
 ## 🤍 Acknowledgements
