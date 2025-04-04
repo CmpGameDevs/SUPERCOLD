@@ -102,12 +102,12 @@ class LightTestState : public our::State {
         glCullFace(GL_BACK);
         glFrontFace(GL_CCW);
 
-        // We will use blending to combine the results of the different shaders together.
-        // The combination will be additive so we will GL_FUNC_ADD as our blend equation.
-        glBlendEquation(GL_FUNC_ADD);
-        // We are not going to put alpha in our considerations for simplicity.
-        // So to do basic addition, we will just multiply both the source and the destination by 1.
-        glBlendFunc(GL_ONE, GL_ONE);
+        // // We will use blending to combine the results of the different shaders together.
+        // // The combination will be additive so we will GL_FUNC_ADD as our blend equation.
+        // glBlendEquation(GL_FUNC_ADD);
+        // // We are not going to put alpha in our considerations for simplicity.
+        // // So to do basic addition, we will just multiply both the source and the destination by 1.
+        // glBlendFunc(GL_ONE, GL_ONE);
         std::cout << "LightTestState initialized." << std::endl;
     }
 
@@ -134,12 +134,12 @@ class LightTestState : public our::State {
         for (const auto& light : lights) {
             if (!light.enabled) continue;
     
-            if (first_light) {
-                glDisable(GL_BLEND);
-                first_light = false;
-            } else {
-                glEnable(GL_BLEND);
-            }
+            // if (first_light) {
+            //     glDisable(GL_BLEND);
+            //     first_light = false;
+            // } else {
+            //     glEnable(GL_BLEND);
+            // }
 
             std::string prefix = "lights[" + std::to_string(light_index) + "].";
             
@@ -172,7 +172,7 @@ class LightTestState : public our::State {
                     program->set(prefix + "outer_angle", light.spot_angle.outer);
                     break;
             }
-
+            light_index++;
         }
 
         for (auto& transform : transforms) {

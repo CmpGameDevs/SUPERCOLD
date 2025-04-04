@@ -12,7 +12,7 @@
     "screenshots":{
         "directory": "screenshots/light-test",
         "requests": [
-            { "file": "test-point.png", "frame":  1 }
+            { "file": "test-array.png", "frame":  1 }
         ]
     },
     "scene": {
@@ -55,10 +55,10 @@
                     "useTextureAmbientOcclusion": false,
                     "useTextureEmissive": false,
                     "albedo": [1, 0, 0],
-                    "roughness": 0.1,
-                    "metallic": 0.9,
+                    "roughness": 0.25,
+                    "metallic": 0.85,
                     "emissive": [0, 0, 0],
-                    "ambientOcclusion": 0.2,
+                    "ambientOcclusion": 0.1,
                     "textureAlbedo": "metal",
                     "textureNormal": "normal",
                     "textureMetallicRoughness": "metallic_roughness",
@@ -71,7 +71,7 @@
             {
                 "position": [0, 0, 0],
                 "rotation": [0, 0, 0],
-                "scale": [1 ,1, 1]
+                "scale": [3 ,3, 3]
             }
         ],
         "camera": {
@@ -92,7 +92,7 @@
                 "specular": [1, 1, 1],
                 "ambient": [1, 1, 1],
                 "direction": [-4, 0, 4],
-                "position": [0, 9, 0],
+                "position": [0, 10, 0],
                 "attenuation": {
                     "constant": 0,
                     "linear": 0,

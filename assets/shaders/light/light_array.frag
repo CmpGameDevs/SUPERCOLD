@@ -41,7 +41,7 @@ struct Light {
 
 uniform Material material;
 uniform vec3 cameraPosition;
-uniform Light lights[1];
+uniform Light lights[4];
 
 vec3 fresnelSchlick(float cosTheta, vec3 F0) {
     return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
@@ -104,8 +104,7 @@ void main() {
     vec3 F0 = mix(vec3(0.04), albedo, metallic);
 
     vec3 Lo = vec3(0.0);
-	int i = 0;
-    // for (int i = 0; i < 1; i++) {
+    for (int i = 0; i < 1; i++) {
         vec3 L = normalize(lights[i].position - worldCoordinates);
         vec3 H = normalize(V + L);
 
@@ -131,7 +130,7 @@ void main() {
         float NdotL = max(dot(N, L), 0.0);
 
         Lo += (diffuse + specular) * radiance * NdotL;
-    // }
+    }
 
     vec3 ambient = vec3(0.03) * albedo * ao;
     vec3 color = Lo + ambient + emissive;
