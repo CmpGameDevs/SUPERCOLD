@@ -59,4 +59,63 @@ namespace our {
         sampler = AssetLoader<Sampler>::get(data.value("sampler", ""));
     }
 
+    void LitMaterial::setup() const {
+        TexturedMaterial::setup();
+        shader->set("material.useTextureAlbedo", useTextureAlbedo);
+        shader->set("material.useTextureMetallicRoughness", useTextureMetallicRoughness);
+        shader->set("material.useTextureNormal", useTextureNormal);
+        shader->set("material.useTextureAmbientOcclusion", useTextureAmbientOcclusion);
+        shader->set("material.useTextureEmissive", useTextureEmissive);
+        shader->set("material.albedo", albedo);
+        shader->set("material.metallic", metallic);
+        shader->set("material.roughness", roughness);
+        shader->set("material.ambientOcclusion", ambientOcclusion);
+        shader->set("material.emission", emission);
+        if(useTextureAlbedo) {
+            glActiveTexture(GL_TEXTURE0 + TEXTURE_UNIT_ALBEDO);
+            textureAlbedo->bind();   
+            shader->set("material.textureAlbedo", TEXTURE_UNIT_ALBEDO);
+        }
+        if(useTextureMetallicRoughness) {
+            glActiveTexture(GL_TEXTURE0 + TEXTURE_UNIT_METALLIC_ROUGHNESS);
+            textureMetallicRoughness->bind();
+            shader->set("material.textureMetallicRoughness", TEXTURE_UNIT_METALLIC_ROUGHNESS);
+        }
+        if(useTextureNormal) {
+            glActiveTexture(GL_TEXTURE0 + TEXTURE_UNIT_NORMAL);
+            textureNormal->bind();    
+            shader->set("material.textureNormal", TEXTURE_UNIT_NORMAL);
+        }
+        if(useTextureAmbientOcclusion) {
+            glActiveTexture(GL_TEXTURE0 + TEXTURE_UNIT_AMBIENT_OCCLUSION);
+            textureAmbientOcclusion->bind();
+            shader->set("material.textureAmbientOcclusion", TEXTURE_UNIT_AMBIENT_OCCLUSION);
+        }
+        if(useTextureEmissive) {
+            glActiveTexture(GL_TEXTURE0 + TEXTURE_UNIT_EMISSIVE);
+            textureEmissive->bind();
+            shader->set("material.textureEmissive", TEXTURE_UNIT_EMISSIVE);
+        }
+    }
+
+    void LitMaterial::deserialize(const nlohmann::json& data)  {
+        TexturedMaterial::deserialize(data);
+        if(!data.is_object()) return;
+        useTextureAlbedo = data.value("useTextureAlbedo", false);
+        useTextureMetallicRoughness = data.value("useTextureMetallicRoughness", false);
+        useTextureNormal = data.value("useTextureNormal", false);
+        useTextureAmbientOcclusion = data.value("useTextureAmbientOcclusion", false);
+        useTextureEmissive = data.value("useTextureEmissive", false);
+        albedo = data.value("albedo", glm::vec3(1.0f, 1.0f, 1.0f));
+        metallic = data.value("metallic", 1.0f);
+        roughness = data.value("roughness", 0.0f);
+        ambientOcclusion = data.value("ambientOcclusion", 1.0f);
+        emission = data.value("emission", glm::vec3(0.0f, 0.0f, 0.0f));
+        textureAlbedo = AssetLoader<Texture2D>::get(data.value("textureAlbedo", ""));
+        textureMetallicRoughness = AssetLoader<Texture2D>::get(data.value("textureMetallicRoughness", ""));
+        textureNormal = AssetLoader<Texture2D>::get(data.value("textureNormal", ""));
+        textureAmbientOcclusion = AssetLoader<Texture2D>::get(data.value("textureAmbientOcclusion", ""));   
+        textureEmissive = AssetLoader<Texture2D>::get(data.value("textureEmissive", ""));
+    }
+
 }

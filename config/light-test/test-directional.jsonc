@@ -39,7 +39,7 @@
         "lights": [
             {
                 "type": "directional",
-                "enabled": false,
+                "enabled": true,
                 "diffuse": [1, 1, 1],
                 "specular": [1, 1, 1],
                 "ambient": [0.1, 0.1, 0.1],
@@ -57,7 +57,7 @@
             },
             {
                 "type": "point",
-                "enabled": true,
+                "enabled": false,
                 "diffuse": [1, 1, 1],
                 "specular": [1, 1, 1],
                 "ambient": [0.1, 0.1, 0.1],
@@ -87,8 +87,8 @@
                     "quadratic": 1
                 },
                 "spot_angle": {
-                    "inner": 5, // pi/4
-                    "outer": 5 // pi/2
+                    "inner": 0.785398163, // pi/4
+                    "outer": 1.57079633 // pi/2
                 }
             }
         ]

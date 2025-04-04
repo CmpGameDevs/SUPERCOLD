@@ -25,9 +25,11 @@ namespace our {
         }
         // Read the light properties
         enabled = data.value("enabled", true);
+        realistic = data.value("realistic", false);
         diffuse = data.value("diffuse", glm::vec3{0.0f, 0.0f, 0.0f});
         specular = data.value("specular", glm::vec3{0.0f, 0.0f, 0.0f});
         ambient = data.value("ambient", glm::vec3{0.0f, 0.0f, 0.0f});
+        color = data.value("color", glm::vec3{1.0f, 1.0f, 1.0f});
         shininess = data.value("shininess", 1.0f);
         position = data.value("position", glm::vec3{0.0f, 0.0f, 0.0f});
         direction = data.value("direction", glm::vec3{0.0f, 0.0f, 0.0f});

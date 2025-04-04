@@ -18,9 +18,10 @@
 class LightTestState : public our::State {
 
     // We will create a different shader program for each light type.
-    std::unordered_map<our::LightType, our::ShaderProgram*> programs;
+    our::ShaderProgram* program;
     
     std::unordered_map<std::string,  our::Mesh*> meshes;
+    our::Material* material;
     
     std::vector<our::Transform> transforms;
     glm::mat4 VP;
@@ -39,30 +40,16 @@ class LightTestState : public our::State {
     void onInitialize() override {
         // We will create a different shader program for each light type.
         auto& config = getApp()->getConfig()["scene"];
-        
-        programs[our::LightType::DIRECTIONAL] = new our::ShaderProgram();
-        programs[our::LightType::DIRECTIONAL]->attach("assets/shaders/light/light_transform.vert", GL_VERTEX_SHADER);
-        programs[our::LightType::DIRECTIONAL]->attach("assets/shaders/light/directional_light.frag", GL_FRAGMENT_SHADER);
-        programs[our::LightType::DIRECTIONAL]->link();
 
-        programs[our::LightType::POINT] = new our::ShaderProgram();
-        programs[our::LightType::POINT]->attach("assets/shaders/light/light_transform.vert", GL_VERTEX_SHADER);
-        programs[our::LightType::POINT]->attach("assets/shaders/light/point_light.frag", GL_FRAGMENT_SHADER);
-        programs[our::LightType::POINT]->link();
-
-        programs[our::LightType::SPOT] = new our::ShaderProgram();
-        programs[our::LightType::SPOT]->attach("assets/shaders/light/light_transform.vert", GL_VERTEX_SHADER);
-        programs[our::LightType::SPOT]->attach("assets/shaders/light/spot_light.frag", GL_FRAGMENT_SHADER);
-        programs[our::LightType::SPOT]->link();
-
-        std::string meshPath = config["assets"]["meshes"].value("mesh", "");
-        if(meshPath.size() == 0){
-            std::cerr << "No mesh path provided in the config file." << std::endl;
-            return;
+        // If we have assets in the scene config, we deserialize them
+        if(config.contains("assets")){
+            our::deserializeAllAssets(config["assets"]);
         }
-        std::cout << "Loading mesh: " << meshPath << std::endl;
-        meshes["monkey"] = our::mesh_utils::loadOBJ(meshPath);
 
+        program = our::AssetLoader<our::ShaderProgram>::get("lit");
+        meshes["sphere"] = our::AssetLoader<our::Mesh>::get("mesh");
+        material = our::AssetLoader<our::Material>::get("material");
+        program->use();
 
         transforms.clear();
         if(config.contains("objects")){
@@ -136,17 +123,15 @@ class LightTestState : public our::State {
             std::cerr << "Error: No transforms available." << std::endl;
             return;
         }
-    
+
+        // program->set("viewPos", glm::vec3(0.0f, 0.0f, 0.0f));
+        program->set("camera_position", glm::vec3(0.0f, 0.0f, 0.0f));   
+        
         bool first_light = true;
-        for (auto& light : lights) {
+        int light_index = 0;
+        const int MAX_LIGHT_COUNT = 16;
+        for (const auto& light : lights) {
             if (!light.enabled) continue;
-    
-            auto program = programs[light.type];
-            if (!program) {
-                std::cerr << "Error: Shader program is null for light type." << std::endl;
-                continue;
-            }
-            program->use();
     
             if (first_light) {
                 glDisable(GL_BLEND);
@@ -154,50 +139,51 @@ class LightTestState : public our::State {
             } else {
                 glEnable(GL_BLEND);
             }
-    
-            program->set("light.diffuse", light.diffuse);
-            program->set("light.specular", light.specular);
-            program->set("light.ambient", light.ambient);
+
+            std::string prefix = "lights[" + std::to_string(light_index) + "].";
+            
+            if(light.realistic){
+                program->set(prefix + "color", light.color);
+            } else {
+                program->set(prefix + "diffuse", light.diffuse);
+                program->set(prefix + "specular", light.specular);
+                program->set(prefix + "ambient", light.ambient);
+            }
+            
     
             switch (light.type) {
                 case our::LightType::DIRECTIONAL:
-                    program->set("light.direction", normalize(light.direction));
+                    program->set(prefix + "direction", normalize(light.direction));
                     break;
                 case our::LightType::POINT:
-                    program->set("light.position", light.position);
-                    program->set("light.attenuation_constant", light.attenuation.constant);
-                    program->set("light.attenuation_linear", light.attenuation.linear);
-                    program->set("light.attenuation_quadratic", light.attenuation.quadratic);
+                    program->set(prefix + "position", light.position);
+                    program->set(prefix + "attenuation_constant", light.attenuation.constant);
+                    program->set(prefix + "attenuation_linear", light.attenuation.linear);
+                    program->set(prefix + "attenuation_quadratic", light.attenuation.quadratic);
                     break;
                 case our::LightType::SPOT:
-                    program->set("light.position", light.position);
-                    program->set("light.direction", glm::normalize(light.direction));
-                    program->set("light.attenuation_constant", light.attenuation.constant);
-                    program->set("light.attenuation_linear", light.attenuation.linear);
-                    program->set("light.attenuation_quadratic", light.attenuation.quadratic);
-                    program->set("light.inner_angle", light.spot_angle.inner);
-                    program->set("light.outer_angle", light.spot_angle.outer);
+                    program->set(prefix + "position", light.position);
+                    program->set(prefix + "direction", glm::normalize(light.direction));
+                    program->set(prefix + "attenuation_constant", light.attenuation.constant);
+                    program->set(prefix + "attenuation_linear", light.attenuation.linear);
+                    program->set(prefix + "attenuation_quadratic", light.attenuation.quadratic);
+                    program->set(prefix + "inner_angle", light.spot_angle.inner);
+                    program->set(prefix + "outer_angle", light.spot_angle.outer);
                     break;
             }
 
-            program->set("viewPos", glm::vec3(0.0f, 0.0f, 0.0f));
+            material->setup();
+        }
 
-            program->set("materialShininess", 10.0f);
-            program->set("materialDiffuse", glm::vec3(0.2f, 0.2f, 0.2f));
-            program->set("materialSpecular", glm::vec3(0.2f, 0.2f, 0.2f));
-            program->set("materialAmbient", glm::vec3(0.2f, 0.2f, 0.2f));
-    
-            for (auto& transform : transforms) {
-                program->set("transform", VP * transform.toMat4());
-                meshes["monkey"]->draw();
-            }
+        for (auto& transform : transforms) {
+            program->set("transform", VP * transform.toMat4());
+            meshes["sphere"]->draw();
         }
     }
 
     void onDestroy() override {
-        for(auto& [type, program]: programs){
-                delete program;
-        }
+        delete program;
+        delete material;
         for(auto& [name, mesh]: meshes){
             delete mesh;
         }

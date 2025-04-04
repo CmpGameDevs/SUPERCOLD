@@ -13,7 +13,7 @@ out varyings {
 
 
 uniform mat4 transform;
-uniform vec3 viewPos; // Projection matrix
+uniform vec3 viewPos;
 
 void main()
 {

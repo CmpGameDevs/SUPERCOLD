@@ -18,14 +18,14 @@
     "scene": {
         "assets":{
             "meshes":{
-                "mesh": "assets/models/monkey.obj"
+                "mesh": "assets/models/sphere.obj"
             }
         },
         "objects": [
             {
                 "position": [2, 0, 2],
-                "rotation": [0, 35, 0],
-                "scale": [1, 1, 1]
+                "rotation": [0, 65, 0],
+                "scale": [2, 2, 2]
             }
         ],
         "camera": {
@@ -42,13 +42,13 @@
                 "enabled": true,
                 "diffuse": [1, 1, 1],
                 "specular": [1, 1, 1],
-                "ambient": [0.1, 0.1, 0.1],
+                "ambient": [1, 1, 1],
                 "direction": [-4, 0, 4],
-                "position": [0, 1, 5],
+                "position": [2, 0, 1],
                 "attenuation": {
                     "constant": 0,
-                    "linear": 0,
-                    "quadratic": 1
+                    "linear": 1,
+                    "quadratic": 2
                 },
                 "spot_angle": {
                     "inner": 0.785398163, // pi/4

@@ -8,6 +8,12 @@
 #include <glm/vec4.hpp>
 #include <json/json.hpp>
 
+const int TEXTURE_UNIT_ALBEDO = 0;
+const int TEXTURE_UNIT_METALLIC_ROUGHNESS = 1;
+const int TEXTURE_UNIT_NORMAL = 2;
+const int TEXTURE_UNIT_AMBIENT_OCCLUSION = 3;
+const int TEXTURE_UNIT_EMISSIVE = 4;
+
 namespace our {
 
     // This is the base class for all the materials
@@ -53,13 +59,40 @@ namespace our {
         void deserialize(const nlohmann::json& data) override;
     };
 
+    // LitMaterial: Supports full PBR-like lighting with multiple textures
+    class LitMaterial : public TexturedMaterial {
+        public:
+            bool useTextureAlbedo = false;
+            bool useTextureMetallicRoughness = false;
+            bool useTextureNormal = false;
+            bool useTextureAmbientOcclusion = false;
+            bool useTextureEmissive = false;
+        
+            glm::vec3 albedo = glm::vec3(1.0, 1.0, 1.0);
+            float metallic = 1.0f;
+            float roughness = 0.0f;
+            float ambientOcclusion = 1.0f;
+            glm::vec3 emission = glm::vec3(0.0, 0.0, 0.0);
+        
+            Texture2D* textureAlbedo;
+            Texture2D* textureMetallicRoughness;
+            Texture2D* textureNormal;
+            Texture2D* textureAmbientOcclusion;
+            Texture2D* textureEmissive;
+
+            void setup() const override;
+            void deserialize(const nlohmann::json& data) override;
+        };
+
     // This function returns a new material instance based on the given type
     inline Material* createMaterialFromType(const std::string& type){
         if(type == "tinted"){
             return new TintedMaterial();
         } else if(type == "textured"){
             return new TexturedMaterial();
-        } else {
+        } else if(type == "lit"){
+            return new LitMaterial();
+        }else {
             return new Material();
         }
     }
