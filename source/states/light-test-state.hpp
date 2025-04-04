@@ -125,7 +125,8 @@ class LightTestState : public our::State {
         }
 
         // program->set("viewPos", glm::vec3(0.0f, 0.0f, 0.0f));
-        program->set("camera_position", glm::vec3(0.0f, 0.0f, 0.0f));   
+        program->set("camera_position", glm::vec3(0.0f, 0.0f, 0.0f));
+        material->setup();   
         
         bool first_light = true;
         int light_index = 0;
@@ -172,7 +173,6 @@ class LightTestState : public our::State {
                     break;
             }
 
-            material->setup();
         }
 
         for (auto& transform : transforms) {
