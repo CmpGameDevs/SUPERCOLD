@@ -54,7 +54,7 @@
                     "useTextureMetallicRoughness": false,
                     "useTextureAmbientOcclusion": false,
                     "useTextureEmissive": false,
-                    "albedo": [1, 0, 0],
+                    "albedo": [0.75, 0.75, 0.75],
                     "roughness": 0.25,
                     "metallic": 0.85,
                     "emissive": [0, 0, 0],

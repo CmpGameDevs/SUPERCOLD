@@ -1,3 +1,5 @@
+#pragma once
+
 #include <application.hpp>
 #include <utility>
 #include <iostream>
@@ -10,38 +12,89 @@
 #include <components/camera.hpp>
 #include <glm/gtx/euler_angles.hpp>
 #include <json/json.hpp>
-
 #include <fstream>
 #include <unordered_map>
 
-
 class LightTestState : public our::State {
 
-    // We will create a different shader program for each light type.
     our::ShaderProgram* program;
-    
     std::unordered_map<std::string,  our::Mesh*> meshes;
     our::Material* material;
-    
     std::vector<our::Transform> transforms;
     glm::mat4 VP;
-    
     std::vector<our::Light> lights;
-    
+    our::CameraComponent camera;
+    glm::vec3 cameraPosition = glm::vec3(0, 0, 5);
+    glm::vec3 cameraTarget = glm::vec3(0, 0, 0);
+    glm::vec3 cameraUp = glm::vec3(0, 1, 0);
+    float cameraYaw = -90.0f;
+    float cameraPitch = 0.0f;
+    float cameraZoom = 45.0f;
+    float movementSpeed = 5.0f;
+    float mouseSensitivity = 0.1f;
+
+    our::Mouse* mouse;
+    our::Keyboard* keyboard;
+
     our::WindowConfiguration getWindowConfiguration() {
         return { "Light", {1280, 720}, false };
     }
+
     std::unordered_map<std::string, int> lightTypes = {
         {"directional", 0},
         {"point", 1},
         {"spot", 2}
     };
-    
+
+    void updateCamera(double deltaTime) {
+        if (!keyboard->isPressed(GLFW_KEY_RIGHT_ALT)) {
+            float velocity = movementSpeed * (float)deltaTime;
+            glm::vec3 front;
+            front.x = cos(glm::radians(cameraYaw)) * cos(glm::radians(cameraPitch));
+            front.y = sin(glm::radians(cameraPitch));
+            front.z = sin(glm::radians(cameraYaw)) * cos(glm::radians(cameraPitch));
+            front = glm::normalize(front);
+
+            glm::vec3 right = glm::normalize(glm::cross(front, cameraUp));
+
+            if (keyboard->isPressed(GLFW_KEY_W)) cameraPosition += velocity * front;
+            if (keyboard->isPressed(GLFW_KEY_S)) cameraPosition -= velocity * front;
+            if (keyboard->isPressed(GLFW_KEY_A)) cameraPosition -= velocity * right;
+            if (keyboard->isPressed(GLFW_KEY_D)) cameraPosition += velocity * right;
+
+            if (mouse->isPressed(GLFW_MOUSE_BUTTON_LEFT)) {
+                glm::vec2 delta = mouse->getMouseDelta();
+                cameraYaw += delta.x * mouseSensitivity;
+                cameraPitch -= delta.y * mouseSensitivity;
+                cameraPitch = glm::clamp(cameraPitch, -89.0f, 89.0f);
+            }
+
+            cameraZoom -= mouse->getScrollOffset().y;
+            cameraZoom = glm::clamp(cameraZoom, 1.0f, 90.0f);
+        }
+
+        glm::vec3 front;
+        front.x = cos(glm::radians(cameraYaw)) * cos(glm::radians(cameraPitch));
+        front.y = sin(glm::radians(cameraPitch));
+        front.z = sin(glm::radians(cameraYaw)) * cos(glm::radians(cameraPitch));
+        front = glm::normalize(front);
+
+        glm::mat4 view = glm::lookAt(cameraPosition, cameraPosition + front, cameraUp);
+        glm::ivec2 size = getApp()->getFrameBufferSize();
+        float aspect = float(size.x)/size.y;
+        glm::mat4 proj = glm::perspective(glm::radians(cameraZoom), aspect, 0.01f, 1000.0f);
+
+        VP = proj * view;
+    }
+
     void onInitialize() override {
-        // We will create a different shader program for each light type.
         auto& config = getApp()->getConfig()["scene"];
 
-        // If we have assets in the scene config, we deserialize them
+        mouse = &getApp()->getMouse();
+        keyboard = &getApp()->getKeyboard();
+        mouse->setEnabled(true, getApp()->getWindow());
+        our::Mouse::lockMouse(getApp()->getWindow());
+
         if(config.contains("assets")){
             our::deserializeAllAssets(config["assets"]);
         }
@@ -61,25 +114,15 @@ class LightTestState : public our::State {
                 }
             }
         }
+
         if(config.contains("camera")){
-            if(auto& camera = config["camera"]; camera.is_object()){
-                glm::vec3 eye = camera.value("eye", glm::vec3(0, 0, 0));
-                glm::vec3 center = camera.value("center", glm::vec3(0, 0, -1));
-                glm::vec3 up = camera.value("up", glm::vec3(0, 1, 0));
-                glm::mat4 V = glm::lookAt(eye, center, up);
-
-                float fov = glm::radians(camera.value("fov", 90.0f));
-                float near = camera.value("near", 0.01f);
-                float far = camera.value("far", 1000.0f);
-
-                glm::ivec2 size = getApp()->getFrameBufferSize();
-                float aspect = float(size.x)/size.y;
-                glm::mat4 P = glm::perspective(fov, aspect, near, far);
-
-                VP = P * V;
+            if(auto& cam = config["camera"]; cam.is_object()){
+                cameraPosition = cam.value("eye", glm::vec3(0, 0, 5));
+                cameraTarget = cam.value("center", glm::vec3(0, 0, 0));
+                cameraUp = cam.value("up", glm::vec3(0, 1, 0));
             }
         }
-        
+
         if(config.contains("lights")){
             if(auto& lightsConfig = config["lights"]; lightsConfig.is_array()){
                 for(auto& lightConfig : lightsConfig){
@@ -94,55 +137,40 @@ class LightTestState : public our::State {
             }
         }
 
-
         glEnable(GL_DEPTH_TEST);
         glDepthFunc(GL_LEQUAL);
-
         glEnable(GL_CULL_FACE);
         glCullFace(GL_BACK);
         glFrontFace(GL_CCW);
+        glClearColor(0.5f, 0.5f, 0.3f, 1.0f);
 
-        // // We will use blending to combine the results of the different shaders together.
-        // // The combination will be additive so we will GL_FUNC_ADD as our blend equation.
-        // glBlendEquation(GL_FUNC_ADD);
-        // // We are not going to put alpha in our considerations for simplicity.
-        // // So to do basic addition, we will just multiply both the source and the destination by 1.
-        // glBlendFunc(GL_ONE, GL_ONE);
         std::cout << "LightTestState initialized." << std::endl;
     }
 
     void onDraw(double deltaTime) override {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    
+
+        updateCamera(deltaTime);
+
         if (lights.empty()) {
             std::cerr << "Error: No lights available." << std::endl;
             return;
         }
-    
         if (transforms.empty()) {
             std::cerr << "Error: No transforms available." << std::endl;
             return;
         }
 
-        // program->set("viewPos", glm::vec3(0.0f, 0.0f, 0.0f));
-        program->set("camera_position", glm::vec3(0.0f, 0.0f, 0.0f));
-        material->setup();   
-        
-        bool first_light = true;
+        program->set("camera_position", cameraPosition);
+        program->set(("light_count"), static_cast<int>(lights.size()));
+        material->setup();
+
         int light_index = 0;
-        const int MAX_LIGHT_COUNT = 16;
         for (const auto& light : lights) {
             if (!light.enabled) continue;
-    
-            // if (first_light) {
-            //     glDisable(GL_BLEND);
-            //     first_light = false;
-            // } else {
-            //     glEnable(GL_BLEND);
-            // }
 
             std::string prefix = "lights[" + std::to_string(light_index) + "].";
-            
+
             if(light.realistic){
                 program->set(prefix + "color", light.color);
             } else {
@@ -150,8 +178,7 @@ class LightTestState : public our::State {
                 program->set(prefix + "specular", light.specular);
                 program->set(prefix + "ambient", light.ambient);
             }
-            
-    
+
             switch (light.type) {
                 case our::LightType::DIRECTIONAL:
                     program->set(prefix + "direction", normalize(light.direction));
@@ -176,7 +203,8 @@ class LightTestState : public our::State {
         }
 
         for (auto& transform : transforms) {
-            program->set("transform", VP * transform.toMat4());
+            program->set("model", transform.toMat4());
+            program->set("MVP", VP * transform.toMat4());
             meshes["sphere"]->draw();
         }
     }
@@ -188,5 +216,4 @@ class LightTestState : public our::State {
             delete mesh;
         }
     }
-
 };

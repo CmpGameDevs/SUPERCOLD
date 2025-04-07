@@ -1,6 +1,7 @@
 #version 330 core
 precision highp float;
 #define PI 3.1415926535897932384626433832795
+#define MAX_LIGHTS 4
 #define GREYSCALE_WEIGHT_VECTOR vec3(0.2126, 0.7152, 0.0722)
 
 layout (location = 0) out vec4 FragColor;
@@ -41,7 +42,8 @@ struct Light {
 
 uniform Material material;
 uniform vec3 cameraPosition;
-uniform Light lights[4];
+uniform Light lights[MAX_LIGHTS];
+uniform int light_count;
 
 vec3 fresnelSchlick(float cosTheta, vec3 F0) {
     return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
@@ -104,7 +106,7 @@ void main() {
     vec3 F0 = mix(vec3(0.04), albedo, metallic);
 
     vec3 Lo = vec3(0.0);
-    for (int i = 0; i < 1; i++) {
+    for (int i = 0; i < light_count; i++) {
         vec3 L = normalize(lights[i].position - worldCoordinates);
         vec3 H = normalize(V + L);
 
