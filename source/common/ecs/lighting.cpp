@@ -33,11 +33,15 @@ namespace our {
         shininess = data.value("shininess", 1.0f);
         position = data.value("position", glm::vec3{0.0f, 0.0f, 0.0f});
         direction = data.value("direction", glm::vec3{0.0f, 0.0f, 0.0f});
-        attenuation.constant = data.value("attenuation.constant", 1.0f);
-        attenuation.linear = data.value("attenuation.linear", 0.0f);
-        attenuation.quadratic = data.value("attenuation.quadratic", 0.0f);
-        spot_angle.inner = glm::radians(data.value("spot_angle.inner", 12.5f));
-        spot_angle.outer = glm::radians(data.value("spot_angle.outer", 15.0f));
+        if(data.contains("attenuation")){
+            attenuation.constant = data["attenuation"].value("constant", 0.0f);
+            attenuation.linear = data["attenuation"].value("linear", 0.0f);
+            attenuation.quadratic = data["attenuation"].value("quadratic", 1.0f);
+        }
+        if(data.contains("spot_angle")){
+            spot_angle.inner = data["spot_angle"].value("inner", 0.785398163f);
+            spot_angle.outer = data["spot_angle"].value("outer", 1.57079633f);
+        }
     }
 
 }
