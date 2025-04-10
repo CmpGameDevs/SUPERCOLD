@@ -13,11 +13,11 @@ out vec3 bitangent;
 out vec3 normal;
 
 uniform mat4 model;
-uniform mat4 MVP;
+uniform mat4 view;
+uniform mat4 projection;
 
 void main() {
-	worldCoordinates = (model * vec4(aPos, 1.0f)).xyz;
-	gl_Position = MVP * vec4(aPos, 1.0f);
+	worldCoordinates = vec3(model * vec4(aPos, 1.0f));
 	textureCoordinates = aTextureCoordinates;
 
 	mat3 normalMatrix = transpose(inverse(mat3(model)));
@@ -25,4 +25,6 @@ void main() {
 	tangent = normalize(normalMatrix * aTangent);
 	bitangent = normalize(normalMatrix * aBitangent);
 	normal = normalize(normalMatrix * aNormal);
+	
+	gl_Position = projection * view * vec4(worldCoordinates, 1.0f);
 }
