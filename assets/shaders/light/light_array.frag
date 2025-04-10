@@ -43,12 +43,23 @@ struct Light {
 uniform Material material;
 uniform vec3 cameraPosition;
 uniform Light lights[MAX_LIGHTS];
-uniform int light_count;
+uniform int lightCount;
 
+
+// Fresnel function (Fresnel-Schlick approximation)
+//
+// F_schlick = f0 + (1 - f0)(1 - (h * v))^5
+//
 vec3 fresnelSchlick(float cosTheta, vec3 F0) {
     return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
+// Normal distribution function (Trowbridge-Reitz GGX)
+//
+//                alpha ^ 2
+//     ---------------------------------
+//      PI((n * h)^2(alpha^2 - 1) + 1)^2
+//
 float distributionGGX(vec3 N, vec3 H, float roughness) {
     float a2 = roughness * roughness * roughness * roughness;
     float NdotH = max(dot(N, H), 0.0);
@@ -56,17 +67,25 @@ float distributionGGX(vec3 N, vec3 H, float roughness) {
     return a2 / (PI * denom * denom);
 }
 
+// Geometry function
+//
+//         n * v
+//   -------------------
+//   (n * v)(1 - k) + k
+//
 float geometrySchlickGGX(float NdotV, float roughness) {
     float r = (roughness + 1.0);
     float k = (r * r) / 8.0;
     return NdotV / (NdotV * (1.0 - k) + k);
 }
 
+// smiths method for taking into account view direction and light direction
 float geometrySmith(vec3 N, vec3 V, vec3 L, float roughness) {
     return geometrySchlickGGX(max(dot(N, V), 0.0), roughness) *
            geometrySchlickGGX(max(dot(N, L), 0.0), roughness);
 }
 
+// Tangent space to world
 vec3 calculateNormal(vec3 tangentNormal) {
     vec3 norm = normalize(tangentNormal * 2.0 - 1.0);
     mat3 TBN = mat3(tangent, bitangent, normal);
@@ -74,11 +93,15 @@ vec3 calculateNormal(vec3 tangentNormal) {
 }
 
 void main() {
+    // retrieve all the material properties
+
+    // albedo
     vec3 albedo = material.albedo;
     if (material.useTextureAlbedo) {
         albedo = texture(material.textureAlbedo, textureCoordinates).rgb;
     }
 
+    // metallic/roughness
     float metallic = material.metallic;
     float roughness = material.roughness;
     if (material.useTextureMetallicRoughness) {
@@ -87,33 +110,41 @@ void main() {
         roughness = metallicRoughness.g;
     }
 
-    vec3 N = normal;
+    // normal
+    vec3 N = normalize(normal);
     if (material.useTextureNormal) {
         N = calculateNormal(texture(material.textureNormal, textureCoordinates).rgb);
     }
 
+    // ambient occlusion
     float ao = material.ambientOcclusion;
     if (material.useTextureAmbientOcclusion) {
         ao = texture(material.textureAmbientOcclusion, textureCoordinates).r;
     }
 
+    // emissive
     vec3 emissive = material.emissive;
     if (material.useTextureEmissive) {
         emissive = texture(material.textureEmissive, textureCoordinates).rgb;
     }
 
-    vec3 V = normalize(cameraPosition - worldCoordinates);
+    vec3 V = normalize(cameraPosition - worldCoordinates); // view vector pointing at camera
+    // f0 is the "surface reflection at zero incidence"
+    // for PBR-metallic we assume dialectrics all have 0.04
+	// for metals the value comes from the albedo map
     vec3 F0 = mix(vec3(0.04), albedo, metallic);
 
-    vec3 Lo = vec3(0.0);
-    for (int i = 0; i < light_count; i++) {
+    vec3 Lo = vec3(0.0);  // total radiance out
+
+    // Direct lighting
+	// Sum up the radiance contributions of each light source.
+	// This loop is essentially the integral of the rendering equation.
+    for (int i = 0; i < lightCount; i++) {
         vec3 L = normalize(lights[i].position - worldCoordinates);
         vec3 H = normalize(V + L);
 
         float distance = length(lights[i].position - worldCoordinates);
-        float attenuation = 1.0 / (lights[i].attenuation_constant +
-                                   lights[i].attenuation_linear * distance +
-                                   lights[i].attenuation_quadratic * distance * distance);
+        float attenuation = 1.0 / (distance * distance);
         vec3 radiance = lights[i].color * attenuation;
 
         float NDF = distributionGGX(N, H, roughness);
@@ -121,8 +152,8 @@ void main() {
         vec3 F = fresnelSchlick(max(dot(H, V), 0.0), F0);
 
         vec3 numerator = NDF * G * F;
-        float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0);
-        vec3 specular = numerator / max(denominator, 0.001);
+        float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;
+        vec3 specular = numerator / denominator;
 
         vec3 kS = F;
         vec3 kD = vec3(1.0) - kS;
