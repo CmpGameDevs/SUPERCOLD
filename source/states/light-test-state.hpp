@@ -149,7 +149,9 @@ class LightTestState : public our::State {
     };
 
     void updateCamera(double deltaTime) {
-        float velocity = movementSpeed * (float)deltaTime;
+        float speedup =  1.0f;
+        if (keyboard->isPressed(GLFW_KEY_LEFT_SHIFT)) speedup = 2.0f;
+        float velocity = movementSpeed * (float)deltaTime * speedup;
         glm::vec3 front;
         front.x = cos(glm::radians(cameraYaw)) * cos(glm::radians(cameraPitch));
         front.y = sin(glm::radians(cameraPitch));
@@ -164,6 +166,7 @@ class LightTestState : public our::State {
         if (keyboard->isPressed(GLFW_KEY_A)) cameraPosition -= velocity * right;
         if (keyboard->isPressed(GLFW_KEY_D)) cameraPosition += velocity * right;
         if(keyboard->isPressed(GLFW_KEY_SPACE)) cameraPosition += velocity * up;
+        
 
         if (mouse->isPressed(GLFW_MOUSE_BUTTON_LEFT)) {
             glm::vec2 delta = mouse->getMouseDelta();
