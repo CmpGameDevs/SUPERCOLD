@@ -18,7 +18,7 @@
     "scene": {
         "assets":{
             "shaders":{
-                "lit":{
+                "pbr":{
                     "vs":"assets/shaders/light/light_array.vert",
                     "fs":"assets/shaders/light/light_array.frag"
                 }
@@ -35,9 +35,9 @@
                 "mesh": "assets/models/sphere.obj"
             },
             "materials":{
-                "material":{
+                "pbr":{
                     "type": "lit",
-                    "shader": "lit",
+                    "shader": "pbr",
                     "pipelineState": {
                         "faceCulling":{
                             "enabled": false

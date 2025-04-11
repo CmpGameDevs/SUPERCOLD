@@ -115,9 +115,9 @@ void renderSphere()
 
 class LightTestState : public our::State {
 
-    our::ShaderProgram* program;
+    our::ShaderProgram* pbr_shader;
     std::unordered_map<std::string,  our::Mesh*> meshes;
-    our::Material* material;
+    our::Material* pbr_material;
     glm::mat4 model = glm::mat4(1.0f);
     our::Transform transform;
     glm::mat4 view;
@@ -196,10 +196,10 @@ class LightTestState : public our::State {
             our::deserializeAllAssets(config["assets"]);
         }
 
-        program = our::AssetLoader<our::ShaderProgram>::get("lit");
+        pbr_shader = our::AssetLoader<our::ShaderProgram>::get("pbr");
         meshes["sphere"] = our::AssetLoader<our::Mesh>::get("mesh");
-        material = our::AssetLoader<our::Material>::get("material");
-        program->use();
+        pbr_material = our::AssetLoader<our::Material>::get("pbr");
+        pbr_shader->use();
 
         if(config.contains("grid")){
             if(auto& grid = config["grid"]; grid.is_object()){
@@ -243,11 +243,11 @@ class LightTestState : public our::State {
 
         updateCamera(deltaTime);
 
-        program->set("view", view);
-        program->set("projection", projection);
-        program->set("cameraPosition", cameraPosition);
-        program->set("lightCount", static_cast<int>(lights.size()));
-        material->setup();
+        pbr_shader->set("view", view);
+        pbr_shader->set("projection", projection);
+        pbr_shader->set("cameraPosition", cameraPosition);
+        pbr_shader->set("lightCount", static_cast<int>(lights.size()));
+        pbr_material->setup();
 
         transform.position = glm::vec3(0, 0, 0);
         transform.rotation = glm::vec3(0, 0, 0);
@@ -256,12 +256,12 @@ class LightTestState : public our::State {
 
         for (int row = 0; row < nrRows; ++row) 
         {
-            program->set("material.metallic", (float)row / (float)nrRows);
+            pbr_shader->set("material.metallic", (float)row / (float)nrRows);
             for (int col = 0; col < nrColumns; ++col) 
             {
                 // we clamp the roughness to 0.05 - 1.0 as perfectly smooth surfaces (roughness of 0.0) tend to look a bit off
                 // on direct lighting.
-                program->set("material.roughness", glm::clamp((float)col / (float)nrColumns, 0.05f, 1.0f));
+                pbr_shader->set("material.roughness", glm::clamp((float)col / (float)nrColumns, 0.05f, 1.0f));
                 
                 model = glm::mat4(1.0f);
                 transform.position = glm::vec3(
@@ -270,7 +270,7 @@ class LightTestState : public our::State {
                     0.0f
                 );
                 model = transform.toMat4();
-                program->set("model", model);
+                pbr_shader->set("model", model);
                 renderSphere();
             }
         }
@@ -282,31 +282,31 @@ class LightTestState : public our::State {
             std::string prefix = "lights[" + std::to_string(light_index) + "].";
 
             if(light.realistic){
-                program->set(prefix + "color", light.color);
+                pbr_shader->set(prefix + "color", light.color);
             } else {
-                program->set(prefix + "diffuse", light.diffuse);
-                program->set(prefix + "specular", light.specular);
-                program->set(prefix + "ambient", light.ambient);
+                pbr_shader->set(prefix + "diffuse", light.diffuse);
+                pbr_shader->set(prefix + "specular", light.specular);
+                pbr_shader->set(prefix + "ambient", light.ambient);
             }
 
             switch (light.type) {
                 case our::LightType::DIRECTIONAL:
-                    program->set(prefix + "direction", normalize(light.direction));
+                    pbr_shader->set(prefix + "direction", normalize(light.direction));
                     break;
                 case our::LightType::POINT:
-                    program->set(prefix + "position", light.position);
-                    program->set(prefix + "attenuation_constant", light.attenuation.constant);
-                    program->set(prefix + "attenuation_linear", light.attenuation.linear);
-                    program->set(prefix + "attenuation_quadratic", light.attenuation.quadratic);
+                    pbr_shader->set(prefix + "position", light.position);
+                    pbr_shader->set(prefix + "attenuation_constant", light.attenuation.constant);
+                    pbr_shader->set(prefix + "attenuation_linear", light.attenuation.linear);
+                    pbr_shader->set(prefix + "attenuation_quadratic", light.attenuation.quadratic);
                     break;
                 case our::LightType::SPOT:
-                    program->set(prefix + "position", light.position);
-                    program->set(prefix + "direction", glm::normalize(light.direction));
-                    program->set(prefix + "attenuation_constant", light.attenuation.constant);
-                    program->set(prefix + "attenuation_linear", light.attenuation.linear);
-                    program->set(prefix + "attenuation_quadratic", light.attenuation.quadratic);
-                    program->set(prefix + "inner_angle", light.spot_angle.inner);
-                    program->set(prefix + "outer_angle", light.spot_angle.outer);
+                    pbr_shader->set(prefix + "position", light.position);
+                    pbr_shader->set(prefix + "direction", glm::normalize(light.direction));
+                    pbr_shader->set(prefix + "attenuation_constant", light.attenuation.constant);
+                    pbr_shader->set(prefix + "attenuation_linear", light.attenuation.linear);
+                    pbr_shader->set(prefix + "attenuation_quadratic", light.attenuation.quadratic);
+                    pbr_shader->set(prefix + "inner_angle", light.spot_angle.inner);
+                    pbr_shader->set(prefix + "outer_angle", light.spot_angle.outer);
                     break;
             }
             light_index++;
@@ -315,7 +315,7 @@ class LightTestState : public our::State {
             transform.position = light.position;
             transform.scale = glm::vec3(0.5f);
             model = transform.toMat4();
-            program->set("model", model);
+            pbr_shader->set("model", model);
             renderSphere();
         }
 
@@ -323,8 +323,8 @@ class LightTestState : public our::State {
     }
 
     void onDestroy() override {
-        delete program;
-        delete material;
+        delete pbr_shader;
+        delete pbr_material;
         for(auto& [name, mesh]: meshes){
             delete mesh;
         }
