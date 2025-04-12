@@ -9,10 +9,11 @@
 #include <json/json.hpp>
 
 const int TEXTURE_UNIT_ALBEDO = 0;
-const int TEXTURE_UNIT_METALLIC_ROUGHNESS = 1;
-const int TEXTURE_UNIT_NORMAL = 2;
-const int TEXTURE_UNIT_AMBIENT_OCCLUSION = 3;
-const int TEXTURE_UNIT_EMISSIVE = 4;
+const int TEXTURE_UNIT_METALLIC = 1;
+const int TEXTURE_UNIT_ROUGHNESS = 2;
+const int TEXTURE_UNIT_NORMAL = 3;
+const int TEXTURE_UNIT_AMBIENT_OCCLUSION = 4;
+const int TEXTURE_UNIT_EMISSIVE = 5;
 
 namespace our {
 
@@ -63,7 +64,8 @@ namespace our {
     class LitMaterial : public TexturedMaterial {
         public:
             bool useTextureAlbedo = false;
-            bool useTextureMetallicRoughness = false;
+            bool useTextureMetallic = false;
+            bool useTextureRoughness = false;
             bool useTextureNormal = false;
             bool useTextureAmbientOcclusion = false;
             bool useTextureEmissive = false;
@@ -75,7 +77,8 @@ namespace our {
             glm::vec3 emission = glm::vec3(0.0, 0.0, 0.0);
         
             Texture2D* textureAlbedo;
-            Texture2D* textureMetallicRoughness;
+            Texture2D* textureMetallic;
+            Texture2D* textureRoughness;
             Texture2D* textureNormal;
             Texture2D* textureAmbientOcclusion;
             Texture2D* textureEmissive;

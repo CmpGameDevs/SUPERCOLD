@@ -14,7 +14,8 @@ in vec3 normal;
 
 struct Material {
     bool useTextureAlbedo;
-    bool useTextureMetallicRoughness;
+    bool useTextureMetallic;
+    bool useTextureRoughness;
     bool useTextureNormal;
     bool useTextureAmbientOcclusion;
     bool useTextureEmissive;
@@ -26,7 +27,8 @@ struct Material {
     vec3 emissive;
 
     sampler2D textureAlbedo;
-    sampler2D textureMetallicRoughness;
+    sampler2D textureMetallic;
+    sampler2D textureRoughness;
     sampler2D textureNormal;
     sampler2D textureAmbientOcclusion;
     sampler2D textureEmissive;
@@ -85,11 +87,26 @@ float geometrySmith(vec3 N, vec3 V, vec3 L, float roughness) {
            geometrySchlickGGX(max(dot(N, L), 0.0), roughness);
 }
 
-// Tangent space to world
-vec3 calculateNormal(vec3 tangentNormal) {
-    vec3 norm = normalize(tangentNormal * 2.0 - 1.0);
-    mat3 TBN = mat3(tangent, bitangent, normal);
-    return normalize(TBN * norm);
+// ----------------------------------------------------------------------------
+// Easy trick to get tangent-normals to world-space to keep PBR code simplified.
+// Don't worry if you don't get what's going on; you generally want to do normal 
+// mapping the usual way for performance anyways; I do plan make a note of this 
+// technique somewhere later in the normal mapping tutorial.
+vec3 getNormalFromMap()
+{
+    vec3 tangentNormal = texture(material.textureNormal, textureCoordinates).xyz * 2.0 - 1.0;
+
+    vec3 Q1  = dFdx(worldCoordinates);
+    vec3 Q2  = dFdy(worldCoordinates);
+    vec2 st1 = dFdx(textureCoordinates);
+    vec2 st2 = dFdy(textureCoordinates);
+
+    vec3 N   = normalize(normal);
+    vec3 T  = normalize(Q1*st2.t - Q2*st1.t);
+    vec3 B  = -normalize(cross(N, T));
+    mat3 TBN = mat3(T, B, N);
+
+    return normalize(TBN * tangentNormal);
 }
 
 void main() {
@@ -98,22 +115,24 @@ void main() {
     // albedo
     vec3 albedo = material.albedo;
     if (material.useTextureAlbedo) {
-        albedo = texture(material.textureAlbedo, textureCoordinates).rgb;
+        albedo = pow(texture(material.textureAlbedo, textureCoordinates).rgb, vec3(2.2));
     }
 
     // metallic/roughness
     float metallic = material.metallic;
     float roughness = material.roughness;
-    if (material.useTextureMetallicRoughness) {
-        vec3 metallicRoughness = texture(material.textureMetallicRoughness, textureCoordinates).rgb;
-        metallic = metallicRoughness.b;
-        roughness = metallicRoughness.g;
+    if (material.useTextureMetallic) {
+        metallic = texture(material.textureMetallic, textureCoordinates).r;
+    }
+
+    if (material.useTextureRoughness) {
+        roughness = texture(material.textureRoughness, textureCoordinates).r;
     }
 
     // normal
     vec3 N = normalize(normal);
     if (material.useTextureNormal) {
-        N = calculateNormal(texture(material.textureNormal, textureCoordinates).rgb);
+        N = getNormalFromMap();
     }
 
     // ambient occlusion

@@ -2,7 +2,7 @@
 
 #include "../asset-loader.hpp"
 #include "deserialize-utils.hpp"
-
+#include <iostream>
 namespace our
 {
 
@@ -75,7 +75,8 @@ namespace our
     {
         TexturedMaterial::setup();
         shader->set("material.useTextureAlbedo", useTextureAlbedo);
-        shader->set("material.useTextureMetallicRoughness", useTextureMetallicRoughness);
+        shader->set("material.useTextureMetallic", useTextureMetallic);
+        shader->set("material.useTextureRoughness", useTextureRoughness);
         shader->set("material.useTextureNormal", useTextureNormal);
         shader->set("material.useTextureAmbientOcclusion", useTextureAmbientOcclusion);
         shader->set("material.useTextureEmissive", useTextureEmissive);
@@ -90,11 +91,17 @@ namespace our
             textureAlbedo->bind();
             shader->set("material.textureAlbedo", TEXTURE_UNIT_ALBEDO);
         }
-        if (useTextureMetallicRoughness)
+        if (useTextureMetallic)
         {
-            glActiveTexture(GL_TEXTURE0 + TEXTURE_UNIT_METALLIC_ROUGHNESS);
-            textureMetallicRoughness->bind();
-            shader->set("material.textureMetallicRoughness", TEXTURE_UNIT_METALLIC_ROUGHNESS);
+            glActiveTexture(GL_TEXTURE0 + TEXTURE_UNIT_METALLIC);
+            textureMetallic->bind();
+            shader->set("material.textureMetallic", TEXTURE_UNIT_METALLIC);
+        }
+        if (useTextureRoughness)
+        {
+            glActiveTexture(GL_TEXTURE0 + TEXTURE_UNIT_ROUGHNESS);
+            textureRoughness->bind();
+            shader->set("material.textureRoughness", TEXTURE_UNIT_ROUGHNESS);
         }
         if (useTextureNormal)
         {
@@ -122,7 +129,8 @@ namespace our
         if (!data.is_object())
             return;
         useTextureAlbedo = data.value("useTextureAlbedo", false);
-        useTextureMetallicRoughness = data.value("useTextureMetallicRoughness", false);
+        useTextureMetallic = data.value("useTextureMetallic", false);
+        useTextureRoughness = data.value("useTextureRoughness", false);
         useTextureNormal = data.value("useTextureNormal", false);
         useTextureAmbientOcclusion = data.value("useTextureAmbientOcclusion", false);
         useTextureEmissive = data.value("useTextureEmissive", false);
@@ -132,7 +140,8 @@ namespace our
         ambientOcclusion = data.value("ambientOcclusion", 1.0f);
         emission = data.value("emission", glm::vec3(0.0f, 0.0f, 0.0f));
         textureAlbedo = AssetLoader<Texture2D>::get(data.value("textureAlbedo", ""));
-        textureMetallicRoughness = AssetLoader<Texture2D>::get(data.value("textureMetallicRoughness", ""));
+        textureMetallic = AssetLoader<Texture2D>::get(data.value("textureMetallic", ""));
+        textureRoughness = AssetLoader<Texture2D>::get(data.value("textureRoughness", ""));
         textureNormal = AssetLoader<Texture2D>::get(data.value("textureNormal", ""));
         textureAmbientOcclusion = AssetLoader<Texture2D>::get(data.value("textureAmbientOcclusion", ""));
         textureEmissive = AssetLoader<Texture2D>::get(data.value("textureEmissive", ""));
