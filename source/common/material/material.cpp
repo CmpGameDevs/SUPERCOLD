@@ -56,7 +56,7 @@ namespace our
         shader->set("alphaThreshold", alphaThreshold);
         glActiveTexture(GL_TEXTURE0);
         texture->bind();
-        sampler->bind(GL_TEXTURE0);
+        sampler->bind(0);
         shader->set("tex", 0);
     }
 
