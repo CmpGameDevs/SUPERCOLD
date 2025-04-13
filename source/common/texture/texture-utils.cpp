@@ -94,7 +94,7 @@ void our::texture_utils::setupFrameBuffers(unsigned int& captureFBO,unsigned int
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, captureRBO);
 }
 
-void our::texture_utils::setupCubeMapFramebuffer(GLuint& texture, int size){
+void our::texture_utils::setupCubeMapFramebuffer(GLuint& texture, int size, bool generate_mipmap) {
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_CUBE_MAP, texture);
     for (int i = 0; i < 6; ++i) {
@@ -105,4 +105,8 @@ void our::texture_utils::setupCubeMapFramebuffer(GLuint& texture, int size){
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    if (generate_mipmap) {
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+    }
 }

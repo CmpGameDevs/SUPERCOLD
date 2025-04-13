@@ -21,6 +21,8 @@
 const int TEXTURE_UNIT_IRRADIANCE = 9;
 const int TEXTURE_UNIT_ENVIRONMENT = 10;
 const int TEXTURE_UNIT_HDR = 11;
+const int TEXTURE_UNIT_BRDF = 12;
+const int TEXTURE_UNIT_PREFILTER = 13;
 
 // renders (and builds at first invocation) a sphere
 // -------------------------------------------------
@@ -193,12 +195,46 @@ void renderCube()
     glDrawArrays(GL_TRIANGLES, 0, 36);
     glBindVertexArray(0);
 }
+
+// renderQuad() renders a 1x1 XY quad in NDC
+// -----------------------------------------
+unsigned int quadVAO = 0;
+unsigned int quadVBO;
+void renderQuad()
+{
+    if (quadVAO == 0)
+    {
+        float quadVertices[] = {
+            // positions        // texture Coords
+            -1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
+            -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+             1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
+             1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
+        };
+        // setup plane VAO
+        glGenVertexArrays(1, &quadVAO);
+        glGenBuffers(1, &quadVBO);
+        glBindVertexArray(quadVAO);
+        glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    }
+    glBindVertexArray(quadVAO);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    glBindVertexArray(0);
+}
+
 class LightTestState : public our::State {
 
     our::ShaderProgram* pbr_shader;
     our::ShaderProgram* equirectangular_shader;
     our::ShaderProgram* irradiance_shader;
     our::ShaderProgram* background_shader;
+    our::ShaderProgram* brdf_shader;
+    our::ShaderProgram* prefilter_shader;
     our::Sampler* sampler;
     std::unordered_map<std::string,  our::Mesh*> meshes;
     our::Material* pbr_material;
@@ -213,6 +249,8 @@ class LightTestState : public our::State {
     glm::vec3 cameraUp = glm::vec3(0, 1, 0);
     GLuint envCubemap;
     GLuint irradianceMap;
+    GLuint prefilterMap;
+    our::Texture2D* brdfLUTTexture;
     float near;
     float far;
     float cameraYaw = -90.0f;
@@ -287,6 +325,8 @@ class LightTestState : public our::State {
         equirectangular_shader = our::AssetLoader<our::ShaderProgram>::get("equirectangular");
         irradiance_shader = our::AssetLoader<our::ShaderProgram>::get("irradiance");
         background_shader = our::AssetLoader<our::ShaderProgram>::get("background");
+        brdf_shader = our::AssetLoader<our::ShaderProgram>::get("brdf");
+        prefilter_shader = our::AssetLoader<our::ShaderProgram>::get("prefilter");
         meshes["sphere"] = our::AssetLoader<our::Mesh>::get("mesh");
         pbr_material = our::AssetLoader<our::Material>::get("pbr");
         sampler = our::AssetLoader<our::Sampler>::get("sampler");
@@ -294,6 +334,8 @@ class LightTestState : public our::State {
         pbr_material->setup();
         pbr_shader->use();
         pbr_shader->set("irradianceMap", TEXTURE_UNIT_IRRADIANCE);
+        pbr_shader->set("prefilterMap", TEXTURE_UNIT_PREFILTER);
+        pbr_shader->set("brdfLUT", TEXTURE_UNIT_BRDF);
         background_shader->use();
         background_shader->set("environmentMap", TEXTURE_UNIT_ENVIRONMENT);
 
@@ -332,8 +374,8 @@ class LightTestState : public our::State {
         
         unsigned int captureFBO = 0, captureRBO = 0;
         our::texture_utils::setupFrameBuffers(captureFBO, captureRBO);
-        our::Texture2D* hdr_texture = our::texture_utils::loadHDR("assets/textures/hdr/newport_loft.hdr", false);
-        our::texture_utils::setupCubeMapFramebuffer(envCubemap, 512);
+        our::Texture2D* hdr_texture = our::texture_utils::loadHDR("assets/textures/hdr/circus_backstage.hdr", false);
+        our::texture_utils::setupCubeMapFramebuffer(envCubemap, 512, false);
 
         // pbr: set up projection and view matrices for capturing data onto the 6 cubemap face directions
         // ----------------------------------------------------------------------------------------------
@@ -369,6 +411,9 @@ class LightTestState : public our::State {
         }
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+        // then let OpenGL generate mipmaps from first mip face (combatting visible dots artifact)
+        glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap);
+        glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
 
         // pbr: create an irradiance cubemap, and re-scale capture FBO to irradiance scale.
         // --------------------------------------------------------------------------------
@@ -397,6 +442,67 @@ class LightTestState : public our::State {
             renderCube();
         }
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        // pbr: create a pre-filter cubemap, and re-scale capture FBO to pre-filter scale.
+        // --------------------------------------------------------------------------------
+        our::texture_utils::setupCubeMapFramebuffer(prefilterMap, 128, true);
+
+        // pbr: run a quasi monte-carlo simulation on the environment lighting to create a prefilter (cube)map.
+        // ----------------------------------------------------------------------------------------------------
+        prefilter_shader->use();
+        prefilter_shader->set("environmentMap", TEXTURE_UNIT_PREFILTER);
+        prefilter_shader->set("projection", captureProjection);
+        glActiveTexture(GL_TEXTURE0 + TEXTURE_UNIT_PREFILTER);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+        unsigned int maxMipLevels = 5;
+        for (unsigned int mip = 0; mip < maxMipLevels; ++mip)
+        {
+            // reisze framebuffer according to mip-level size.
+            unsigned int mipWidth  = static_cast<unsigned int>(128 * std::pow(0.5, mip));
+            unsigned int mipHeight = static_cast<unsigned int>(128 * std::pow(0.5, mip));
+            glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
+            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, mipWidth, mipHeight);
+            glViewport(0, 0, mipWidth, mipHeight);
+
+            float roughness = (float)mip / (float)(maxMipLevels - 1);
+            prefilter_shader->set("roughness", roughness);
+            for (unsigned int i = 0; i < 6; ++i)
+            {
+                prefilter_shader->set("view", captureViews[i]);
+                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, prefilterMap, mip);
+
+                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                renderCube();
+            }
+        }
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        // pbr: generate a 2D LUT from the BRDF equations used.
+        // ----------------------------------------------------
+        brdfLUTTexture = new our::Texture2D();
+        brdfLUTTexture->bind();
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, 512, 512, 0, GL_RG, GL_FLOAT, 0);
+        // be sure to set wrapping mode to GL_CLAMP_TO_EDGE
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        // then re-configure capture framebuffer object and render screen-space quad with BRDF shader.
+        glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+        glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, 512, 512);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, brdfLUTTexture->getOpenGLName(), 0);
+
+        glViewport(0, 0, 512, 512);
+        brdf_shader->use();
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        renderQuad();
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        
 
         std::cout << "Loaded HDR texture: "  << std::endl;
         
@@ -427,6 +533,10 @@ class LightTestState : public our::State {
         // bind pre-computed IBL data
         glActiveTexture(GL_TEXTURE0 + TEXTURE_UNIT_IRRADIANCE);
         glBindTexture(GL_TEXTURE_CUBE_MAP, irradianceMap);
+        glActiveTexture(GL_TEXTURE0 + TEXTURE_UNIT_PREFILTER);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, prefilterMap);
+        glActiveTexture(GL_TEXTURE0 + TEXTURE_UNIT_BRDF);
+        brdfLUTTexture->bind();
         
         for (int row = 0; row < nrRows; ++row) 
         {

@@ -33,6 +33,14 @@
                 "irradiance":{
                     "vs":"assets/shaders/light/ibl/cubemap.vert",
                     "fs":"assets/shaders/light/ibl/irradiance.frag"
+                },
+                "prefilter":{
+                    "vs":"assets/shaders/light/ibl/cubemap.vert",
+                    "fs":"assets/shaders/light/ibl/prefilter.frag"
+                },
+                "brdf":{
+                    "vs":"assets/shaders/light/ibl/brdf.vert",
+                    "fs":"assets/shaders/light/ibl/brdf.frag"
                 }
 
             },
@@ -72,7 +80,7 @@
                     "useTextureRoughness": false,
                     "useTextureAmbientOcclusion": false,
                     "useTextureEmissive": false,
-                    "albedo": [0.5, 0.0, 0.0],
+                    "albedo": [0.75, 0.75, 0.75],
                     "roughness": 0.5,
                     "metallic": 0.85,
                     "emissive": [0, 0, 0],

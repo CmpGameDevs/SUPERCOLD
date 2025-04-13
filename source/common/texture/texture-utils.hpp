@@ -16,7 +16,7 @@ namespace our::texture_utils {
 
     void setupFrameBuffers(unsigned int& captureFBO,unsigned int& captureRBO);
 
-    void setupCubeMapFramebuffer(GLuint& texture, int size);
+    void setupCubeMapFramebuffer(GLuint& texture, int size,bool generate_mipmap = false);
 
 
 }
