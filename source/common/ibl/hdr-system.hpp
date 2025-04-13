@@ -38,7 +38,9 @@ namespace our
         CubeMap *prefilterCubeMap;
         CubeMap *equirectangularCubeMap;
         our::Texture2D *brdfLUTTexture;
-
+        our::Texture2D *hdr_texture;
+        GLuint maxMipLevels = 5;
+        bool enable = true;
         glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
         glm::mat4 captureViews[6] =
             {
@@ -64,6 +66,15 @@ namespace our
         void bindTextures();
 
         void unbindTextures();
+
+        void deserialize(const nlohmann::json &data)
+        {
+            if (!data.is_object())
+                return;
+            hdr_texture = AssetLoader<Texture2D>::get(data.value("hdr_texture", ""));
+            enable = data.value("enable", true);
+            maxMipLevels = data.value("maxMipLevels", 5);
+        }
 
         void renderBackground(glm::mat4 projection, glm::mat4 view);
 

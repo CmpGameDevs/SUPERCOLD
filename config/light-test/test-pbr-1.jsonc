@@ -38,7 +38,7 @@
                 "mesh": "assets/models/sphere.obj"
             },
             "materials":{
-                "pbr":{
+                "test":{
                     "type": "lit",
                     "shader": "pbr",
                     "pipelineState": {

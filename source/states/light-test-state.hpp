@@ -26,6 +26,7 @@ class LightTestState : public our::State {
     our::ShaderProgram* pbr_shader;
     our::Sampler* sampler;
     our::Material* pbr_material;
+    std::vector<our::Material*> pbr_materials;
     our::Transform transform;
     our::HDRSystem* hdrSystem;
     std::unordered_map<std::string,  our::Mesh*> meshes;
@@ -46,6 +47,7 @@ class LightTestState : public our::State {
     int nrRows;
     int nrColumns;
     float gap;
+    bool test_metallic_roughness;
 
     our::Mouse* mouse;
     our::Keyboard* keyboard;
@@ -107,8 +109,19 @@ class LightTestState : public our::State {
         
         pbr_shader = our::AssetLoader<our::ShaderProgram>::get("pbr");
         meshes["sphere"] = our::AssetLoader<our::Mesh>::get("mesh");
-        pbr_material = our::AssetLoader<our::Material>::get("pbr");
+        pbr_material = our::AssetLoader<our::Material>::get("gold");
         sampler = our::AssetLoader<our::Sampler>::get("sampler");
+
+         // Load multiple materials
+         std::vector<std::string> availableMaterials = {"test","gold", "silver", "rusted_iron", "wall", "grass", "plastic"};
+         for(auto &name : availableMaterials) {
+             our::Material* mat = our::AssetLoader<our::Material>::get(name);
+             if(mat)
+                 pbr_materials.push_back(mat);
+         }
+         if(pbr_materials.empty()){
+             std::cerr << "No materials loaded. Make sure the AssetLoader has materials defined." << std::endl;
+         }
         
         
         if(config.contains("grid")){
@@ -116,6 +129,7 @@ class LightTestState : public our::State {
                 nrRows = grid.value("rows", 1);
                 nrColumns = grid.value("columns", 1);
                 gap = grid.value("gap", 2.5f);
+                test_metallic_roughness = grid.value("test_metallic_roughness", true);
             }
         }
         
@@ -142,20 +156,29 @@ class LightTestState : public our::State {
                 }
             }
         }
+
+        hdrSystem = new our::HDRSystem();
+
+        if(config.contains("hdr")){
+            hdrSystem->deserialize(config["hdr"]);
+        }
+        else {
+            hdrSystem->enable = false;
+        }
+
+        std::cout << "HDR System: " << (hdrSystem->enable ? "Enabled" : "Disabled") << std::endl;
         
-        pbr_material->setup();
+        // pbr_material->setup();
+        pbr_materials[0]->setup();
         pbr_shader->use();
         pbr_shader->set("irradianceMap", TEXTURE_UNIT_IRRADIANCE);
         pbr_shader->set("prefilterMap", TEXTURE_UNIT_PREFILTER);
         pbr_shader->set("brdfLUT", TEXTURE_UNIT_BRDF);
-        
-        hdrSystem = new our::HDRSystem();
+        pbr_shader->set("use_hdr", hdrSystem->enable);
 
-        hdrSystem->Initialize();
-        std::cout<<"HDRSystem initialized."<<std::endl;
-        hdrSystem->setup();
-        std::cout<<"HDRSystem setup."<<std::endl;
         
+        hdrSystem->Initialize();
+        hdrSystem->setup();
         
         glViewport(0, 0, getApp()->getWindowSize().x, getApp()->getWindowSize().y);
 
@@ -163,7 +186,7 @@ class LightTestState : public our::State {
     }
 
     void onDraw(double deltaTime) override {
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         updateCamera(deltaTime);
@@ -182,6 +205,10 @@ class LightTestState : public our::State {
         // bind pre-computed IBL data
         hdrSystem->bindTextures();
 
+        if(test_metallic_roughness){
+            pbr_materials[0]->setup();
+        } 
+
         for (int row = 0; row < nrRows; ++row) 
         {
             pbr_shader->set("material.metallic", (float)row / (float)nrRows);
@@ -190,6 +217,15 @@ class LightTestState : public our::State {
                 // we clamp the roughness to 0.05 - 1.0 as perfectly smooth surfaces (roughness of 0.0) tend to look a bit off
                 // on direct lighting.
                 pbr_shader->set("material.roughness", glm::clamp((float)col / (float)nrColumns, 0.05f, 1.0f));
+
+                if(!test_metallic_roughness){
+                    // Select the material based on grid cell index (repeat when needed)
+                    int index = (row * nrColumns + col) % (pbr_materials.empty() ? 1 : pbr_materials.size());
+                    if(!pbr_materials.empty()){
+                        // Assumes each material has a setup() that binds its textures and sets uniforms.
+                        pbr_materials[index]->setup();
+                    }
+                }
                 
                 model = glm::mat4(1.0f);
                 transform.position = glm::vec3(

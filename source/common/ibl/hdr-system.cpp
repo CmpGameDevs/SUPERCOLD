@@ -5,6 +5,7 @@ namespace our
 {
 
     void our::HDRSystem::Initialize(){
+        if (enable == false) return;
         initializeShader();
         initializeTexture();
         initializeBuffer();
@@ -13,6 +14,7 @@ namespace our
 
     void our::HDRSystem::initializeShader()
     {
+        if (enable == false) return;
         equirectangular_shader = AssetLoader<ShaderProgram>::get("equirectangular");
         irradiance_shader = AssetLoader<ShaderProgram>::get("irradiance");
         background_shader = AssetLoader<ShaderProgram>::get("background");
@@ -22,13 +24,15 @@ namespace our
     
     void our::HDRSystem::initializeCubeMap()
     {
+        if (enable == false) return;
         equirectangularCubeMap = new EquiRectangularCubeMap(equirectangular_shader, envCubeMap, cubeMapBuffer);
         irradianceCubeMap = new IrradianceCubeMap(irradiance_shader, irradianceMap, cubeMapBuffer);
-        prefilterCubeMap = new PrefilterCubeMap(prefilter_shader, prefilterMap, cubeMapBuffer);
+        prefilterCubeMap = new PrefilterCubeMap(prefilter_shader, prefilterMap, cubeMapBuffer, maxMipLevels);
     }      
 
     void our::HDRSystem::initializeBuffer()
     {
+        if (enable == false) return;
         cubeMapBuffer = new CubeMapBuffer();
     }
 
@@ -39,11 +43,10 @@ namespace our
     }
 
     void our::HDRSystem::setup(){
+        if (enable == false) return;
         background_shader->use();
         background_shader->set("environmentMap", TEXTURE_UNIT_ENVIRONMENT);
-
-        our::Texture2D* hdr_texture = our::texture_utils::loadHDR("assets/textures/hdr/circus_backstage.hdr", false);
-
+        
         cubeMapBuffer->size = { 512, 512 };
         cubeMapBuffer->setupFrameBuffer();
         cubeMapBuffer->setupRenderBuffer();
@@ -125,6 +128,7 @@ namespace our
 
     void our::HDRSystem::bindTextures()
     {
+        if (enable == false) return;
         glActiveTexture(GL_TEXTURE0 + TEXTURE_UNIT_IRRADIANCE);
         irradianceMap->bind();
         glActiveTexture(GL_TEXTURE0 + TEXTURE_UNIT_PREFILTER);
@@ -135,6 +139,7 @@ namespace our
 
     void our::HDRSystem::unbindTextures()
     {
+        if (enable == false) return;
         glActiveTexture(GL_TEXTURE0 + TEXTURE_UNIT_IRRADIANCE);
         irradianceMap->unbind();
         glActiveTexture(GL_TEXTURE0 + TEXTURE_UNIT_PREFILTER);
@@ -145,6 +150,7 @@ namespace our
 
     void our::HDRSystem::renderBackground(glm::mat4 projection, glm::mat4 view)
     {
+        if (enable == false) return;
         glActiveTexture(GL_TEXTURE0 + TEXTURE_UNIT_ENVIRONMENT);
         envCubeMap->bind();
         background_shader->use();

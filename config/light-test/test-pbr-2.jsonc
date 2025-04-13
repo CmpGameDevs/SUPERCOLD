@@ -16,6 +16,11 @@
         ]
     },
     "scene": {
+        "hdr": {
+            "enable": true,
+            "hdr_texture": "newport_loft",
+            "maxMipLevels": 5
+        },
         "assets":{
             "shaders":{
                 "pbr":{
@@ -45,12 +50,47 @@
 
             },
             "textures":{
-                "normal": "assets/textures/pbr/rusted_iron/normal.png",
-                "metallic": "assets/textures/pbr/rusted_iron/metallic.png",
-                "roughness": "assets/textures/pbr/rusted_iron/roughness.png",
-                "albedo": "assets/textures/pbr/rusted_iron/albedo.png",
-                "ambientOcclusion": "assets/textures/pbr/rusted_iron/ao.png"
-               
+                "rusted_normal": "assets/textures/pbr/rusted_iron/normal.png",
+                "rusted_metallic": "assets/textures/pbr/rusted_iron/metallic.png",
+                "rusted_roughness": "assets/textures/pbr/rusted_iron/roughness.png",
+                "rusted_albedo": "assets/textures/pbr/rusted_iron/albedo.png",
+                "rusted_ambientOcclusion": "assets/textures/pbr/rusted_iron/ao.png",
+
+                "gold_normal": "assets/textures/pbr/gold/normal.png",
+                "gold_metallic": "assets/textures/pbr/gold/metallic.png",
+                "gold_roughness": "assets/textures/pbr/gold/roughness.png",
+                "gold_albedo": "assets/textures/pbr/gold/albedo.png",
+                "gold_ambientOcclusion": "assets/textures/pbr/gold/ao.png",
+
+                "silver_normal": "assets/textures/pbr/silver/normal.png",
+                "silver_metallic": "assets/textures/pbr/silver/metallic.png",
+                "silver_roughness": "assets/textures/pbr/silver/roughness.png",
+                "silver_albedo": "assets/textures/pbr/silver/albedo.png",
+                "silver_ambientOcclusion": "assets/textures/pbr/silver/ao.png",
+
+                "plastic_normal": "assets/textures/pbr/plastic/normal.png",
+                "plastic_metallic": "assets/textures/pbr/plastic/metallic.png",
+                "plastic_roughness": "assets/textures/pbr/plastic/roughness.png",
+                "plastic_albedo": "assets/textures/pbr/plastic/albedo.png",
+                "plastic_ambientOcclusion": "assets/textures/pbr/plastic/ao.png",
+
+                "wall_metallic": "assets/textures/pbr/wall/metallic.png",
+                "wall_normal": "assets/textures/pbr/wall/normal.png",
+                "wall_roughness": "assets/textures/pbr/wall/roughness.png",
+                "wall_albedo": "assets/textures/pbr/wall/albedo.png",
+                "wall_ambientOcclusion": "assets/textures/pbr/wall/ao.png",
+                
+                "grass_normal": "assets/textures/pbr/grass/normal.png",
+                "grass_metallic": "assets/textures/pbr/grass/metallic.png",
+                "grass_roughness": "assets/textures/pbr/grass/roughness.png",
+                "grass_albedo": "assets/textures/pbr/grass/albedo.png",
+                "grass_ambientOcclusion": "assets/textures/pbr/grass/ao.png",
+
+
+                "newport_loft": "assets/textures/hdr/newport_loft.hdr"
+                // "circus_backstage": "assets/textures/hdr/circus_backstage.hdr",
+                // "barcelona_rooftop": "assets/textures/hdr/barcelona_rooftop.hdr",
+                // "arches_pinetree": "assets/textures/hdr/arches_pinetree.hdr"
             },
             "samplers":{
                 "default":{}
@@ -59,7 +99,7 @@
                 "mesh": "assets/models/sphere.obj"
             },
             "materials":{
-                "pbr":{
+                "test":{
                     "type": "lit",
                     "shader": "pbr",
                     "pipelineState": {
@@ -72,7 +112,7 @@
                         }
                     },
                     "tint": [1, 1, 1, 1],
-                    "texture": "albedo",
+                    "texture": "grass_albedo",
                     "sampler": "default",
                     "useTextureAlbedo": false,
                     "useTextureNormal": false,
@@ -85,19 +125,20 @@
                     "metallic": 0.85,
                     "emissive": [0, 0, 0],
                     "ambientOcclusion": 1,
-                    "textureAlbedo": "albedo",
-                    "textureNormal": "normal",
-                    "textureMetallic": "metallic",
-                    "textureRoughness": "roughness",
-                    "textureAmbientOcclusion": "ambientOcclusion",
-                    "textureEmissive": "metal"
+                    "textureAlbedo": "grass_albedo",
+                    "textureNormal": "grass_normal",
+                    "textureMetallic": "grass_metallic",
+                    "textureRoughness": "grass_roughness",
+                    "textureAmbientOcclusion": "grass_ambientOcclusion",
+                    "textureEmissive": "grass_metal"
                 }
             }
         },
         "grid":{
             "rows": 7,
             "columns": 7,
-            "gap": 2.5
+            "gap": 2.5,
+            "test_metallic_roughness": true
         },
         "camera": {
             "eye": [4, 1, 5],

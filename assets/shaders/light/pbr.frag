@@ -154,7 +154,7 @@ void main() {
     }
 
     // normal
-    vec3 N = normal;
+    vec3 N = normalize(normal);
     if (material.useTextureNormal) {
         N = getNormalFromMap();
     }
