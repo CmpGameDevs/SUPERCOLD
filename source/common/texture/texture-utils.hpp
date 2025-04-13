@@ -13,8 +13,4 @@ namespace our::texture_utils {
     Texture2D* loadImage(const std::string& filename, bool generate_mipmap = true);
     // This function loads a .hdr files
     Texture2D* loadHDR(const std::string& filename, bool generate_mipmap = true);
-
-    void setupCubeMapFramebuffer(GLuint& texture, int size,bool generate_mipmap = false);
-
-
 }

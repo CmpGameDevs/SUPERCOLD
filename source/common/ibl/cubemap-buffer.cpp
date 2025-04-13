@@ -1,4 +1,4 @@
-#include "cube-map-buffer.hpp"
+#include "cubemap-buffer.hpp"
 
 #include "../asset-loader.hpp"
 #include "deserialize-utils.hpp"
@@ -10,9 +10,8 @@ namespace our
    {
       glGenFramebuffers(1, &framebuffer);
       glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-      GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-      if (status != GL_FRAMEBUFFER_COMPLETE)
-         std::cerr << "Error: Framebuffer is not complete!" << std::endl;
+      //
+      
    }
 
     void CubeMapBuffer::setupRenderBuffer()

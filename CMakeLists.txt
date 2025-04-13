@@ -55,14 +55,18 @@ set(COMMON_SOURCES
         source/common/texture/texture-utils.cpp
         source/common/texture/screenshot.hpp
         source/common/texture/screenshot.cpp
+        source/common/texture/cubemap-texture.hpp
+        source/common/texture/cubemap-texture.cpp
 
         source/common/material/pipeline-state.hpp
         source/common/material/pipeline-state.cpp
         source/common/material/material.hpp
         source/common/material/material.cpp
 
-        source/common/ibl/cube-map-buffer.hpp
-        source/common/ibl/cube-map-buffer.cpp
+        source/common/ibl/cubemap-buffer.hpp
+        source/common/ibl/cubemap-buffer.cpp
+        source/common/ibl/cubemap.hpp
+        source/common/ibl/cubemap.cpp
 
         source/common/ecs/component.hpp
         source/common/ecs/transform.hpp
