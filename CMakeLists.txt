@@ -61,6 +61,9 @@ set(COMMON_SOURCES
         source/common/material/material.hpp
         source/common/material/material.cpp
 
+        source/common/ibl/cube-map-buffer.hpp
+        source/common/ibl/cube-map-buffer.cpp
+
         source/common/ecs/component.hpp
         source/common/ecs/transform.hpp
         source/common/ecs/transform.cpp
@@ -112,6 +115,7 @@ set(STATES_SOURCES
         source/states/material-test-state.hpp
         source/states/entity-test-state.hpp
         source/states/renderer-test-state.hpp
+        source/states/light-test-state.hpp
 )
 
 # For each example, we add an executable target

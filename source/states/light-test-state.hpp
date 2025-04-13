@@ -16,6 +16,7 @@
 #include <fstream>
 #include <unordered_map>
 #include <texture/sampler.hpp>
+#include <ibl/cube-map-buffer.hpp>
 
 
 const int TEXTURE_UNIT_IRRADIANCE = 9;
@@ -238,6 +239,7 @@ class LightTestState : public our::State {
     our::Sampler* sampler;
     std::unordered_map<std::string,  our::Mesh*> meshes;
     our::Material* pbr_material;
+    our::CubeMapBuffer cubeMapBuffer;
     glm::mat4 model = glm::mat4(1.0f);
     our::Transform transform;
     glm::mat4 view;
@@ -371,9 +373,11 @@ class LightTestState : public our::State {
                 }
             }
         }
+
+        cubeMapBuffer.size = { 512, 512 };
+        cubeMapBuffer.setupFrameBuffer();
+        cubeMapBuffer.setupRenderBuffer();
         
-        unsigned int captureFBO = 0, captureRBO = 0;
-        our::texture_utils::setupFrameBuffers(captureFBO, captureRBO);
         our::Texture2D* hdr_texture = our::texture_utils::loadHDR("assets/textures/hdr/circus_backstage.hdr", false);
         our::texture_utils::setupCubeMapFramebuffer(envCubemap, 512, false);
 
@@ -400,7 +404,8 @@ class LightTestState : public our::State {
         hdr_texture->bind();
 
         glViewport(0, 0, 512, 512); // don't forget to configure the viewport to the capture dimensions.
-        glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+        cubeMapBuffer.bindFrameBuffer();
+
         for (unsigned int i = 0; i < 6; ++i)
         {
             equirectangular_shader->set("view", captureViews[i]);
@@ -409,7 +414,7 @@ class LightTestState : public our::State {
 
             renderCube();
         }
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        cubeMapBuffer.unbindFrameBuffer();
 
         // then let OpenGL generate mipmaps from first mip face (combatting visible dots artifact)
         glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap);
@@ -419,9 +424,8 @@ class LightTestState : public our::State {
         // --------------------------------------------------------------------------------
         our::texture_utils::setupCubeMapFramebuffer(irradianceMap, 32);
 
-        glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
-        glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, 32, 32);
+        cubeMapBuffer.bind();
+        cubeMapBuffer.setRenderBufferStorage(GL_DEPTH_COMPONENT24, 32, 32);
 
         // pbr: solve diffuse integral by convolution to create an irradiance (cube)map.
         // -----------------------------------------------------------------------------
@@ -432,7 +436,8 @@ class LightTestState : public our::State {
         glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap);
 
         glViewport(0, 0, 32, 32); // don't forget to configure the viewport to the capture dimensions.
-        glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+        cubeMapBuffer.bindFrameBuffer();
+
         for (unsigned int i = 0; i < 6; ++i)
         {
             irradiance_shader->set("view", captureViews[i]);
@@ -441,7 +446,8 @@ class LightTestState : public our::State {
 
             renderCube();
         }
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        cubeMapBuffer.unbindFrameBuffer();
+
 
         // pbr: create a pre-filter cubemap, and re-scale capture FBO to pre-filter scale.
         // --------------------------------------------------------------------------------
@@ -455,15 +461,18 @@ class LightTestState : public our::State {
         glActiveTexture(GL_TEXTURE0 + TEXTURE_UNIT_PREFILTER);
         glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap);
 
-        glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+        cubeMapBuffer.bindFrameBuffer();
+
         unsigned int maxMipLevels = 5;
         for (unsigned int mip = 0; mip < maxMipLevels; ++mip)
         {
             // reisze framebuffer according to mip-level size.
             unsigned int mipWidth  = static_cast<unsigned int>(128 * std::pow(0.5, mip));
             unsigned int mipHeight = static_cast<unsigned int>(128 * std::pow(0.5, mip));
-            glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
-            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, mipWidth, mipHeight);
+
+            cubeMapBuffer.bindRenderBuffer();
+            cubeMapBuffer.setRenderBufferStorage(GL_DEPTH_COMPONENT24, mipWidth, mipHeight);
+
             glViewport(0, 0, mipWidth, mipHeight);
 
             float roughness = (float)mip / (float)(maxMipLevels - 1);
@@ -477,7 +486,7 @@ class LightTestState : public our::State {
                 renderCube();
             }
         }
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        cubeMapBuffer.unbindFrameBuffer();
 
         // pbr: generate a 2D LUT from the BRDF equations used.
         // ----------------------------------------------------
@@ -491,20 +500,20 @@ class LightTestState : public our::State {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
         // then re-configure capture framebuffer object and render screen-space quad with BRDF shader.
-        glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
-        glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, 512, 512);
+
+        cubeMapBuffer.bind();
+        cubeMapBuffer.setRenderBufferStorage(GL_DEPTH_COMPONENT24, 512, 512);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, brdfLUTTexture->getOpenGLName(), 0);
 
         glViewport(0, 0, 512, 512);
+
         brdf_shader->use();
+
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
         renderQuad();
 
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        
-
-        std::cout << "Loaded HDR texture: "  << std::endl;
+        cubeMapBuffer.unbindFrameBuffer();
         
         glViewport(0, 0, getApp()->getWindowSize().x, getApp()->getWindowSize().y);
 

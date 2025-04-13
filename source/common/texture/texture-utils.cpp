@@ -84,16 +84,6 @@ our::Texture2D *our::texture_utils::loadHDR(const std::string &filename, bool ge
     return texture;
 }
 
-void our::texture_utils::setupFrameBuffers(unsigned int& captureFBO,unsigned int& captureRBO){
-    glGenFramebuffers(1, &captureFBO);
-    glGenRenderbuffers(1, &captureRBO);
-
-    glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
-    glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, 512, 512);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, captureRBO);
-}
-
 void our::texture_utils::setupCubeMapFramebuffer(GLuint& texture, int size, bool generate_mipmap) {
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_CUBE_MAP, texture);
