@@ -5,6 +5,7 @@
 #include <iostream>
 #include <mesh/mesh.hpp>
 #include <mesh/mesh-utils.hpp>
+#include <texture/texture-utils.hpp>
 #include <ecs/lighting.hpp>
 #include <ecs/lighting.cpp>
 #include <ecs/transform.hpp>
@@ -14,7 +15,12 @@
 #include <json/json.hpp>
 #include <fstream>
 #include <unordered_map>
+#include <texture/sampler.hpp>
 
+
+const int TEXTURE_UNIT_IRRADIANCE = 9;
+const int TEXTURE_UNIT_ENVIRONMENT = 10;
+const int TEXTURE_UNIT_HDR = 11;
 
 // renders (and builds at first invocation) a sphere
 // -------------------------------------------------
@@ -61,7 +67,7 @@ void renderSphere()
             {
                 for (unsigned int x = 0; x <= X_SEGMENTS; ++x)
                 {
-                    indices.push_back(y       * (X_SEGMENTS + 1) + x);
+                    indices.push_back(y * (X_SEGMENTS + 1) + x);
                     indices.push_back((y + 1) * (X_SEGMENTS + 1) + x);
                 }
             }
@@ -70,7 +76,7 @@ void renderSphere()
                 for (int x = X_SEGMENTS; x >= 0; --x)
                 {
                     indices.push_back((y + 1) * (X_SEGMENTS + 1) + x);
-                    indices.push_back(y       * (X_SEGMENTS + 1) + x);
+                    indices.push_back(y * (X_SEGMENTS + 1) + x);
                 }
             }
             oddRow = !oddRow;
@@ -82,7 +88,7 @@ void renderSphere()
         {
             data.push_back(positions[i].x);
             data.push_back(positions[i].y);
-            data.push_back(positions[i].z);           
+            data.push_back(positions[i].z);
             if (normals.size() > 0)
             {
                 data.push_back(normals[i].x);
@@ -103,19 +109,97 @@ void renderSphere()
         unsigned int stride = (3 + 2 + 3) * sizeof(float);
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void*)0);
-        glEnableVertexAttribArray(1);        
-		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, (void*)(3 * sizeof(float)));
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, (void*)(3 * sizeof(float)));
         glEnableVertexAttribArray(2);
-		glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride, (void*)(6 * sizeof(float)));        
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride, (void*)(6 * sizeof(float)));
     }
 
     glBindVertexArray(sphereVAO);
     glDrawElements(GL_TRIANGLE_STRIP, indexCount, GL_UNSIGNED_INT, 0);
 }
 
+// renderCube() renders a 1x1 3D cube in NDC.
+// -------------------------------------------------
+unsigned int cubeVAO = 0;
+unsigned int cubeVBO = 0;
+void renderCube()
+{
+    // initialize (if necessary)
+    if (cubeVAO == 0)
+    {
+        float vertices[] = {
+            // back face
+            -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, // bottom-left
+             1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f, // top-right
+             1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 0.0f, // bottom-right         
+             1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f, // top-right
+            -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, // bottom-left
+            -1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 1.0f, // top-left
+            // front face
+            -1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, // bottom-left
+             1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 0.0f, // bottom-right
+             1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f, // top-right
+             1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f, // top-right
+            -1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 1.0f, // top-left
+            -1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, // bottom-left
+            // left face
+            -1.0f,  1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-right
+            -1.0f,  1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // top-left
+            -1.0f, -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-left
+            -1.0f, -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-left
+            -1.0f, -1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // bottom-right
+            -1.0f,  1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-right
+            // right face
+             1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-left
+             1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-right
+             1.0f,  1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // top-right         
+             1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-right
+             1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-left
+             1.0f, -1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // bottom-left     
+            // bottom face
+            -1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // top-right
+             1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 1.0f, // top-left
+             1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // bottom-left
+             1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // bottom-left
+            -1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 0.0f, // bottom-right
+            -1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // top-right
+            // top face
+            -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // top-left
+             1.0f,  1.0f , 1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
+             1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 1.0f, // top-right     
+             1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
+            -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // top-left
+            -1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f  // bottom-left        
+        };
+        glGenVertexArrays(1, &cubeVAO);
+        glGenBuffers(1, &cubeVBO);
+        // fill buffer
+        glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+        // link vertex attributes
+        glBindVertexArray(cubeVAO);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+        glEnableVertexAttribArray(2);
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
+    }
+    // render Cube
+    glBindVertexArray(cubeVAO);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+    glBindVertexArray(0);
+}
 class LightTestState : public our::State {
 
     our::ShaderProgram* pbr_shader;
+    our::ShaderProgram* equirectangular_shader;
+    our::ShaderProgram* irradiance_shader;
+    our::ShaderProgram* background_shader;
+    our::Sampler* sampler;
     std::unordered_map<std::string,  our::Mesh*> meshes;
     our::Material* pbr_material;
     glm::mat4 model = glm::mat4(1.0f);
@@ -127,6 +211,8 @@ class LightTestState : public our::State {
     glm::vec3 cameraPosition = glm::vec3(0, 0, 5);
     glm::vec3 cameraTarget = glm::vec3(0, 0, 0);
     glm::vec3 cameraUp = glm::vec3(0, 1, 0);
+    GLuint envCubemap;
+    GLuint irradianceMap;
     float near;
     float far;
     float cameraYaw = -90.0f;
@@ -196,11 +282,22 @@ class LightTestState : public our::State {
             our::deserializeAllAssets(config["assets"]);
         }
 
+        
         pbr_shader = our::AssetLoader<our::ShaderProgram>::get("pbr");
+        equirectangular_shader = our::AssetLoader<our::ShaderProgram>::get("equirectangular");
+        irradiance_shader = our::AssetLoader<our::ShaderProgram>::get("irradiance");
+        background_shader = our::AssetLoader<our::ShaderProgram>::get("background");
         meshes["sphere"] = our::AssetLoader<our::Mesh>::get("mesh");
         pbr_material = our::AssetLoader<our::Material>::get("pbr");
+        sampler = our::AssetLoader<our::Sampler>::get("sampler");
+        
+        pbr_material->setup();
         pbr_shader->use();
+        pbr_shader->set("irradianceMap", TEXTURE_UNIT_IRRADIANCE);
+        background_shader->use();
+        background_shader->set("environmentMap", TEXTURE_UNIT_ENVIRONMENT);
 
+        
         if(config.contains("grid")){
             if(auto& grid = config["grid"]; grid.is_object()){
                 nrRows = grid.value("rows", 1);
@@ -233,27 +330,104 @@ class LightTestState : public our::State {
             }
         }
         
+        unsigned int captureFBO = 0, captureRBO = 0;
+        our::texture_utils::setupFrameBuffers(captureFBO, captureRBO);
+        our::Texture2D* hdr_texture = our::texture_utils::loadHDR("assets/textures/hdr/newport_loft.hdr", false);
+        our::texture_utils::setupCubeMapFramebuffer(envCubemap, 512);
+
+        // pbr: set up projection and view matrices for capturing data onto the 6 cubemap face directions
+        // ----------------------------------------------------------------------------------------------
+        glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
+        glm::mat4 captureViews[] =
+        {
+            glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+            glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+            glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  1.0f,  0.0f), glm::vec3(0.0f,  0.0f,  1.0f)),
+            glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f,  0.0f), glm::vec3(0.0f,  0.0f, -1.0f)),
+            glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  0.0f,  1.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+            glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  0.0f, -1.0f), glm::vec3(0.0f, -1.0f,  0.0f))
+        };
+
+
+        // pbr: convert HDR equirectangular environment map to cubemap equivalent
+        // ----------------------------------------------------------------------
+        equirectangular_shader->use();
+        equirectangular_shader->set("equirectangularMap", TEXTURE_UNIT_HDR);
+        equirectangular_shader->set("projection", captureProjection);
+        glActiveTexture(GL_TEXTURE0 + TEXTURE_UNIT_HDR);
+        hdr_texture->bind();
+
+        glViewport(0, 0, 512, 512); // don't forget to configure the viewport to the capture dimensions.
+        glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+        for (unsigned int i = 0; i < 6; ++i)
+        {
+            equirectangular_shader->set("view", captureViews[i]);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, envCubemap, 0);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+            renderCube();
+        }
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+
+        // pbr: create an irradiance cubemap, and re-scale capture FBO to irradiance scale.
+        // --------------------------------------------------------------------------------
+        our::texture_utils::setupCubeMapFramebuffer(irradianceMap, 32);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+        glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, 32, 32);
+
+        // pbr: solve diffuse integral by convolution to create an irradiance (cube)map.
+        // -----------------------------------------------------------------------------
+        irradiance_shader->use();
+        irradiance_shader->set("environmentMap", TEXTURE_UNIT_ENVIRONMENT);
+        irradiance_shader->set("projection", captureProjection);
+        glActiveTexture(GL_TEXTURE0 + TEXTURE_UNIT_ENVIRONMENT);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap);
+
+        glViewport(0, 0, 32, 32); // don't forget to configure the viewport to the capture dimensions.
+        glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+        for (unsigned int i = 0; i < 6; ++i)
+        {
+            irradiance_shader->set("view", captureViews[i]);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, irradianceMap, 0);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+            renderCube();
+        }
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        std::cout << "Loaded HDR texture: "  << std::endl;
+        
+        glViewport(0, 0, getApp()->getWindowSize().x, getApp()->getWindowSize().y);
+
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 
         std::cout << "LightTestState initialized." << std::endl;
     }
 
     void onDraw(double deltaTime) override {
+        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         updateCamera(deltaTime);
 
+        pbr_shader->use();
         pbr_shader->set("view", view);
         pbr_shader->set("projection", projection);
         pbr_shader->set("cameraPosition", cameraPosition);
         pbr_shader->set("lightCount", static_cast<int>(lights.size()));
-        pbr_material->setup();
+        
 
         transform.position = glm::vec3(0, 0, 0);
         transform.rotation = glm::vec3(0, 0, 0);
         transform.scale = glm::vec3(1, 1, 1);
 
-
+        // bind pre-computed IBL data
+        glActiveTexture(GL_TEXTURE0 + TEXTURE_UNIT_IRRADIANCE);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, irradianceMap);
+        
         for (int row = 0; row < nrRows; ++row) 
         {
             pbr_shader->set("material.metallic", (float)row / (float)nrRows);
@@ -318,6 +492,14 @@ class LightTestState : public our::State {
             pbr_shader->set("model", model);
             renderSphere();
         }
+
+        background_shader->use();
+        background_shader->set("view", view);
+        background_shader->set("projection", projection);
+        glActiveTexture(GL_TEXTURE0 + TEXTURE_UNIT_ENVIRONMENT);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap);
+        // glBindTexture(GL_TEXTURE_CUBE_MAP, irradianceMap);
+        renderCube();
 
         once = false;
     }

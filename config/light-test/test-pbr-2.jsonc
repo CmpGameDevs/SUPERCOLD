@@ -21,7 +21,20 @@
                 "pbr":{
                     "vs":"assets/shaders/light/pbr.vert",
                     "fs":"assets/shaders/light/pbr.frag"
+                },
+                "equirectangular":{
+                    "vs":"assets/shaders/light/ibl/cubemap.vert",
+                    "fs":"assets/shaders/light/ibl/equirectangular.frag"
+                },
+                "background":{
+                    "vs":"assets/shaders/light/ibl/background.vert",
+                    "fs":"assets/shaders/light/ibl/background.frag"
+                },
+                "irradiance":{
+                    "vs":"assets/shaders/light/ibl/cubemap.vert",
+                    "fs":"assets/shaders/light/ibl/irradiance.frag"
                 }
+
             },
             "textures":{
                 "normal": "assets/textures/pbr/rusted_iron/normal.png",
@@ -46,17 +59,18 @@
                             "enabled": false
                         },
                         "depthTesting":{
-                            "enabled": true
+                            "enabled": true,
+                            "function": "GL_LEQUAL"
                         }
                     },
                     "tint": [1, 1, 1, 1],
                     "texture": "albedo",
                     "sampler": "default",
-                    "useTextureAlbedo": true,
-                    "useTextureNormal": true,
-                    "useTextureMetallic": true,
-                    "useTextureRoughness": true,
-                    "useTextureAmbientOcclusion": true,
+                    "useTextureAlbedo": false,
+                    "useTextureNormal": false,
+                    "useTextureMetallic": false,
+                    "useTextureRoughness": false,
+                    "useTextureAmbientOcclusion": false,
                     "useTextureEmissive": false,
                     "albedo": [0.5, 0.0, 0.0],
                     "roughness": 0.5,
@@ -92,6 +106,42 @@
                 "realistic": true,
                 "color": [300, 300 , 300],
                 "position": [-10.0,  10.0, 10.0],
+                "attenuation": {
+                    "constant": 0,
+                    "linear": 0,
+                    "quadratic": 1
+                }
+            },
+            {
+                "type": "point",
+                "enabled": true,
+                "realistic": true,
+                "color": [300, 300 , 300],
+                "position": [10.0,  10.0, 10.0],
+                "attenuation": {
+                    "constant": 0,
+                    "linear": 0,
+                    "quadratic": 1
+                }
+            },
+            {
+                "type": "point",
+                "enabled": true,
+                "realistic": true,
+                "color": [300, 300 , 300],
+                "position": [-10.0,  -10.0, 10.0],
+                "attenuation": {
+                    "constant": 0,
+                    "linear": 0,
+                    "quadratic": 1
+                }
+            },
+            {
+                "type": "point",
+                "enabled": true,
+                "realistic": true,
+                "color": [300, 300 , 300],
+                "position": [10.0,  -10.0, 10.0],
                 "attenuation": {
                     "constant": 0,
                     "linear": 0,

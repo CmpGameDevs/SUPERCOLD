@@ -19,8 +19,8 @@
         "assets":{
             "shaders":{
                 "pbr":{
-                    "vs":"assets/shaders/light/light_array.vert",
-                    "fs":"assets/shaders/light/light_array.frag"
+                    "vs":"assets/shaders/light/pbr.vert",
+                    "fs":"assets/shaders/light/pbr.frag"
                 }
             },
             "textures":{

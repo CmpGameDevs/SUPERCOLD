@@ -47,13 +47,16 @@ uniform vec3 cameraPosition;
 uniform Light lights[MAX_LIGHTS];
 uniform int lightCount;
 
+//IBL
+uniform samplerCube irradianceMap;
+
 
 // Fresnel function (Fresnel-Schlick approximation)
 //
 // F_schlick = f0 + (1 - f0)(1 - (h * v))^5
 //
 vec3 fresnelSchlick(float cosTheta, vec3 F0) {
-    return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+    return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
 
 // Normal distribution function (Trowbridge-Reitz GGX)
@@ -63,10 +66,16 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0) {
 //      PI((n * h)^2(alpha^2 - 1) + 1)^2
 //
 float distributionGGX(vec3 N, vec3 H, float roughness) {
-    float a2 = roughness * roughness * roughness * roughness;
+    float a = roughness*roughness;
+    float a2 = a*a;
     float NdotH = max(dot(N, H), 0.0);
-    float denom = (NdotH * NdotH * (a2 - 1.0) + 1.0);
-    return a2 / (PI * denom * denom);
+    float NdotH2 = NdotH*NdotH;
+
+    float nom   = a2;
+    float denom = (NdotH2 * (a2 - 1.0) + 1.0);
+    denom = PI * denom * denom;
+
+    return nom / denom;
 }
 
 // Geometry function
@@ -77,14 +86,22 @@ float distributionGGX(vec3 N, vec3 H, float roughness) {
 //
 float geometrySchlickGGX(float NdotV, float roughness) {
     float r = (roughness + 1.0);
-    float k = (r * r) / 8.0;
-    return NdotV / (NdotV * (1.0 - k) + k);
+    float k = (r*r) / 8.0;
+
+    float nom   = NdotV;
+    float denom = NdotV * (1.0 - k) + k;
+
+    return nom / denom;
 }
 
 // smiths method for taking into account view direction and light direction
 float geometrySmith(vec3 N, vec3 V, vec3 L, float roughness) {
-    return geometrySchlickGGX(max(dot(N, V), 0.0), roughness) *
-           geometrySchlickGGX(max(dot(N, L), 0.0), roughness);
+    float NdotV = max(dot(N, V), 0.0);
+    float NdotL = max(dot(N, L), 0.0);
+    float ggx2 = geometrySchlickGGX(NdotV, roughness);
+    float ggx1 = geometrySchlickGGX(NdotL, roughness);
+
+    return ggx1 * ggx2;
 }
 
 // ----------------------------------------------------------------------------
@@ -130,7 +147,7 @@ void main() {
     }
 
     // normal
-    vec3 N = normalize(normal);
+    vec3 N = normal;
     if (material.useTextureNormal) {
         N = getNormalFromMap();
     }
@@ -184,11 +201,18 @@ void main() {
         Lo += (diffuse + specular) * radiance * NdotL;
     }
 
-    vec3 ambient = vec3(0.03) * albedo * ao;
+    // ambient lighting (we now use IBL as the ambient term)
+    vec3 kS = fresnelSchlick(max(dot(N, V), 0.0), F0);
+    vec3 kD = 1.0 - kS;
+    kD *= 1.0 - metallic;	  
+    vec3 irradiance = texture(irradianceMap, N).rgb;
+    vec3 diffuse  = irradiance * albedo;
+    vec3 ambient = (kD * diffuse) * ao;
+
     vec3 color = Lo + ambient + emissive;
 
     color = color / (color + vec3(1.0));
     color = pow(color, vec3(1.0 / 2.2));
 
-    FragColor = vec4(color, 1.0);
+    FragColor = vec4(Lo, 1.0);
 }
