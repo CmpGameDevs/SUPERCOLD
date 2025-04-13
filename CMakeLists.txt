@@ -67,6 +67,8 @@ set(COMMON_SOURCES
         source/common/ibl/cubemap-buffer.cpp
         source/common/ibl/cubemap.hpp
         source/common/ibl/cubemap.cpp
+        source/common/ibl/hdr-system.hpp
+        source/common/ibl/hdr-system.cpp
 
         source/common/ecs/component.hpp
         source/common/ecs/transform.hpp

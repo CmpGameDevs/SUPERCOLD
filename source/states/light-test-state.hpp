@@ -19,32 +19,15 @@
 #include <ibl/cubemap-buffer.hpp>
 #include <ibl/cubemap.hpp>
 #include <texture/cubemap-texture.hpp>
-
-
-const int TEXTURE_UNIT_IRRADIANCE = 9;
-const int TEXTURE_UNIT_ENVIRONMENT = 10;
-const int TEXTURE_UNIT_HDR = 11;
-const int TEXTURE_UNIT_BRDF = 12;
-const int TEXTURE_UNIT_PREFILTER = 13;
+#include <ibl/hdr-system.hpp>
 
 class LightTestState : public our::State {
 
     our::ShaderProgram* pbr_shader;
-    our::ShaderProgram* equirectangular_shader;
-    our::ShaderProgram* irradiance_shader;
-    our::ShaderProgram* background_shader;
-    our::ShaderProgram* brdf_shader;
-    our::ShaderProgram* prefilter_shader;
     our::Sampler* sampler;
     our::Material* pbr_material;
     our::Transform transform;
-    our::CubeMapBuffer *cubeMapBuffer;
-    our::CubeMapTexture *envCubeMap;
-    our::CubeMapTexture *irradianceMap;
-    our::CubeMapTexture *prefilterMap;
-    our::CubeMap* irradianceCubeMap;
-    our::CubeMap* prefilterCubeMap;
-    our::CubeMap* equirectangularCubeMap;
+    our::HDRSystem* hdrSystem;
     std::unordered_map<std::string,  our::Mesh*> meshes;
     std::vector<our::Light> lights;
     glm::mat4 view;
@@ -53,7 +36,6 @@ class LightTestState : public our::State {
     glm::vec3 cameraPosition = glm::vec3(0, 0, 5);
     glm::vec3 cameraTarget = glm::vec3(0, 0, 0);
     glm::vec3 cameraUp = glm::vec3(0, 1, 0);
-    our::Texture2D* brdfLUTTexture;
     float near;
     float far;
     float cameraYaw = -90.0f;
@@ -64,7 +46,6 @@ class LightTestState : public our::State {
     int nrRows;
     int nrColumns;
     float gap;
-    bool once = true;
 
     our::Mouse* mouse;
     our::Keyboard* keyboard;
@@ -122,35 +103,13 @@ class LightTestState : public our::State {
         if(config.contains("assets")){
             our::deserializeAllAssets(config["assets"]);
         }
-
+        
         
         pbr_shader = our::AssetLoader<our::ShaderProgram>::get("pbr");
-        equirectangular_shader = our::AssetLoader<our::ShaderProgram>::get("equirectangular");
-        irradiance_shader = our::AssetLoader<our::ShaderProgram>::get("irradiance");
-        background_shader = our::AssetLoader<our::ShaderProgram>::get("background");
-        brdf_shader = our::AssetLoader<our::ShaderProgram>::get("brdf");
-        prefilter_shader = our::AssetLoader<our::ShaderProgram>::get("prefilter");
         meshes["sphere"] = our::AssetLoader<our::Mesh>::get("mesh");
         pbr_material = our::AssetLoader<our::Material>::get("pbr");
         sampler = our::AssetLoader<our::Sampler>::get("sampler");
-
-        cubeMapBuffer = new our::CubeMapBuffer();
-        envCubeMap = new our::CubeMapTexture();
-        irradianceMap = new our::CubeMapTexture();
-        prefilterMap = new our::CubeMapTexture();
-
-        equirectangularCubeMap = new our::EquiRectangularCubeMap(equirectangular_shader, envCubeMap, cubeMapBuffer);
-        irradianceCubeMap = new our::IrradianceCubeMap(irradiance_shader, irradianceMap, cubeMapBuffer);
-        prefilterCubeMap = new our::PrefilterCubeMap(prefilter_shader, prefilterMap, cubeMapBuffer);
         
-        pbr_material->setup();
-        pbr_shader->use();
-        pbr_shader->set("irradianceMap", TEXTURE_UNIT_IRRADIANCE);
-        pbr_shader->set("prefilterMap", TEXTURE_UNIT_PREFILTER);
-        pbr_shader->set("brdfLUT", TEXTURE_UNIT_BRDF);
-        background_shader->use();
-        background_shader->set("environmentMap", TEXTURE_UNIT_ENVIRONMENT);
-
         
         if(config.contains("grid")){
             if(auto& grid = config["grid"]; grid.is_object()){
@@ -159,7 +118,7 @@ class LightTestState : public our::State {
                 gap = grid.value("gap", 2.5f);
             }
         }
-
+        
         if(config.contains("camera")){
             if(auto& cam = config["camera"]; cam.is_object()){
                 cameraPosition = cam.value("eye", glm::vec3(0, 0, 5));
@@ -169,7 +128,7 @@ class LightTestState : public our::State {
                 far = cam.value("far", 100.0f);
             }
         }
-
+        
         if(config.contains("lights")){
             if(auto& lightsConfig = config["lights"]; lightsConfig.is_array()){
                 for(auto& lightConfig : lightsConfig){
@@ -183,104 +142,22 @@ class LightTestState : public our::State {
                 }
             }
         }
-
-        cubeMapBuffer->size = { 512, 512 };
-        cubeMapBuffer->setupFrameBuffer();
-        cubeMapBuffer->setupRenderBuffer();
         
-        our::Texture2D* hdr_texture = our::texture_utils::loadHDR("assets/textures/hdr/circus_backstage.hdr", false);
-
-        envCubeMap->setupCubeTexture(cubeMapBuffer->size);
+        pbr_material->setup();
+        pbr_shader->use();
+        pbr_shader->set("irradianceMap", TEXTURE_UNIT_IRRADIANCE);
+        pbr_shader->set("prefilterMap", TEXTURE_UNIT_PREFILTER);
+        pbr_shader->set("brdfLUT", TEXTURE_UNIT_BRDF);
         
-        // pbr: set up projection and view matrices for capturing data onto the 6 cubemap face directions
-        // ----------------------------------------------------------------------------------------------
-        glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
-        glm::mat4 captureViews[] =
-        {
-            glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
-            glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
-            glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  1.0f,  0.0f), glm::vec3(0.0f,  0.0f,  1.0f)),
-            glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f,  0.0f), glm::vec3(0.0f,  0.0f, -1.0f)),
-            glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  0.0f,  1.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
-            glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  0.0f, -1.0f), glm::vec3(0.0f, -1.0f,  0.0f))
-        };
+        hdrSystem = new our::HDRSystem();
 
-
-        // pbr: convert HDR equirectangular environment map to cubemap equivalent
-        // ----------------------------------------------------------------------
-        glActiveTexture(GL_TEXTURE0 + TEXTURE_UNIT_HDR);
-        hdr_texture->bind();
-
-        equirectangularCubeMap->convertToCubeMap(TEXTURE_UNIT_HDR, captureProjection, captureViews);
-
-        // then let OpenGL generate mipmaps from first mip face (combatting visible dots artifact)
-        envCubeMap->generateMipmaps();
-
-        // pbr: create an irradiance cubemap, and re-scale capture FBO to irradiance scale.
-        // --------------------------------------------------------------------------------
-
-        cubeMapBuffer->size = { 32, 32 };
-
-        irradianceMap->setupCubeTexture(cubeMapBuffer->size);
-
-        cubeMapBuffer->bind();
-        cubeMapBuffer->setRenderBufferStorage(GL_DEPTH_COMPONENT24, cubeMapBuffer->size.x, cubeMapBuffer->size.y);
-
-        // pbr: solve diffuse integral by convolution to create an irradiance (cube)map.
-        // -----------------------------------------------------------------------------
-        glActiveTexture(GL_TEXTURE0 + TEXTURE_UNIT_ENVIRONMENT);
-        envCubeMap->bind();
-
-        irradianceCubeMap->convertToCubeMap(TEXTURE_UNIT_ENVIRONMENT, captureProjection, captureViews);
-
-
-        // pbr: create a pre-filter cubemap, and re-scale capture FBO to pre-filter scale.
-        // --------------------------------------------------------------------------------
-        cubeMapBuffer->size = { 128, 128 };
-
-        prefilterMap->setupCubeTexture(cubeMapBuffer->size, GL_RGB16F, GL_RGB, GL_FLOAT, true);
-
-        // pbr: run a quasi monte-carlo simulation on the environment lighting to create a prefilter (cube)map.
-        // ----------------------------------------------------------------------------------------------------
-        glActiveTexture(GL_TEXTURE0 + TEXTURE_UNIT_PREFILTER);
-        envCubeMap->bind();
-
-        prefilterCubeMap->convertToCubeMap(TEXTURE_UNIT_PREFILTER, captureProjection, captureViews);
-
-        // pbr: generate a 2D LUT from the BRDF equations used.
-        // ----------------------------------------------------
-        // 1. pre-allocate a texture for the BRDF lookup texture atlas.
-
-        cubeMapBuffer->size = { 512, 512 };
-
-        brdfLUTTexture = new our::Texture2D();
-        brdfLUTTexture->bind();
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, cubeMapBuffer->size.x, cubeMapBuffer->size.y, 0, GL_RG, GL_FLOAT, 0);
-        // be sure to set wrapping mode to GL_CLAMP_TO_EDGE
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-        // then re-configure capture framebuffer object and render screen-space quad with BRDF shader.
-
-        cubeMapBuffer->bind();
-        cubeMapBuffer->setRenderBufferStorage(GL_DEPTH_COMPONENT24, cubeMapBuffer->size.x, cubeMapBuffer->size.y);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, brdfLUTTexture->getOpenGLName(), 0);
-
-        glViewport(0, 0, cubeMapBuffer->size.x, cubeMapBuffer->size.y);
-
-        brdf_shader->use();
-
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        our::mesh_utils::renderQuad();
-
-        cubeMapBuffer->unbindFrameBuffer();
+        hdrSystem->Initialize();
+        std::cout<<"HDRSystem initialized."<<std::endl;
+        hdrSystem->setup();
+        std::cout<<"HDRSystem setup."<<std::endl;
+        
         
         glViewport(0, 0, getApp()->getWindowSize().x, getApp()->getWindowSize().y);
-
-        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 
         std::cout << "LightTestState initialized." << std::endl;
     }
@@ -303,13 +180,8 @@ class LightTestState : public our::State {
         transform.scale = glm::vec3(1, 1, 1);
 
         // bind pre-computed IBL data
-        glActiveTexture(GL_TEXTURE0 + TEXTURE_UNIT_IRRADIANCE);
-        irradianceMap->bind();
-        glActiveTexture(GL_TEXTURE0 + TEXTURE_UNIT_PREFILTER);
-        prefilterMap->bind();
-        glActiveTexture(GL_TEXTURE0 + TEXTURE_UNIT_BRDF);
-        brdfLUTTexture->bind();
-        
+        hdrSystem->bindTextures();
+
         for (int row = 0; row < nrRows; ++row) 
         {
             pbr_shader->set("material.metallic", (float)row / (float)nrRows);
@@ -375,19 +247,16 @@ class LightTestState : public our::State {
             our::mesh_utils::renderSphere();
         }
 
-        background_shader->use();
-        background_shader->set("view", view);
-        background_shader->set("projection", projection);
-        glActiveTexture(GL_TEXTURE0 + TEXTURE_UNIT_ENVIRONMENT);
-        envCubeMap->bind();
-        our::mesh_utils::renderCube();
-
-        once = false;
+        hdrSystem->renderBackground(projection, view);
     }
 
     void onDestroy() override {
         delete pbr_shader;
         delete pbr_material;
+        delete sampler;
+        delete hdrSystem;
+        delete mouse;
+        delete keyboard;
         for(auto& [name, mesh]: meshes){
             delete mesh;
         }

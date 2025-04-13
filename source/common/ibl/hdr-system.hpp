@@ -1,0 +1,87 @@
+#pragma once
+
+#include <iostream>
+#include <shader/shader.hpp>
+#include <texture/cubemap-texture.hpp>
+#include <ibl/cubemap-buffer.hpp>
+#include <ibl/cubemap.hpp>
+#include <glad/gl.h>
+#include <glm/vec2.hpp>
+#include <glm/vec4.hpp>
+#include <json/json.hpp>
+#include <mesh/mesh-utils.hpp>
+#include "asset-loader.hpp"
+#include <texture/texture-utils.hpp>
+
+const int TEXTURE_UNIT_IRRADIANCE = 9;
+const int TEXTURE_UNIT_ENVIRONMENT = 10;
+const int TEXTURE_UNIT_HDR = 11;
+const int TEXTURE_UNIT_BRDF = 12;
+const int TEXTURE_UNIT_PREFILTER = 13;
+
+namespace our
+{
+
+    class HDRSystem
+    {
+    public:
+        ShaderProgram *equirectangular_shader;
+        ShaderProgram *irradiance_shader;
+        ShaderProgram *background_shader;
+        ShaderProgram *brdf_shader;
+        ShaderProgram *prefilter_shader;
+        CubeMapBuffer *cubeMapBuffer;
+        CubeMapTexture *envCubeMap;
+        CubeMapTexture *irradianceMap;
+        CubeMapTexture *prefilterMap;
+        CubeMap *irradianceCubeMap;
+        CubeMap *prefilterCubeMap;
+        CubeMap *equirectangularCubeMap;
+        our::Texture2D *brdfLUTTexture;
+
+        glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
+        glm::mat4 captureViews[6] =
+            {
+                glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)),
+                glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)),
+                glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
+                glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f)),
+                glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, -1.0f, 0.0f)),
+                glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, -1.0f, 0.0f))};
+
+        void Initialize();
+
+        void initializeShader();
+
+        void initializeCubeMap();
+
+        void initializeBuffer();
+
+        void initializeTexture();
+
+        void setup();
+
+        void bindTextures();
+
+        void unbindTextures();
+
+        void renderBackground(glm::mat4 projection, glm::mat4 view);
+
+        ~HDRSystem()
+        {
+            delete equirectangular_shader;
+            delete irradiance_shader;
+            delete background_shader;
+            delete brdf_shader;
+            delete prefilter_shader;
+            delete cubeMapBuffer;
+            delete envCubeMap;
+            delete irradianceMap;
+            delete prefilterMap;
+            delete irradianceCubeMap;
+            delete prefilterCubeMap;
+            delete equirectangularCubeMap;
+        }
+    };
+
+}

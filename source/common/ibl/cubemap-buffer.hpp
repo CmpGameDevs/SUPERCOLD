@@ -49,6 +49,16 @@ namespace our {
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
             glBindRenderbuffer(GL_RENDERBUFFER, 0);
         }
+
+        ~CubeMapBuffer() {
+            if (framebuffer) {
+                glDeleteFramebuffers(1, &framebuffer);
+            }
+            if (renderbuffer) {
+                glDeleteRenderbuffers(1, &renderbuffer);
+            }
+        }
+
     };
 
   
