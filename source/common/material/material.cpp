@@ -74,6 +74,7 @@ namespace our
     void LitMaterial::setup() const
     {
         TexturedMaterial::setup();
+
         shader->set("material.useTextureAlbedo", useTextureAlbedo);
         shader->set("material.useTextureMetallic", useTextureMetallic);
         shader->set("material.useTextureRoughness", useTextureRoughness);
@@ -85,41 +86,92 @@ namespace our
         shader->set("material.roughness", roughness);
         shader->set("material.ambientOcclusion", ambientOcclusion);
         shader->set("material.emission", emission);
+        shader->set("irradianceMap", our::TextureUnits::TEXTURE_UNIT_IRRADIANCE);
+        shader->set("prefilterMap", our::TextureUnits::TEXTURE_UNIT_PREFILTER);
+        shader->set("brdfLUT", our::TextureUnits::TEXTURE_UNIT_BRDF);
+        shader->set("lightCount", static_cast<int>(lights.size()));
+        setupLight();
         if (useTextureAlbedo)
         {
-            glActiveTexture(GL_TEXTURE0 + TEXTURE_UNIT_ALBEDO);
+            glActiveTexture(GL_TEXTURE0 + our::TextureUnits::TEXTURE_UNIT_ALBEDO);
             textureAlbedo->bind();
-            shader->set("material.textureAlbedo", TEXTURE_UNIT_ALBEDO);
+            shader->set("material.textureAlbedo", our::TextureUnits::TEXTURE_UNIT_ALBEDO);
         }
         if (useTextureMetallic)
         {
-            glActiveTexture(GL_TEXTURE0 + TEXTURE_UNIT_METALLIC);
+            glActiveTexture(GL_TEXTURE0 + our::TextureUnits::TEXTURE_UNIT_METALLIC);
             textureMetallic->bind();
-            shader->set("material.textureMetallic", TEXTURE_UNIT_METALLIC);
+            shader->set("material.textureMetallic", our::TextureUnits::TEXTURE_UNIT_METALLIC);
         }
         if (useTextureRoughness)
         {
-            glActiveTexture(GL_TEXTURE0 + TEXTURE_UNIT_ROUGHNESS);
+            glActiveTexture(GL_TEXTURE0 + our::TextureUnits::TEXTURE_UNIT_ROUGHNESS);
             textureRoughness->bind();
-            shader->set("material.textureRoughness", TEXTURE_UNIT_ROUGHNESS);
+            shader->set("material.textureRoughness", our::TextureUnits::TEXTURE_UNIT_ROUGHNESS);
         }
         if (useTextureNormal)
         {
-            glActiveTexture(GL_TEXTURE0 + TEXTURE_UNIT_NORMAL);
+            glActiveTexture(GL_TEXTURE0 + our::TextureUnits::TEXTURE_UNIT_NORMAL);
             textureNormal->bind();
-            shader->set("material.textureNormal", TEXTURE_UNIT_NORMAL);
+            shader->set("material.textureNormal", our::TextureUnits::TEXTURE_UNIT_NORMAL);
         }
         if (useTextureAmbientOcclusion)
         {
-            glActiveTexture(GL_TEXTURE0 + TEXTURE_UNIT_AMBIENT_OCCLUSION);
+            glActiveTexture(GL_TEXTURE0 + our::TextureUnits::TEXTURE_UNIT_AMBIENT_OCCLUSION);
             textureAmbientOcclusion->bind();
-            shader->set("material.textureAmbientOcclusion", TEXTURE_UNIT_AMBIENT_OCCLUSION);
+            shader->set("material.textureAmbientOcclusion", our::TextureUnits::TEXTURE_UNIT_AMBIENT_OCCLUSION);
         }
         if (useTextureEmissive)
         {
-            glActiveTexture(GL_TEXTURE0 + TEXTURE_UNIT_EMISSIVE);
+            glActiveTexture(GL_TEXTURE0 + our::TextureUnits::TEXTURE_UNIT_EMISSIVE);
             textureEmissive->bind();
-            shader->set("material.textureEmissive", TEXTURE_UNIT_EMISSIVE);
+            shader->set("material.textureEmissive", our::TextureUnits::TEXTURE_UNIT_EMISSIVE);
+        }
+    }
+
+    void LitMaterial::setupLight() const
+    {
+        int light_index = 0;
+        for (const auto &light : lights)
+        {
+            if (light->enabled)
+            {
+                std::string prefix = "lights[" + std::to_string(light_index) + "].";
+
+                if (light->realistic)
+                {
+                    shader->set(prefix + "color", light->color);
+                }
+                else
+                {
+                    shader->set(prefix + "diffuse", light->diffuse);
+                    shader->set(prefix + "specular", light->specular);
+                    shader->set(prefix + "ambient", light->ambient);
+                }
+
+                switch (light->type)
+                {
+                case our::LightType::DIRECTIONAL:
+                    shader->set(prefix + "direction", normalize(light->direction));
+                    break;
+                case our::LightType::POINT:
+                    shader->set(prefix + "position", light->position);
+                    shader->set(prefix + "attenuation_constant", light->attenuation.constant);
+                    shader->set(prefix + "attenuation_linear", light->attenuation.linear);
+                    shader->set(prefix + "attenuation_quadratic", light->attenuation.quadratic);
+                    break;
+                case our::LightType::SPOT:
+                    shader->set(prefix + "position", light->position);
+                    shader->set(prefix + "direction", glm::normalize(light->direction));
+                    shader->set(prefix + "attenuation_constant", light->attenuation.constant);
+                    shader->set(prefix + "attenuation_linear", light->attenuation.linear);
+                    shader->set(prefix + "attenuation_quadratic", light->attenuation.quadratic);
+                    shader->set(prefix + "inner_angle", light->spot_angle.inner);
+                    shader->set(prefix + "outer_angle", light->spot_angle.outer);
+                    break;
+                }
+            }
+            light_index++;
         }
     }
 
@@ -145,6 +197,23 @@ namespace our
         textureNormal = AssetLoader<Texture2D>::get(data.value("textureNormal", ""));
         textureAmbientOcclusion = AssetLoader<Texture2D>::get(data.value("textureAmbientOcclusion", ""));
         textureEmissive = AssetLoader<Texture2D>::get(data.value("textureEmissive", ""));
+
+        if (data.contains("lights"))
+        {
+            if (data["lights"].is_array())
+            {
+                lights.clear();
+                auto lightNames = data["lights"].get<std::vector<std::string>>();
+                for (const auto &name : lightNames)
+                {
+                    auto lightPtr = AssetLoader<Light>::get(name);
+                    if (lightPtr)
+                    {
+                        lights.push_back(lightPtr);
+                    }
+                }
+            }
+        }
     }
 
 }

@@ -12,12 +12,7 @@
 #include <mesh/mesh-utils.hpp>
 #include "asset-loader.hpp"
 #include <texture/texture-utils.hpp>
-
-const int TEXTURE_UNIT_IRRADIANCE = 9;
-const int TEXTURE_UNIT_ENVIRONMENT = 10;
-const int TEXTURE_UNIT_HDR = 11;
-const int TEXTURE_UNIT_BRDF = 12;
-const int TEXTURE_UNIT_PREFILTER = 13;
+#include <texture/texture-unit.hpp>
 
 namespace our
 {

@@ -4,16 +4,12 @@
 #include "../texture/texture2d.hpp"
 #include "../texture/sampler.hpp"
 #include "../shader/shader.hpp"
+#include <texture/texture-unit.hpp>
+#include <ecs/lighting.hpp>
 
 #include <glm/vec4.hpp>
 #include <json/json.hpp>
 
-const int TEXTURE_UNIT_ALBEDO = 0;
-const int TEXTURE_UNIT_METALLIC = 1;
-const int TEXTURE_UNIT_ROUGHNESS = 2;
-const int TEXTURE_UNIT_NORMAL = 3;
-const int TEXTURE_UNIT_AMBIENT_OCCLUSION = 4;
-const int TEXTURE_UNIT_EMISSIVE = 5;
 
 namespace our {
 
@@ -62,6 +58,8 @@ namespace our {
 
     // LitMaterial: Supports full PBR-like lighting with multiple textures
     class LitMaterial : public TexturedMaterial {
+        private:
+            void setupLight() const;     
         public:
             bool useTextureAlbedo = false;
             bool useTextureMetallic = false;
@@ -82,6 +80,8 @@ namespace our {
             Texture2D* textureNormal;
             Texture2D* textureAmbientOcclusion;
             Texture2D* textureEmissive;
+
+            std::vector<our::Light*> lights;
 
             void setup() const override;
             void deserialize(const nlohmann::json& data) override;

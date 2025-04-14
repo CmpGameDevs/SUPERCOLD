@@ -111,6 +111,7 @@
                             "function": "GL_LEQUAL"
                         }
                     },
+                   "lights": ["sun1", "sun2", "sun3", "sun4"],
                     "tint": [1, 1, 1, 1],
                     "texture": "grass_albedo",
                     "sampler": "default",
@@ -132,6 +133,56 @@
                     "textureAmbientOcclusion": "grass_ambientOcclusion",
                     "textureEmissive": "grass_metal"
                 }
+            },
+            "lights": {
+                "sun1":{
+                    "type": "point",
+                    "enabled": true,
+                    "realistic": true,
+                    "color": [300, 300 , 300],
+                    "position": [-10.0,  10.0, 10.0],
+                    "attenuation": {
+                        "constant": 0,
+                        "linear": 0,
+                        "quadratic": 1
+                    }
+                },
+                "sun2":{
+                    "type": "point",
+                    "enabled": true,
+                    "realistic": true,
+                    "color": [300, 300 , 300],
+                    "position": [10.0,  10.0, 10.0],
+                    "attenuation": {
+                        "constant": 0,
+                        "linear": 0,
+                        "quadratic": 1
+                    }
+                },
+                "sun3":{
+                    "type": "point",
+                    "enabled": true,
+                    "realistic": true,
+                    "color": [300, 300 , 300],
+                    "position": [-10.0,  -10.0, 10.0],
+                    "attenuation": {
+                        "constant": 0,
+                        "linear": 0,
+                        "quadratic": 1
+                    }
+                },
+                "sun4":{
+                    "type": "point",
+                    "enabled": true,
+                    "realistic": true,
+                    "color": [300, 300 , 300],
+                    "position": [10.0,  -10.0, 10.0],
+                    "attenuation": {
+                        "constant": 0,
+                        "linear": 0,
+                        "quadratic": 1
+                    }
+                }
             }
         },
         "grid":{
@@ -147,56 +198,6 @@
             "fov": 90,
             "near": 0.01,
             "far": 1000
-        },
-        "lights": [
-            {
-                "type": "point",
-                "enabled": true,
-                "realistic": true,
-                "color": [300, 300 , 300],
-                "position": [-10.0,  10.0, 10.0],
-                "attenuation": {
-                    "constant": 0,
-                    "linear": 0,
-                    "quadratic": 1
-                }
-            },
-            {
-                "type": "point",
-                "enabled": true,
-                "realistic": true,
-                "color": [300, 300 , 300],
-                "position": [10.0,  10.0, 10.0],
-                "attenuation": {
-                    "constant": 0,
-                    "linear": 0,
-                    "quadratic": 1
-                }
-            },
-            {
-                "type": "point",
-                "enabled": true,
-                "realistic": true,
-                "color": [300, 300 , 300],
-                "position": [-10.0,  -10.0, 10.0],
-                "attenuation": {
-                    "constant": 0,
-                    "linear": 0,
-                    "quadratic": 1
-                }
-            },
-            {
-                "type": "point",
-                "enabled": true,
-                "realistic": true,
-                "color": [300, 300 , 300],
-                "position": [10.0,  -10.0, 10.0],
-                "attenuation": {
-                    "constant": 0,
-                    "linear": 0,
-                    "quadratic": 1
-                }
-            }
-        ]
+        }
     }
 }

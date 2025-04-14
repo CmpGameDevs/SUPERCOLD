@@ -57,6 +57,7 @@ set(COMMON_SOURCES
         source/common/texture/screenshot.cpp
         source/common/texture/cubemap-texture.hpp
         source/common/texture/cubemap-texture.cpp
+        source/common/texture/texture-unit.hpp
 
         source/common/material/pipeline-state.hpp
         source/common/material/pipeline-state.cpp

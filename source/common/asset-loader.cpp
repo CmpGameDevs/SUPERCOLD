@@ -121,6 +121,21 @@ namespace our
         }
     };
 
+    template <>
+    void AssetLoader<Light>::deserialize(const nlohmann::json &data)
+    {
+        if (data.is_object())
+        {
+            for (auto &[name, desc] : data.items())
+            {
+                our::Light* light = new our::Light();
+                light->deserialize(desc);
+                assets[name] = light;
+            }
+        }
+    };
+
+
     void deserializeAllAssets(const nlohmann::json &assetData)
     {
         if (!assetData.is_object())
@@ -133,6 +148,8 @@ namespace our
             AssetLoader<Sampler>::deserialize(assetData["samplers"]);
         if (assetData.contains("meshes"))
             AssetLoader<Mesh>::deserialize(assetData["meshes"]);
+        if (assetData.contains("lights"))
+            AssetLoader<Light>::deserialize(assetData["lights"]);
         if (assetData.contains("materials"))
             AssetLoader<Material>::deserialize(assetData["materials"]);
     }
@@ -144,6 +161,7 @@ namespace our
         AssetLoader<Sampler>::clear();
         AssetLoader<Mesh>::clear();
         AssetLoader<Material>::clear();
+        AssetLoader<Light>::clear();
     }
 
 }

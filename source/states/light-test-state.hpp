@@ -23,7 +23,6 @@
 
 class LightTestState : public our::State {
 
-    our::ShaderProgram* pbr_shader;
     our::Sampler* sampler;
     our::Material* pbr_material;
     std::vector<our::Material*> pbr_materials;
@@ -107,7 +106,6 @@ class LightTestState : public our::State {
         }
         
         
-        pbr_shader = our::AssetLoader<our::ShaderProgram>::get("pbr");
         meshes["sphere"] = our::AssetLoader<our::Mesh>::get("mesh");
         pbr_material = our::AssetLoader<our::Material>::get("gold");
         sampler = our::AssetLoader<our::Sampler>::get("sampler");
@@ -142,20 +140,6 @@ class LightTestState : public our::State {
                 far = cam.value("far", 100.0f);
             }
         }
-        
-        if(config.contains("lights")){
-            if(auto& lightsConfig = config["lights"]; lightsConfig.is_array()){
-                for(auto& lightConfig : lightsConfig){
-                    our::Light light;
-                    if(lightTypes.find(lightConfig.value("type", "")) != lightTypes.end()){
-                        light.deserialize(lightConfig);
-                        lights.push_back(light);
-                    }else{
-                        std::cerr << "Unknown light type: " << lightConfig.value("type", "") << std::endl;
-                    }
-                }
-            }
-        }
 
         hdrSystem = new our::HDRSystem();
 
@@ -167,15 +151,6 @@ class LightTestState : public our::State {
         }
 
         std::cout << "HDR System: " << (hdrSystem->enable ? "Enabled" : "Disabled") << std::endl;
-        
-        // pbr_material->setup();
-        pbr_materials[0]->setup();
-        pbr_shader->use();
-        pbr_shader->set("irradianceMap", TEXTURE_UNIT_IRRADIANCE);
-        pbr_shader->set("prefilterMap", TEXTURE_UNIT_PREFILTER);
-        pbr_shader->set("brdfLUT", TEXTURE_UNIT_BRDF);
-        pbr_shader->set("use_hdr", hdrSystem->enable);
-
         
         hdrSystem->Initialize();
         hdrSystem->setup();
@@ -191,13 +166,6 @@ class LightTestState : public our::State {
 
         updateCamera(deltaTime);
 
-        pbr_shader->use();
-        pbr_shader->set("view", view);
-        pbr_shader->set("projection", projection);
-        pbr_shader->set("cameraPosition", cameraPosition);
-        pbr_shader->set("lightCount", static_cast<int>(lights.size()));
-        
-
         transform.position = glm::vec3(0, 0, 0);
         transform.rotation = glm::vec3(0, 0, 0);
         transform.scale = glm::vec3(1, 1, 1);
@@ -205,28 +173,24 @@ class LightTestState : public our::State {
         // bind pre-computed IBL data
         hdrSystem->bindTextures();
 
-        if(test_metallic_roughness){
-            pbr_materials[0]->setup();
-        } 
+        our::Material* currentMaterial = pbr_materials[0];
 
         for (int row = 0; row < nrRows; ++row) 
         {
-            pbr_shader->set("material.metallic", (float)row / (float)nrRows);
             for (int col = 0; col < nrColumns; ++col) 
             {
-                // we clamp the roughness to 0.05 - 1.0 as perfectly smooth surfaces (roughness of 0.0) tend to look a bit off
-                // on direct lighting.
-                pbr_shader->set("material.roughness", glm::clamp((float)col / (float)nrColumns, 0.05f, 1.0f));
-
+                
                 if(!test_metallic_roughness){
                     // Select the material based on grid cell index (repeat when needed)
                     int index = (row * nrColumns + col) % (pbr_materials.empty() ? 1 : pbr_materials.size());
                     if(!pbr_materials.empty()){
-                        // Assumes each material has a setup() that binds its textures and sets uniforms.
-                        pbr_materials[index]->setup();
+                        currentMaterial = pbr_materials[index];
                     }
                 }
-                
+                // we clamp the roughness to 0.05 - 1.0 as perfectly smooth surfaces (roughness of 0.0) tend to look a bit off
+                // on direct lighting.
+                float roughness = glm::clamp((float)col / (float)nrColumns, 0.05f, 1.0f);
+                float metallic = (float)row / (float)nrRows;
                 model = glm::mat4(1.0f);
                 transform.position = glm::vec3(
                     (col - (nrColumns / 2)) * gap, 
@@ -234,60 +198,33 @@ class LightTestState : public our::State {
                     0.0f
                 );
                 model = transform.toMat4();
-                pbr_shader->set("model", model);
+
+                currentMaterial->setup();
+                if(test_metallic_roughness){
+                    currentMaterial->shader->set("material.metallic", metallic);
+                    currentMaterial->shader->set("material.roughness", roughness);
+                }
+                currentMaterial->shader->set("view", view);
+                currentMaterial->shader->set("projection", projection);
+                currentMaterial->shader->set("model", model);
+                currentMaterial->shader->set("cameraPosition", cameraPosition);
                 our::mesh_utils::renderSphere();
             }
         }
 
-        int light_index = 0;
-        for (const auto& light : lights) {
-            if (!light.enabled) continue;
-
-            std::string prefix = "lights[" + std::to_string(light_index) + "].";
-
-            if(light.realistic){
-                pbr_shader->set(prefix + "color", light.color);
-            } else {
-                pbr_shader->set(prefix + "diffuse", light.diffuse);
-                pbr_shader->set(prefix + "specular", light.specular);
-                pbr_shader->set(prefix + "ambient", light.ambient);
-            }
-
-            switch (light.type) {
-                case our::LightType::DIRECTIONAL:
-                    pbr_shader->set(prefix + "direction", normalize(light.direction));
-                    break;
-                case our::LightType::POINT:
-                    pbr_shader->set(prefix + "position", light.position);
-                    pbr_shader->set(prefix + "attenuation_constant", light.attenuation.constant);
-                    pbr_shader->set(prefix + "attenuation_linear", light.attenuation.linear);
-                    pbr_shader->set(prefix + "attenuation_quadratic", light.attenuation.quadratic);
-                    break;
-                case our::LightType::SPOT:
-                    pbr_shader->set(prefix + "position", light.position);
-                    pbr_shader->set(prefix + "direction", glm::normalize(light.direction));
-                    pbr_shader->set(prefix + "attenuation_constant", light.attenuation.constant);
-                    pbr_shader->set(prefix + "attenuation_linear", light.attenuation.linear);
-                    pbr_shader->set(prefix + "attenuation_quadratic", light.attenuation.quadratic);
-                    pbr_shader->set(prefix + "inner_angle", light.spot_angle.inner);
-                    pbr_shader->set(prefix + "outer_angle", light.spot_angle.outer);
-                    break;
-            }
-            light_index++;
-
-            model = glm::mat4(1.0f);
-            transform.position = light.position;
-            transform.scale = glm::vec3(0.5f);
-            model = transform.toMat4();
-            pbr_shader->set("model", model);
-            our::mesh_utils::renderSphere();
-        }
+        // for (const auto& light : lights) {
+        //     model = glm::mat4(1.0f);
+        //     transform.position = light.position;
+        //     transform.scale = glm::vec3(0.5f);
+        //     model = transform.toMat4();
+        //     pbr_shader->set("model", model);
+        //     our::mesh_utils::renderSphere();
+        // }
 
         hdrSystem->renderBackground(projection, view);
     }
 
     void onDestroy() override {
-        delete pbr_shader;
         delete pbr_material;
         delete sampler;
         delete hdrSystem;

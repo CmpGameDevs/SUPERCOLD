@@ -49,6 +49,7 @@
                             "enabled": true
                         }
                     },
+                    "lights": ["sun1"],
                     "tint": [1, 1, 1, 1],
                     "texture": "albedo",
                     "sampler": "default",
@@ -70,6 +71,56 @@
                     "textureAmbientOcclusion": "ambientOcclusion",
                     "textureEmissive": "metal"
                 }
+            },
+            "lights": {
+                "sun1":{
+                    "type": "point",
+                    "enabled": true,
+                    "realistic": true,
+                    "color": [300, 300 , 300],
+                    "position": [-10.0,  10.0, 10.0],
+                    "attenuation": {
+                        "constant": 0,
+                        "linear": 0,
+                        "quadratic": 1
+                    }
+                },
+                "sun2":{
+                    "type": "point",
+                    "enabled": false,
+                    "realistic": true,
+                    "color": [300, 300 , 300],
+                    "position": [10.0,  10.0, 10.0],
+                    "attenuation": {
+                        "constant": 0,
+                        "linear": 0,
+                        "quadratic": 1
+                    }
+                },
+                "sun3":{
+                    "type": "point",
+                    "enabled": true,
+                    "realistic": true,
+                    "color": [300, 300 , 300],
+                    "position": [-10.0,  -10.0, 10.0],
+                    "attenuation": {
+                        "constant": 0,
+                        "linear": 0,
+                        "quadratic": 1
+                    }
+                },
+                "sun4":{
+                    "type": "point",
+                    "enabled": false,
+                    "realistic": true,
+                    "color": [300, 300 , 300],
+                    "position": [10.0,  -10.0, 10.0],
+                    "attenuation": {
+                        "constant": 0,
+                        "linear": 0,
+                        "quadratic": 1
+                    }
+                }
             }
         },
         "grid":{
@@ -84,20 +135,6 @@
             "fov": 90,
             "near": 0.01,
             "far": 1000
-        },
-        "lights": [
-            {
-                "type": "point",
-                "enabled": true,
-                "realistic": true,
-                "color": [300, 300 , 300],
-                "position": [-10.0,  10.0, 10.0],
-                "attenuation": {
-                    "constant": 0,
-                    "linear": 0,
-                    "quadratic": 1
-                }
-            }
-        ]
+        }
     }
 }

@@ -45,7 +45,7 @@ namespace our
     void our::HDRSystem::setup(){
         if (enable == false) return;
         background_shader->use();
-        background_shader->set("environmentMap", TEXTURE_UNIT_ENVIRONMENT);
+        background_shader->set("environmentMap", our::TextureUnits::TEXTURE_UNIT_ENVIRONMENT);
         
         cubeMapBuffer->size = { 512, 512 };
         cubeMapBuffer->setupFrameBuffer();
@@ -55,10 +55,10 @@ namespace our
 
          // pbr: convert HDR equirectangular environment map to cubemap equivalent
         // ----------------------------------------------------------------------
-        glActiveTexture(GL_TEXTURE0 + TEXTURE_UNIT_HDR);
+        glActiveTexture(GL_TEXTURE0 + our::TextureUnits::TEXTURE_UNIT_HDR);
         hdr_texture->bind();
 
-        equirectangularCubeMap->convertToCubeMap(TEXTURE_UNIT_HDR, captureProjection, captureViews);
+        equirectangularCubeMap->convertToCubeMap(our::TextureUnits::TEXTURE_UNIT_HDR, captureProjection, captureViews);
 
         // then let OpenGL generate mipmaps from first mip face (combatting visible dots artifact)
         envCubeMap->generateMipmaps();
@@ -75,10 +75,10 @@ namespace our
 
         // pbr: solve diffuse integral by convolution to create an irradiance (cube)map.
         // -----------------------------------------------------------------------------
-        glActiveTexture(GL_TEXTURE0 + TEXTURE_UNIT_ENVIRONMENT);
+        glActiveTexture(GL_TEXTURE0 + our::TextureUnits::TEXTURE_UNIT_ENVIRONMENT);
         envCubeMap->bind();
 
-        irradianceCubeMap->convertToCubeMap(TEXTURE_UNIT_ENVIRONMENT, captureProjection, captureViews);
+        irradianceCubeMap->convertToCubeMap(our::TextureUnits::TEXTURE_UNIT_ENVIRONMENT, captureProjection, captureViews);
 
 
         // pbr: create a pre-filter cubemap, and re-scale capture FBO to pre-filter scale.
@@ -89,10 +89,10 @@ namespace our
 
         // pbr: run a quasi monte-carlo simulation on the environment lighting to create a prefilter (cube)map.
         // ----------------------------------------------------------------------------------------------------
-        glActiveTexture(GL_TEXTURE0 + TEXTURE_UNIT_PREFILTER);
+        glActiveTexture(GL_TEXTURE0 + our::TextureUnits::TEXTURE_UNIT_PREFILTER);
         envCubeMap->bind();
 
-        prefilterCubeMap->convertToCubeMap(TEXTURE_UNIT_PREFILTER, captureProjection, captureViews);
+        prefilterCubeMap->convertToCubeMap(our::TextureUnits::TEXTURE_UNIT_PREFILTER, captureProjection, captureViews);
 
         // pbr: generate a 2D LUT from the BRDF equations used.
         // ----------------------------------------------------
@@ -129,29 +129,29 @@ namespace our
     void our::HDRSystem::bindTextures()
     {
         if (enable == false) return;
-        glActiveTexture(GL_TEXTURE0 + TEXTURE_UNIT_IRRADIANCE);
+        glActiveTexture(GL_TEXTURE0 + our::TextureUnits::TEXTURE_UNIT_IRRADIANCE);
         irradianceMap->bind();
-        glActiveTexture(GL_TEXTURE0 + TEXTURE_UNIT_PREFILTER);
+        glActiveTexture(GL_TEXTURE0 + our::TextureUnits::TEXTURE_UNIT_PREFILTER);
         prefilterMap->bind();
-        glActiveTexture(GL_TEXTURE0 + TEXTURE_UNIT_BRDF);
+        glActiveTexture(GL_TEXTURE0 + our::TextureUnits::TEXTURE_UNIT_BRDF);
         brdfLUTTexture->bind();
     }
 
     void our::HDRSystem::unbindTextures()
     {
         if (enable == false) return;
-        glActiveTexture(GL_TEXTURE0 + TEXTURE_UNIT_IRRADIANCE);
+        glActiveTexture(GL_TEXTURE0 + our::TextureUnits::TEXTURE_UNIT_IRRADIANCE);
         irradianceMap->unbind();
-        glActiveTexture(GL_TEXTURE0 + TEXTURE_UNIT_PREFILTER);
+        glActiveTexture(GL_TEXTURE0 + our::TextureUnits::TEXTURE_UNIT_PREFILTER);
         prefilterMap->unbind();
-        glActiveTexture(GL_TEXTURE0 + TEXTURE_UNIT_BRDF);
+        glActiveTexture(GL_TEXTURE0 + our::TextureUnits::TEXTURE_UNIT_BRDF);
         brdfLUTTexture->unbind();
     }
 
     void our::HDRSystem::renderBackground(glm::mat4 projection, glm::mat4 view)
     {
         if (enable == false) return;
-        glActiveTexture(GL_TEXTURE0 + TEXTURE_UNIT_ENVIRONMENT);
+        glActiveTexture(GL_TEXTURE0 + our::TextureUnits::TEXTURE_UNIT_ENVIRONMENT);
         envCubeMap->bind();
         background_shader->use();
         background_shader->set("projection", projection);
