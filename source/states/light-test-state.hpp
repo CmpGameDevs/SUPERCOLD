@@ -23,8 +23,6 @@
 
 class LightTestState : public our::State {
 
-    our::Sampler* sampler;
-    our::Material* pbr_material;
     std::vector<our::Material*> pbr_materials;
     our::Transform transform;
     our::HDRSystem* hdrSystem;
@@ -105,10 +103,7 @@ class LightTestState : public our::State {
             our::deserializeAllAssets(config["assets"]);
         }
         
-        
         meshes["sphere"] = our::AssetLoader<our::Mesh>::get("mesh");
-        pbr_material = our::AssetLoader<our::Material>::get("gold");
-        sampler = our::AssetLoader<our::Sampler>::get("sampler");
 
          // Load multiple materials
          std::vector<std::string> availableMaterials = {"test","gold", "silver", "rusted_iron", "wall", "grass", "plastic"};
@@ -145,8 +140,7 @@ class LightTestState : public our::State {
 
         if(config.contains("hdr")){
             hdrSystem->deserialize(config["hdr"]);
-        }
-        else {
+        }else {
             hdrSystem->enable = false;
         }
 
@@ -225,11 +219,12 @@ class LightTestState : public our::State {
     }
 
     void onDestroy() override {
-        delete pbr_material;
-        delete sampler;
         delete hdrSystem;
         delete mouse;
         delete keyboard;
+        for(auto& material: pbr_materials){
+            delete material;
+        }
         for(auto& [name, mesh]: meshes){
             delete mesh;
         }
