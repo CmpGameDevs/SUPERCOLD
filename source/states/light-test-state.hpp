@@ -27,7 +27,6 @@ class LightTestState : public our::State {
     our::Transform transform;
     our::HDRSystem* hdrSystem;
     std::unordered_map<std::string,  our::Mesh*> meshes;
-    std::vector<our::Light> lights;
     glm::mat4 view;
     glm::mat4 model = glm::mat4(1.0f);
     glm::mat4 projection;
@@ -205,15 +204,6 @@ class LightTestState : public our::State {
                 our::mesh_utils::renderSphere();
             }
         }
-
-        // for (const auto& light : lights) {
-        //     model = glm::mat4(1.0f);
-        //     transform.position = light.position;
-        //     transform.scale = glm::vec3(0.5f);
-        //     model = transform.toMat4();
-        //     pbr_shader->set("model", model);
-        //     our::mesh_utils::renderSphere();
-        // }
 
         hdrSystem->renderBackground(projection, view);
     }
