@@ -73,7 +73,7 @@ namespace our
 
     void LitMaterial::setup() const
     {
-        TexturedMaterial::setup();
+        TintedMaterial::setup();
 
         shader->set("material.useTextureAlbedo", useTextureAlbedo);
         shader->set("material.useTextureMetallic", useTextureMetallic);
@@ -138,17 +138,8 @@ namespace our
             {
                 std::string prefix = "lights[" + std::to_string(light_index) + "].";
 
-                if (light->realistic)
-                {
-                    shader->set(prefix + "color", light->color);
-                }
-                else
-                {
-                    shader->set(prefix + "diffuse", light->diffuse);
-                    shader->set(prefix + "specular", light->specular);
-                    shader->set(prefix + "ambient", light->ambient);
-                }
-
+                shader->set(prefix + "color", light->color);
+     
                 switch (light->type)
                 {
                 case our::LightType::DIRECTIONAL:
@@ -177,7 +168,7 @@ namespace our
 
     void LitMaterial::deserialize(const nlohmann::json &data)
     {
-        TexturedMaterial::deserialize(data);
+        TintedMaterial::deserialize(data);
         if (!data.is_object())
             return;
         useTextureAlbedo = data.value("useTextureAlbedo", false);

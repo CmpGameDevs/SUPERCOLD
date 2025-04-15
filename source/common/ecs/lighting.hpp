@@ -26,7 +26,6 @@ namespace our {
             glm::vec3 position; // Used for Point and Spot Lights only
             glm::vec3 direction; // Used for Directional and Spot Lights only
             float shininess; // specular power defines the smoothness/roughness
-            bool realistic; // To choose weather to use the realistic lighting model or the old one.
             bool enabled; // Whether the light is enabled or not. If false, the light will not affect the scene.
             // This affects how the light will dim out as we go further from the light.
             // The formula is light_received = light_emitted / (a*d^2 + b*d + c) where a, b, c are the quadratic, linear and constant factors respectively.
