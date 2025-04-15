@@ -55,11 +55,21 @@ set(COMMON_SOURCES
         source/common/texture/texture-utils.cpp
         source/common/texture/screenshot.hpp
         source/common/texture/screenshot.cpp
+        source/common/texture/cubemap-texture.hpp
+        source/common/texture/cubemap-texture.cpp
+        source/common/texture/texture-unit.hpp
 
         source/common/material/pipeline-state.hpp
         source/common/material/pipeline-state.cpp
         source/common/material/material.hpp
         source/common/material/material.cpp
+
+        source/common/ibl/cubemap-buffer.hpp
+        source/common/ibl/cubemap-buffer.cpp
+        source/common/ibl/cubemap.hpp
+        source/common/ibl/cubemap.cpp
+        source/common/ibl/hdr-system.hpp
+        source/common/ibl/hdr-system.cpp
 
         source/common/ecs/component.hpp
         source/common/ecs/transform.hpp
@@ -112,6 +122,7 @@ set(STATES_SOURCES
         source/states/material-test-state.hpp
         source/states/entity-test-state.hpp
         source/states/renderer-test-state.hpp
+        source/states/light-test-state.hpp
 )
 
 # For each example, we add an executable target

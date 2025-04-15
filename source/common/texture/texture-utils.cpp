@@ -51,3 +51,35 @@ our::Texture2D *our::texture_utils::loadImage(const std::string &filename, bool 
     stbi_image_free(pixels); // Free image data after uploading to GPU
     return texture;
 }
+
+
+our::Texture2D *our::texture_utils::loadHDR(const std::string &filename, bool generate_mipmap)
+{
+    glm::ivec2 size;
+    int channels;
+    // Since OpenGL puts the texture origin at the bottom left while images typically has the origin at the top left,
+    // We need to till stb to flip images vertically after loading them
+    stbi_set_flip_vertically_on_load(true);
+    float *pixels = stbi_loadf(filename.c_str(), &size.x, &size.y, &channels, 0);
+    if (pixels == nullptr)
+    {
+        std::cerr << "Failed to load HDR: " << filename << std::endl;
+        return nullptr;
+    }
+    // Create a texture
+    our::Texture2D* texture = new our::Texture2D();
+    texture->bind();
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, size.x, size.y, 0, GL_RGB, GL_FLOAT, pixels);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    if (generate_mipmap) {
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+    
+    stbi_image_free(pixels); // Free image data after uploading to GPU
+    return texture;
+}
