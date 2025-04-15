@@ -332,3 +332,23 @@ Our PBR lighting system consists of:
 - An **IBL pipeline** that converts HDR equirectangular images to cubemaps (environment, irradiance, and prefiltered).
 - A centralized **HDR System** to manage high dynamic range image processing.
 - Consistent **Texture Unit** management to simplify resource binding.
+
+
+## Resources
+
+Explore these links for more insights and additional support:
+
+- [Basic PBR Lighting](https://learnopengl.com/PBR/Lighting)  
+    A basic introduction to PBR lighting concepts and implementation.
+
+- [IBL](https://learnopengl.com/PBR/IBL/Diffuse-irradiance)  
+    A comprehensive guide on how to implement image based lighting.
+
+- [Specular-IBL](https://learnopengl.com/PBR/IBL/Specular-IBL)  
+    Further reading on the specular IBL implementation.
+
+- [3D Viewer](https://www.3dviewer.net/index.html)  
+    A web-based 3D viewer for testing and visualizing your models.
+
+- [PBR Materials](https://freepbr.com/c/base-metals/)  
+    Free PBR textures and resources for your projects.
