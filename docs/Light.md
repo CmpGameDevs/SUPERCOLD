@@ -32,11 +32,18 @@ Lights are the primary illumination sources in our scene. They exist in three di
       "constant": 1.0,
       "linear": 0.09,
       "quadratic": 0.032
-  }
+    }
   ```
 
 - **Spot Light:**  
   Similar to point lights but with an inner and outer cone angle to define the light's spread.
+
+  ```json
+  "spot_angle": {
+        "inner": 0.785398163, // pi/4
+        "outer": 1.57079633 // pi/2
+    }
+  ```
 
 Each light also has an `enabled` flag to turn it on or off.
 
@@ -239,46 +246,45 @@ This approach ensures that the texture bindings remain consistent throughout the
 
 Materials and lights are defined in asset JSON files. For instance:
 
-As you can see you can also specify if you want to use textures or not using "useTextureAlbedo" attribute etc.
 
 ```json
 "assets":{
-  "materials": {
-    "rusted_iron":{
-        "type": "lit",
-        "shader": "pbr",
-        "pipelineState": {
-            "faceCulling":{
-                "enabled": false
+    "materials": {
+        "rusted_iron":{
+            "type": "lit",
+            "shader": "pbr",
+            "pipelineState": {
+                "faceCulling":{
+                    "enabled": false
+                },
+                "depthTesting":{
+                    "enabled": true,
+                    "function": "GL_LEQUAL"
+                }
             },
-            "depthTesting":{
-                "enabled": true,
-                "function": "GL_LEQUAL"
-            }
+            "lights": ["sun", "lamp"],
+            "tint": [1, 1, 1, 1],
+            "texture": "rusted_albedo",
+            "sampler": "default",
+            "useTextureAlbedo": true,
+            "useTextureNormal": true,
+            "useTextureMetallic": true,
+            "useTextureRoughness": true,
+            "useTextureAmbientOcclusion": true,
+            "useTextureEmissive": false,
+            "albedo": [0.75, 0.75, 0.75],
+            "roughness": 0.5,
+            "metallic": 0.85,
+            "emissive": [0, 0, 0],
+            "ambientOcclusion": 1,
+            "textureAlbedo": "rusted_albedo",
+            "textureNormal": "rusted_normal",
+            "textureMetallic": "rusted_metallic",
+            "textureRoughness": "rusted_roughness",
+            "textureAmbientOcclusion": "rusted_ambientOcclusion",
+            "textureEmissive": "rusted_ambientOcclusion"
         },
-        "lights": ["sun", "lamp"],
-        "tint": [1, 1, 1, 1],
-        "texture": "rusted_albedo",
-        "sampler": "default",
-        "useTextureAlbedo": true,
-        "useTextureNormal": true,
-        "useTextureMetallic": true,
-        "useTextureRoughness": true,
-        "useTextureAmbientOcclusion": true,
-        "useTextureEmissive": false,
-        "albedo": [0.75, 0.75, 0.75],
-        "roughness": 0.5,
-        "metallic": 0.85,
-        "emissive": [0, 0, 0],
-        "ambientOcclusion": 1,
-        "textureAlbedo": "rusted_albedo",
-        "textureNormal": "rusted_normal",
-        "textureMetallic": "rusted_metallic",
-        "textureRoughness": "rusted_roughness",
-        "textureAmbientOcclusion": "rusted_ambientOcclusion",
-        "textureEmissive": "rusted_ambientOcclusion"
     },
-  },
     "lights": {
         "sun":{
             "type": "point",
@@ -304,11 +310,10 @@ As you can see you can also specify if you want to use textures or not using "us
                 "quadratic": 1
             }
         },
-
     }
 }
 ```
-
+As you can see you can also specify if you want to use textures or not using "useTextureAlbedo" attribute etc.
 
 To use lit materials:
 1. Define your light sources in the assets.
