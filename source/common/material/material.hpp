@@ -57,7 +57,7 @@ namespace our {
     };
 
     // LitMaterial: Supports full PBR-like lighting with multiple textures
-    class LitMaterial : public TexturedMaterial {
+    class LitMaterial : public TintedMaterial {
         private:
             void setupLight() const;     
         public:
