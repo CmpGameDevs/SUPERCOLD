@@ -6,8 +6,6 @@ layout (location = 3) in vec3 aNormal;
 
 out vec2 textureCoordinates;
 out vec3 worldCoordinates;
-out vec3 tangent;
-out vec3 bitangent;
 out vec3 normal;
 
 uniform mat4 model;

@@ -4,7 +4,7 @@
 namespace our
 {
 
-    void our::HDRSystem::Initialize(){
+    void our::HDRSystem::initialize(){
         if (enable == false) return;
         initializeShader();
         initializeTexture();
@@ -42,7 +42,7 @@ namespace our
         prefilterMap = new CubeMapTexture();
     }
 
-    void our::HDRSystem::setup(){
+    void our::HDRSystem::setup(glm::ivec2 windowSize){
         if (enable == false) return;
         background_shader->use();
         background_shader->set("environmentMap", our::TextureUnits::TEXTURE_UNIT_ENVIRONMENT);
@@ -124,6 +124,7 @@ namespace our
 
         cubeMapBuffer->unbindFrameBuffer();
 
+        glViewport(0, 0, windowSize.x, windowSize.y);
     }
 
     void our::HDRSystem::bindTextures()

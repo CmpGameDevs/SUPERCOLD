@@ -10,6 +10,23 @@ namespace our
         // First, we store the window size for later use
         this->windowSize = windowSize;
 
+        // Check if the configuration contains a HDR system
+        this->hdrSystem = new HDRSystem();
+
+        if (config.contains("hdr"))
+        {
+            // Create the HDR system and deserialize it using the configuration
+            this->hdrSystem->deserialize(config["hdr"]);
+            this->hdrSystem->initialize();
+            this->hdrSystem->setup(windowSize);
+        }
+        else
+        {
+            // If there is no HDR system, we set it to nullptr
+            hdrSystem->enable = false;
+        }
+
+
         // Then we check if there is a sky texture in the configuration
         if (config.contains("sky"))
         {
@@ -133,6 +150,8 @@ namespace our
             delete postprocessMaterial->shader;
             delete postprocessMaterial;
         }
+
+        delete hdrSystem;
     }
 
     void ForwardRenderer::render(World *world)
@@ -186,7 +205,9 @@ namespace our
         });
 
         // TODO: (Req 9) Get the camera ViewProjection matrix and store it in VP
-        glm::mat4 VP = camera->getProjectionMatrix(windowSize) * camera->getViewMatrix();
+        glm::mat4 view = camera->getViewMatrix();
+        glm::mat4 projection = camera->getProjectionMatrix(windowSize);
+        glm::mat4 VP = projection * view;
         // TODO: (Req 9) Set the OpenGL viewport using viewportStart and viewportSize
         glm::vec2 viewportStart = glm::vec2(0, 0);
         glm::vec2 viewportSize = windowSize;
@@ -212,6 +233,12 @@ namespace our
         // TODO: (Req 9) Clear the color and depth buffers
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        //! The order of the hdrSystem is important
+        if(this->hdrSystem){
+            // bind pre-computed IBL data
+            this->hdrSystem->bindTextures();
+        }
+
         // TODO: (Req 9) Draw all the opaque commands
         //  Don't forget to set the "transform" uniform to be equal the model-view-projection matrix for each render command
         for (auto &command : opaqueCommands)
@@ -219,6 +246,10 @@ namespace our
             glm::mat4 MVP = VP * command.localToWorld;
             command.material->setup();
             command.material->shader->set("transform",MVP);
+            command.material->shader->set("cameraPosition", camera->getOwner()->localTransform.position);
+            command.material->shader->set("view", view);
+            command.material->shader->set("projection", projection);
+            command.material->shader->set("model", command.localToWorld);
             command.mesh->draw();
         }
 
@@ -258,9 +289,18 @@ namespace our
             glm::mat4 MVP = VP * command.localToWorld;
             command.material->setup();
             command.material->shader->set("transform",MVP);
+            command.material->shader->set("cameraPosition", camera->getOwner()->localTransform.position);
+            command.material->shader->set("view", view);
+            command.material->shader->set("projection", projection);
+            command.material->shader->set("model", command.localToWorld);
             command.mesh->draw();
         }
 
+        //! The order of the hdrSystem is important
+        if(this->hdrSystem){
+            // Render the background if the HDR system is enabled
+            hdrSystem->renderBackground(projection, view);
+        }
 
         // If there is a postprocess material, apply postprocessing
         if (postprocessMaterial)
