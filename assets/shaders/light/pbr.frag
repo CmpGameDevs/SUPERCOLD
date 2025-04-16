@@ -8,8 +8,6 @@ layout (location = 0) out vec4 FragColor;
 
 in vec3 worldCoordinates;
 in vec2 textureCoordinates;
-in vec3 tangent;
-in vec3 bitangent;
 in vec3 normal;
 
 struct Material {
