@@ -288,8 +288,7 @@ Materials and lights are defined in asset JSON files. For instance:
     "lights": {
         "sun":{
             "type": "point",
-            "enabled": true,
-            "realistic": true,
+            "enabled": true,    
             "color": [300, 300 , 300],
             "position": [-10.0,  10.0, 10.0],
             "attenuation": {
@@ -300,8 +299,7 @@ Materials and lights are defined in asset JSON files. For instance:
         },
         "lamp":{
             "type": "point",
-            "enabled": true,
-            "realistic": true,
+            "enabled": true,    
             "color": [300, 300 , 300],
             "position": [10.0,  -10.0, 10.0],
             "attenuation": {

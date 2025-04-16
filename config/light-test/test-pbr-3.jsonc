@@ -16,10 +16,12 @@
         ]
     },
     "scene": {
-        "hdr": {
-            "enable": true,
-            "hdr_texture": "circus_backstage",
-            "maxMipLevels": 5
+        "renderer":{
+            "hdr": {
+                "enable": true,
+                "hdr_texture": "circus_backstage",
+                "maxMipLevels": 5
+            }
         },
         "assets":{
             "shaders":{
@@ -96,7 +98,7 @@
                 "default":{}
             },
             "meshes":{
-                "mesh": "assets/models/sphere.obj"
+                "sphere": "assets/models/sphere/sphere.gltf"
             },
             "materials":{
                 "rusted_iron":{
@@ -113,8 +115,6 @@
                     },
                     "lights": ["sun1", "sun2", "sun3", "sun4"],
                     "tint": [1, 1, 1, 1],
-                    "texture": "rusted_albedo",
-                    "sampler": "default",
                     "useTextureAlbedo": true,
                     "useTextureNormal": true,
                     "useTextureMetallic": true,
@@ -124,7 +124,7 @@
                     "albedo": [0.75, 0.75, 0.75],
                     "roughness": 0.5,
                     "metallic": 0.85,
-                    "emissive": [0, 0, 0],
+                    "emission": [0, 0, 0],
                     "ambientOcclusion": 1,
                     "textureAlbedo": "rusted_albedo",
                     "textureNormal": "rusted_normal",
@@ -147,8 +147,6 @@
                     },
                     "lights": ["sun1", "sun2", "sun3", "sun4"],
                     "tint": [1, 1, 1, 1],
-                    "texture": "gold_albedo",
-                    "sampler": "default",
                     "useTextureAlbedo": true,
                     "useTextureNormal": true,
                     "useTextureMetallic": true,
@@ -158,7 +156,7 @@
                     "albedo": [0.75, 0.75, 0.75],
                     "roughness": 0.5,
                     "metallic": 0.85,
-                    "emissive": [0, 0, 0],
+                    "emission": [0, 0, 0],
                     "ambientOcclusion": 1,
                     "textureAlbedo": "gold_albedo",
                     "textureNormal": "gold_normal",
@@ -181,8 +179,6 @@
                     },
                     "lights": ["sun1", "sun2", "sun3", "sun4"],
                     "tint": [1, 1, 1, 1],
-                    "texture": "silver_albedo",
-                    "sampler": "default",
                     "useTextureAlbedo": true,
                     "useTextureNormal": true,
                     "useTextureMetallic": true,
@@ -192,7 +188,7 @@
                     "albedo": [0.75, 0.75, 0.75],
                     "roughness": 0.5,
                     "metallic": 0.85,
-                    "emissive": [0, 0, 0],
+                    "emission": [0, 0, 0],
                     "ambientOcclusion": 1,
                     "textureAlbedo": "silver_albedo",
                     "textureNormal": "silver_normal",
@@ -215,8 +211,6 @@
                     },
                     "lights": ["sun1", "sun2", "sun3", "sun4"],
                     "tint": [1, 1, 1, 1],
-                    "texture": "wall_albedo",
-                    "sampler": "default",
                     "useTextureAlbedo": true,
                     "useTextureNormal": true,
                     "useTextureMetallic": true,
@@ -226,7 +220,7 @@
                     "albedo": [0.75, 0.75, 0.75],
                     "roughness": 0.5,
                     "metallic": 0.85,
-                    "emissive": [0, 0, 0],
+                    "emission": [0, 0, 0],
                     "ambientOcclusion": 1,
                     "textureAlbedo": "wall_albedo",
                     "textureNormal": "wall_normal",
@@ -249,8 +243,6 @@
                     },
                     "lights": ["sun1", "sun2", "sun3", "sun4"],
                     "tint": [1, 1, 1, 1],
-                    "texture": "grass_albedo",
-                    "sampler": "default",
                     "useTextureAlbedo": true,
                     "useTextureNormal": true,
                     "useTextureMetallic": true,
@@ -260,7 +252,7 @@
                     "albedo": [0.75, 0.75, 0.75],
                     "roughness": 0.5,
                     "metallic": 0.85,
-                    "emissive": [0, 0, 0],
+                    "emission": [0, 0, 0],
                     "ambientOcclusion": 1,
                     "textureAlbedo": "grass_albedo",
                     "textureNormal": "grass_normal",
@@ -269,7 +261,7 @@
                     "textureAmbientOcclusion": "grass_ambientOcclusion",
                     "textureEmissive": "grass_metal"
                 },
-                "test":{
+                "sun":{
                     "type": "lit",
                     "shader": "pbr",
                     "pipelineState": {
@@ -281,20 +273,18 @@
                             "function": "GL_LEQUAL"
                         }
                     },
-                    "lights": ["sun1", "sun2", "sun3", "sun4"],
+                    "lights": [],
                     "tint": [1, 1, 1, 1],
-                    "texture": "grass_albedo",
-                    "sampler": "default",
                     "useTextureAlbedo": false,
                     "useTextureNormal": false,
                     "useTextureMetallic": false,
                     "useTextureRoughness": false,
                     "useTextureAmbientOcclusion": false,
                     "useTextureEmissive": false,
-                    "albedo": [0.75, 0.75, 0.75],
-                    "roughness": 0.1,
-                    "metallic": 0.9,
-                    "emissive": [0, 0, 0],
+                    "albedo": [1, 1, 1],
+                    "roughness": 0.99,
+                    "metallic": 0.1,
+                    "emission": [300, 300, 300],
                     "ambientOcclusion": 1,
                     "textureAlbedo": "grass_albedo",
                     "textureNormal": "grass_normal",
@@ -303,12 +293,12 @@
                     "textureAmbientOcclusion": "grass_ambientOcclusion",
                     "textureEmissive": "grass_metal"
                 }
+
             },
             "lights": {
                 "sun1":{
                     "type": "point",
                     "enabled": true,
-                    "realistic": true,
                     "color": [300, 300 , 300],
                     "position": [-10.0,  10.0, 10.0],
                     "attenuation": {
@@ -320,7 +310,6 @@
                 "sun2":{
                     "type": "point",
                     "enabled": false,
-                    "realistic": true,
                     "color": [300, 300 , 300],
                     "position": [10.0,  10.0, 10.0],
                     "attenuation": {
@@ -332,7 +321,6 @@
                 "sun3":{
                     "type": "point",
                     "enabled": true,
-                    "realistic": true,
                     "color": [300, 300 , 300],
                     "position": [-10.0,  -10.0, 10.0],
                     "attenuation": {
@@ -344,7 +332,6 @@
                 "sun4":{
                     "type": "point",
                     "enabled": false,
-                    "realistic": true,
                     "color": [300, 300 , 300],
                     "position": [10.0,  -10.0, 10.0],
                     "attenuation": {
@@ -355,19 +342,93 @@
                 }
         }
         },
-        "grid":{
-            "rows": 1,
-            "columns": 6,
-            "gap": 2.5,
-            "test_metallic_roughness": false
-        },
-        "camera": {
-            "eye": [4, 1, 5],
-            "center": [0, 0, 0],
-            "up": [0, 1, 0],
-            "fov": 90,
-            "near": 0.01,
-            "far": 1000
-        }
+        "world":[
+            {
+                "position": [0, 0, 10],
+                "components": [
+                    {
+                        "type": "Camera",
+                        "fovY": 60.0
+                    },
+                    {
+                        "type": "Free Camera Controller",
+                        "speedupFactors": 1.5,
+                        "positionSensitivity": [2.0, 2.0, 2.0],
+                        "rotationSensitivity": 0.001
+
+                    }
+                ]
+            },
+            {
+                "position": [0, -1, -1],
+                "components": [
+                    {
+                        "type": "Mesh Renderer",
+                        "mesh": "sphere",
+                        "material": "gold"
+                    }
+                ]
+            },
+            {
+                "position": [4, -1, -1],
+                "components": [
+                    {
+                        "type": "Mesh Renderer",
+                        "mesh": "sphere",
+                        "material": "silver"
+                    }
+                ]
+            },
+            {
+                "position": [8, -1, -1],
+                "components": [
+                    {
+                        "type": "Mesh Renderer",
+                        "mesh": "sphere",
+                        "material": "rusted_iron"
+                    }
+                ]
+            },
+            {
+                "position": [12, -1, -1],
+                "components": [
+                    {
+                        "type": "Mesh Renderer",
+                        "mesh": "sphere",
+                        "material": "wall"
+                    }
+                ]
+            },
+            {
+                "position": [16, -1, -1],
+                "components": [
+                    {
+                        "type": "Mesh Renderer",
+                        "mesh": "sphere",
+                        "material": "grass"
+                    }
+                ]
+            },
+            {
+                "position": [-10.0,  10.0, 10.0],
+                "components": [
+                    {
+                        "type": "Mesh Renderer",
+                        "mesh": "sphere",
+                        "material": "sun"
+                    }
+                ]
+            },
+            {
+                "position": [-10.0,  -10.0, 10.0],
+                "components": [
+                    {
+                        "type": "Mesh Renderer",
+                        "mesh": "sphere",
+                        "material": "sun"
+                    }
+                ]
+            }
+        ]
     }
 }

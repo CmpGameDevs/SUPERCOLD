@@ -78,6 +78,8 @@ set(COMMON_SOURCES
         source/common/ecs/entity.cpp
         source/common/ecs/world.hpp
         source/common/ecs/world.cpp
+        source/common/ecs/lighting.hpp
+        source/common/ecs/lighting.cpp
 
         source/common/components/camera.hpp
         source/common/components/camera.cpp
