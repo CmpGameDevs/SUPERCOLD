@@ -6,9 +6,12 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Find required packages
-find_package(OpenGL REQUIRED)
-find_package(GLEW REQUIRED)
+
+if(NOT WIN32)
+        # Find required packages
+        find_package(OpenGL REQUIRED)
+        find_package(GLEW REQUIRED)
+endif()
 
 # These are the options we select for building GLFW as a library
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)        # Don't build Documentation

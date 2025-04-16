@@ -251,9 +251,10 @@ int our::Application::run(int run_for_frames)
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 330 core");
 
-#ifdef _WIN32
-    ImGui_ImplWin32_Init(window);
-#endif
+    // NOTE: this used to cause issues in windows
+    // #ifdef _WIN32
+    //     ImGui_ImplWin32_Init(window);
+    // #endif
 
     // This part of the code extracts the list of requested screenshots and puts them into a priority queue
     using ScreenshotRequest = std::pair<int, std::string>;
