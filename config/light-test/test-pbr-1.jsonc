@@ -51,8 +51,6 @@
                     },
                     "lights": ["sun1"],
                     "tint": [1, 1, 1, 1],
-                    "texture": "albedo",
-                    "sampler": "default",
                     "useTextureAlbedo": true,
                     "useTextureNormal": true,
                     "useTextureMetallic": true,
@@ -76,7 +74,6 @@
                 "sun1":{
                     "type": "point",
                     "enabled": true,
-                    "realistic": true,
                     "color": [300, 300 , 300],
                     "position": [-10.0,  10.0, 10.0],
                     "attenuation": {
@@ -87,8 +84,7 @@
                 },
                 "sun2":{
                     "type": "point",
-                    "enabled": false,
-                    "realistic": true,
+                    "enabled": false,  
                     "color": [300, 300 , 300],
                     "position": [10.0,  10.0, 10.0],
                     "attenuation": {
@@ -100,7 +96,7 @@
                 "sun3":{
                     "type": "point",
                     "enabled": true,
-                    "realistic": true,
+                     
                     "color": [300, 300 , 300],
                     "position": [-10.0,  -10.0, 10.0],
                     "attenuation": {
@@ -112,7 +108,7 @@
                 "sun4":{
                     "type": "point",
                     "enabled": false,
-                    "realistic": true,
+                     
                     "color": [300, 300 , 300],
                     "position": [10.0,  -10.0, 10.0],
                     "attenuation": {

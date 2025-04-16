@@ -96,7 +96,7 @@
                 "default":{}
             },
             "meshes":{
-                "mesh": "assets/models/sphere.obj"
+                "mesh": "assets/models/sphere/sphere.gltf"
             },
             "materials":{
                 "rusted_iron":{
@@ -113,8 +113,6 @@
                     },
                     "lights": ["sun1", "sun2", "sun3", "sun4"],
                     "tint": [1, 1, 1, 1],
-                    "texture": "rusted_albedo",
-                    "sampler": "default",
                     "useTextureAlbedo": true,
                     "useTextureNormal": true,
                     "useTextureMetallic": true,
@@ -147,8 +145,6 @@
                     },
                     "lights": ["sun1", "sun2", "sun3", "sun4"],
                     "tint": [1, 1, 1, 1],
-                    "texture": "gold_albedo",
-                    "sampler": "default",
                     "useTextureAlbedo": true,
                     "useTextureNormal": true,
                     "useTextureMetallic": true,
@@ -181,8 +177,6 @@
                     },
                     "lights": ["sun1", "sun2", "sun3", "sun4"],
                     "tint": [1, 1, 1, 1],
-                    "texture": "silver_albedo",
-                    "sampler": "default",
                     "useTextureAlbedo": true,
                     "useTextureNormal": true,
                     "useTextureMetallic": true,
@@ -215,8 +209,6 @@
                     },
                     "lights": ["sun1", "sun2", "sun3", "sun4"],
                     "tint": [1, 1, 1, 1],
-                    "texture": "wall_albedo",
-                    "sampler": "default",
                     "useTextureAlbedo": true,
                     "useTextureNormal": true,
                     "useTextureMetallic": true,
@@ -249,8 +241,6 @@
                     },
                     "lights": ["sun1", "sun2", "sun3", "sun4"],
                     "tint": [1, 1, 1, 1],
-                    "texture": "grass_albedo",
-                    "sampler": "default",
                     "useTextureAlbedo": true,
                     "useTextureNormal": true,
                     "useTextureMetallic": true,
@@ -283,8 +273,6 @@
                     },
                     "lights": ["sun1", "sun2", "sun3", "sun4"],
                     "tint": [1, 1, 1, 1],
-                    "texture": "grass_albedo",
-                    "sampler": "default",
                     "useTextureAlbedo": false,
                     "useTextureNormal": false,
                     "useTextureMetallic": false,
@@ -308,7 +296,6 @@
                 "sun1":{
                     "type": "point",
                     "enabled": true,
-                    "realistic": true,
                     "color": [300, 300 , 300],
                     "position": [-10.0,  10.0, 10.0],
                     "attenuation": {
@@ -320,7 +307,6 @@
                 "sun2":{
                     "type": "point",
                     "enabled": false,
-                    "realistic": true,
                     "color": [300, 300 , 300],
                     "position": [10.0,  10.0, 10.0],
                     "attenuation": {
@@ -332,7 +318,6 @@
                 "sun3":{
                     "type": "point",
                     "enabled": true,
-                    "realistic": true,
                     "color": [300, 300 , 300],
                     "position": [-10.0,  -10.0, 10.0],
                     "attenuation": {
@@ -344,7 +329,6 @@
                 "sun4":{
                     "type": "point",
                     "enabled": false,
-                    "realistic": true,
                     "color": [300, 300 , 300],
                     "position": [10.0,  -10.0, 10.0],
                     "attenuation": {
