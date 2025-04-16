@@ -12,13 +12,7 @@
 
 #include <flags/flags.h>
 
-// Platform-specific ImGui configuration
-#ifdef _WIN32
 #define IMGUI_IMPL_OPENGL_LOADER_GLAD2
-#include <imgui_impl/imgui_impl_win32.h>
-#else
-#define IMGUI_IMPL_OPENGL_LOADER_GLAD2
-#endif
 
 // Common ImGui includes
 #include <imgui_impl/imgui_impl_glfw.h>
@@ -251,11 +245,6 @@ int our::Application::run(int run_for_frames)
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 330 core");
 
-    // NOTE: this used to cause issues in windows
-    // #ifdef _WIN32
-    //     ImGui_ImplWin32_Init(window);
-    // #endif
-
     // This part of the code extracts the list of requested screenshots and puts them into a priority queue
     using ScreenshotRequest = std::pair<int, std::string>;
     std::priority_queue<
@@ -402,9 +391,6 @@ int our::Application::run(int run_for_frames)
     // Shutdown ImGui & destroy the context
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
-#ifdef _WIN32
-    ImGui_ImplWin32_Shutdown();
-#endif
     ImGui::DestroyContext();
 
     // Destroy the window
