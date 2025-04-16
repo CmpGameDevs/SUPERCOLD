@@ -1,4 +1,4 @@
-#include "CubeMap.hpp"
+#include "cubemap.hpp"
 
 namespace our
 {
