@@ -89,6 +89,7 @@ namespace our
             {
                 std::string path = desc.get<std::string>();
                 std::string extension  = path.substr(path.find_last_of(".") + 1);
+                std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
                 if(extension == "obj"){
                     assets[name] = mesh_utils::loadOBJ(path);
                 }
