@@ -42,6 +42,52 @@
 
 ---
 
+## 🛠️ Building and Running
+
+### Building the Project
+
+To build the project on Linux, run:
+```bash
+./scripts/build_linux.sh
+```
+
+This will:
+1. Create a `build` directory if it doesn't exist
+2. Configure the project with CMake
+3. Build the project using all available CPU cores
+4. The executable will be located in the `bin` directory
+
+### Running Tests
+
+The project includes various test suites that can be run using the `run_all.sh` script:
+
+```bash
+./scripts/run_all.sh [test-name]
+```
+
+Available test suites:
+- `shader-test`: Tests for shader functionality
+- `mesh-test`: Tests for mesh loading and rendering
+- `transform-test`: Tests for transform operations
+- `pipeline-test`: Tests for pipeline states (face culling, depth testing, blending, etc.)
+- `texture-test`: Tests for texture loading and sampling
+- `sampler-test`: Tests for sampler configurations
+- `material-test`: Tests for material system
+- `entity-test`: Tests for entity component system
+- `renderer-test`: Tests for renderer functionality
+- `sky-test`: Tests for sky rendering
+- `postprocess-test`: Tests for post-processing effects
+
+If no test name is specified, all tests will be run.
+
+### Running the Game
+
+After building, you can run the game using:
+```bash
+./bin/GAME_APPLICATION
+```
+
+---
 
 ## 🤍 Acknowledgements
 

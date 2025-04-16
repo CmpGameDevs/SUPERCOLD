@@ -36,8 +36,7 @@
                 "cube": "assets/models/cube.obj",
                 "monkey": "assets/models/monkey.obj",
                 "plane": "assets/models/plane.obj",
-                "sphere": "assets/models/sphere.obj",
-                "pokeball": "assets/models/pokeball.obj"
+                "sphere": "assets/models/sphere.obj"
             },
             "samplers":{
                 "default":{},
