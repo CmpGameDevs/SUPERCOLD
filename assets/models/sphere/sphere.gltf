@@ -131,21 +131,6 @@
         }
     ],
     "images" : [
-        {
-            "mimeType" : "image/png",
-            "name" : "rustediron2_normal",
-            "uri" : "rustediron2_normal.png"
-        },
-        {
-            "mimeType" : "image/png",
-            "name" : "rustediron2_basecolor",
-            "uri" : "rustediron2_basecolor.png"
-        },
-        {
-            "mimeType" : "image/png",
-            "name" : "rustediron2_metallic-rustediron2_roughness",
-            "uri" : "rustediron2_metallic-rustediron2_roughness.png"
-        }
     ],
     "accessors" : [
         {
