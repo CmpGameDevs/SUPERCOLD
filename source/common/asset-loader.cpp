@@ -44,13 +44,12 @@ namespace our
             for (auto &[name, desc] : data.items())
             {
                 std::string path = desc.get<std::string>();
-                if ((path.size() >= 4 && path.compare(path.size() - 4, 4, ".hdr") == 0) || (path.size() >= 4 && path.compare(path.size() - 4, 4, ".HDR") == 0))
-                {
-                    std::cout<< "Loading HDR texture: " << name << std::endl;
+                std::string extension = path.substr(path.find_last_of(".") + 1);
+                std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
+                if (extension == "hdr"){
                     assets[name] = texture_utils::loadHDR(path);
                 }
-                else
-                {
+                else{
                     assets[name] = texture_utils::loadImage(path);
                 }
             }
@@ -89,7 +88,17 @@ namespace our
             for (auto &[name, desc] : data.items())
             {
                 std::string path = desc.get<std::string>();
-                assets[name] = mesh_utils::loadOBJ(path);
+                std::string extension  = path.substr(path.find_last_of(".") + 1);
+                if(extension == "obj"){
+                    assets[name] = mesh_utils::loadOBJ(path);
+                }
+                else if(extension == "gltf"){
+                    assets[name] = mesh_utils::loadGLTF(path);
+                }
+                else{
+                    std::cerr << "Unsupported mesh file format: " << extension << std::endl;
+                    continue;
+                }
             }
         }
     };

@@ -102,7 +102,7 @@ class LightTestState : public our::State {
             our::deserializeAllAssets(config["assets"]);
         }
         
-        meshes["sphere"] = our::AssetLoader<our::Mesh>::get("mesh");
+        meshes["sphere"] = our::AssetLoader<our::Mesh>::get("sphere");
 
          // Load multiple materials
          std::vector<std::string> availableMaterials = {"test","gold", "silver", "rusted_iron", "wall", "grass", "plastic"};
@@ -201,7 +201,7 @@ class LightTestState : public our::State {
                 currentMaterial->shader->set("projection", projection);
                 currentMaterial->shader->set("model", model);
                 currentMaterial->shader->set("cameraPosition", cameraPosition);
-                our::mesh_utils::renderSphere();
+                meshes["sphere"]->draw();
             }
         }
 

@@ -35,7 +35,7 @@
                 "default":{}
             },
             "meshes":{
-                "mesh": "assets/models/sphere.obj"
+                "sphere": "assets/models/sphere/sphere.gltf"
             },
             "materials":{
                 "test":{

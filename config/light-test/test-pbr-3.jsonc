@@ -96,7 +96,7 @@
                 "default":{}
             },
             "meshes":{
-                "mesh": "assets/models/sphere/sphere.gltf"
+                "sphere": "assets/models/sphere/sphere.gltf"
             },
             "materials":{
                 "rusted_iron":{
