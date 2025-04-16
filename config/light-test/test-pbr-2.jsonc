@@ -13,10 +13,12 @@
     "requests": [{ "file": "test-array.png", "frame": 1 }]
   },
   "scene": {
-    "hdr": {
-      "enable": true,
-      "hdr_texture": "newport_loft",
-      "maxMipLevels": 5
+    "renderer": {
+      "hdr": {
+        "enable": true,
+        "hdr_texture": "barcelona_rooftop",
+        "maxMipLevels": 5
+      }
     },
     "assets": {
       "shaders": {
@@ -51,41 +53,33 @@
         "rusted_roughness": "assets/textures/pbr/rusted_iron/roughness.png",
         "rusted_albedo": "assets/textures/pbr/rusted_iron/albedo.png",
         "rusted_ambientOcclusion": "assets/textures/pbr/rusted_iron/ao.png",
-
         "gold_normal": "assets/textures/pbr/gold/normal.png",
         "gold_metallic": "assets/textures/pbr/gold/metallic.png",
         "gold_roughness": "assets/textures/pbr/gold/roughness.png",
         "gold_albedo": "assets/textures/pbr/gold/albedo.png",
         "gold_ambientOcclusion": "assets/textures/pbr/gold/ao.png",
-
         "silver_normal": "assets/textures/pbr/silver/normal.png",
         "silver_metallic": "assets/textures/pbr/silver/metallic.png",
         "silver_roughness": "assets/textures/pbr/silver/roughness.png",
         "silver_albedo": "assets/textures/pbr/silver/albedo.png",
         "silver_ambientOcclusion": "assets/textures/pbr/silver/ao.png",
-
         "plastic_normal": "assets/textures/pbr/plastic/normal.png",
         "plastic_metallic": "assets/textures/pbr/plastic/metallic.png",
         "plastic_roughness": "assets/textures/pbr/plastic/roughness.png",
         "plastic_albedo": "assets/textures/pbr/plastic/albedo.png",
         "plastic_ambientOcclusion": "assets/textures/pbr/plastic/ao.png",
-
         "wall_metallic": "assets/textures/pbr/wall/metallic.png",
         "wall_normal": "assets/textures/pbr/wall/normal.png",
         "wall_roughness": "assets/textures/pbr/wall/roughness.png",
         "wall_albedo": "assets/textures/pbr/wall/albedo.png",
         "wall_ambientOcclusion": "assets/textures/pbr/wall/ao.png",
-
         "grass_normal": "assets/textures/pbr/grass/normal.png",
         "grass_metallic": "assets/textures/pbr/grass/metallic.png",
         "grass_roughness": "assets/textures/pbr/grass/roughness.png",
         "grass_albedo": "assets/textures/pbr/grass/albedo.png",
         "grass_ambientOcclusion": "assets/textures/pbr/grass/ao.png",
-
-        "newport_loft": "assets/textures/hdr/newport_loft.hdr"
-        // "circus_backstage": "assets/textures/hdr/circus_backstage.hdr",
-        // "barcelona_rooftop": "assets/textures/hdr/barcelona_rooftop.hdr",
-        // "arches_pinetree": "assets/textures/hdr/arches_pinetree.hdr"
+        "circus_backstage": "assets/textures/hdr/circus_backstage.hdr",
+        "barcelona_rooftop": "assets/textures/hdr/barcelona_rooftop.hdr"
       },
       "samplers": {
         "default": {}
@@ -94,7 +88,7 @@
         "sphere": "assets/models/sphere/sphere.gltf"
       },
       "materials": {
-        "test": {
+        "sun": {
           "type": "lit",
           "shader": "pbr",
           "pipelineState": {
@@ -106,25 +100,389 @@
               "function": "GL_LEQUAL"
             }
           },
+          "lights": [],
+          "tint": [1, 1, 1, 1],
+
+          "albedo": [1, 1, 1],
+          "roughness": 0.99,
+          "metallic": 0.1,
+          "emission": [300, 300, 300],
+          "ambientOcclusion": 1
+        },
+        "metal_0_0": {
+          "type": "lit",
+          "shader": "pbr",
+          "pipelineState": {
+            "faceCulling": { "enabled": false },
+            "depthTesting": { "enabled": true, "function": "GL_LEQUAL" }
+          },
           "lights": ["sun1", "sun2", "sun3", "sun4"],
           "tint": [1, 1, 1, 1],
-          "useTextureAlbedo": false,
-          "useTextureNormal": false,
-          "useTextureMetallic": false,
-          "useTextureRoughness": false,
-          "useTextureAmbientOcclusion": false,
-          "useTextureEmissive": false,
+          "albedo": [0.75, 0.75, 0.75],
+          "roughness": 0.0,
+          "metallic": 0.0,
+          "emission": [0, 0, 0],
+          "ambientOcclusion": 1
+        },
+        "metal_0_1": {
+          "type": "lit",
+          "shader": "pbr",
+          "pipelineState": {
+            "faceCulling": { "enabled": false },
+            "depthTesting": { "enabled": true, "function": "GL_LEQUAL" }
+          },
+          "lights": ["sun1", "sun2", "sun3", "sun4"],
+          "tint": [1, 1, 1, 1],
+          "albedo": [0.75, 0.75, 0.75],
+          "roughness": 0.25,
+          "metallic": 0.0,
+          "emission": [0, 0, 0],
+          "ambientOcclusion": 1
+        },
+        "metal_0_2": {
+          "type": "lit",
+          "shader": "pbr",
+          "pipelineState": {
+            "faceCulling": { "enabled": false },
+            "depthTesting": { "enabled": true, "function": "GL_LEQUAL" }
+          },
+          "lights": ["sun1", "sun2", "sun3", "sun4"],
+          "tint": [1, 1, 1, 1],
           "albedo": [0.75, 0.75, 0.75],
           "roughness": 0.5,
-          "metallic": 0.85,
-          "emissive": [0, 0, 0],
-          "ambientOcclusion": 1,
-          "textureAlbedo": "grass_albedo",
-          "textureNormal": "grass_normal",
-          "textureMetallic": "grass_metallic",
-          "textureRoughness": "grass_roughness",
-          "textureAmbientOcclusion": "grass_ambientOcclusion",
-          "textureEmissive": "grass_metal"
+          "metallic": 0.0,
+          "emission": [0, 0, 0],
+          "ambientOcclusion": 1
+        },
+        "metal_0_3": {
+          "type": "lit",
+          "shader": "pbr",
+          "pipelineState": {
+            "faceCulling": { "enabled": false },
+            "depthTesting": { "enabled": true, "function": "GL_LEQUAL" }
+          },
+          "lights": ["sun1", "sun2", "sun3", "sun4"],
+          "tint": [1, 1, 1, 1],
+          "albedo": [0.75, 0.75, 0.75],
+          "roughness": 0.75,
+          "metallic": 0.0,
+          "emission": [0, 0, 0],
+          "ambientOcclusion": 1
+        },
+        "metal_0_4": {
+          "type": "lit",
+          "shader": "pbr",
+          "pipelineState": {
+            "faceCulling": { "enabled": false },
+            "depthTesting": { "enabled": true, "function": "GL_LEQUAL" }
+          },
+          "lights": ["sun1", "sun2", "sun3", "sun4"],
+          "tint": [1, 1, 1, 1],
+          "albedo": [0.75, 0.75, 0.75],
+          "roughness": 1.0,
+          "metallic": 0.0,
+          "emission": [0, 0, 0],
+          "ambientOcclusion": 1
+        },
+        "metal_1_0": {
+          "type": "lit",
+          "shader": "pbr",
+          "pipelineState": {
+            "faceCulling": { "enabled": false },
+            "depthTesting": { "enabled": true, "function": "GL_LEQUAL" }
+          },
+          "lights": ["sun1", "sun2", "sun3", "sun4"],
+          "tint": [1, 1, 1, 1],
+          "albedo": [0.75, 0.75, 0.75],
+          "roughness": 0.0,
+          "metallic": 0.25,
+          "emission": [0, 0, 0],
+          "ambientOcclusion": 1
+        },
+        "metal_1_1": {
+          "type": "lit",
+          "shader": "pbr",
+          "pipelineState": {
+            "faceCulling": { "enabled": false },
+            "depthTesting": { "enabled": true, "function": "GL_LEQUAL" }
+          },
+          "lights": ["sun1", "sun2", "sun3", "sun4"],
+          "tint": [1, 1, 1, 1],
+          "albedo": [0.75, 0.75, 0.75],
+          "roughness": 0.25,
+          "metallic": 0.25,
+          "emission": [0, 0, 0],
+          "ambientOcclusion": 1
+        },
+        "metal_1_2": {
+          "type": "lit",
+          "shader": "pbr",
+          "pipelineState": {
+            "faceCulling": { "enabled": false },
+            "depthTesting": { "enabled": true, "function": "GL_LEQUAL" }
+          },
+          "lights": ["sun1", "sun2", "sun3", "sun4"],
+          "tint": [1, 1, 1, 1],
+          "albedo": [0.75, 0.75, 0.75],
+          "roughness": 0.5,
+          "metallic": 0.25,
+          "emission": [0, 0, 0],
+          "ambientOcclusion": 1
+        },
+        "metal_1_3": {
+          "type": "lit",
+          "shader": "pbr",
+          "pipelineState": {
+            "faceCulling": { "enabled": false },
+            "depthTesting": { "enabled": true, "function": "GL_LEQUAL" }
+          },
+          "lights": ["sun1", "sun2", "sun3", "sun4"],
+          "tint": [1, 1, 1, 1],
+          "albedo": [0.75, 0.75, 0.75],
+          "roughness": 0.75,
+          "metallic": 0.25,
+          "emission": [0, 0, 0],
+          "ambientOcclusion": 1
+        },
+        "metal_1_4": {
+          "type": "lit",
+          "shader": "pbr",
+          "pipelineState": {
+            "faceCulling": { "enabled": false },
+            "depthTesting": { "enabled": true, "function": "GL_LEQUAL" }
+          },
+          "lights": ["sun1", "sun2", "sun3", "sun4"],
+          "tint": [1, 1, 1, 1],
+          "albedo": [0.75, 0.75, 0.75],
+          "roughness": 1.0,
+          "metallic": 0.25,
+          "emission": [0, 0, 0],
+          "ambientOcclusion": 1
+        },
+        "metal_2_0": {
+          "type": "lit",
+          "shader": "pbr",
+          "pipelineState": {
+            "faceCulling": { "enabled": false },
+            "depthTesting": { "enabled": true, "function": "GL_LEQUAL" }
+          },
+          "lights": ["sun1", "sun2", "sun3", "sun4"],
+          "tint": [1, 1, 1, 1],
+          "albedo": [0.75, 0.75, 0.75],
+          "roughness": 0.0,
+          "metallic": 0.5,
+          "emission": [0, 0, 0],
+          "ambientOcclusion": 1
+        },
+        "metal_2_1": {
+          "type": "lit",
+          "shader": "pbr",
+          "pipelineState": {
+            "faceCulling": { "enabled": false },
+            "depthTesting": { "enabled": true, "function": "GL_LEQUAL" }
+          },
+          "lights": ["sun1", "sun2", "sun3", "sun4"],
+          "tint": [1, 1, 1, 1],
+          "albedo": [0.75, 0.75, 0.75],
+          "roughness": 0.25,
+          "metallic": 0.5,
+          "emission": [0, 0, 0],
+          "ambientOcclusion": 1
+        },
+        "metal_2_2": {
+          "type": "lit",
+          "shader": "pbr",
+          "pipelineState": {
+            "faceCulling": { "enabled": false },
+            "depthTesting": { "enabled": true, "function": "GL_LEQUAL" }
+          },
+          "lights": ["sun1", "sun2", "sun3", "sun4"],
+          "tint": [1, 1, 1, 1],
+          "albedo": [0.75, 0.75, 0.75],
+          "roughness": 0.5,
+          "metallic": 0.5,
+          "emission": [0, 0, 0],
+          "ambientOcclusion": 1
+        },
+        "metal_2_3": {
+          "type": "lit",
+          "shader": "pbr",
+          "pipelineState": {
+            "faceCulling": { "enabled": false },
+            "depthTesting": { "enabled": true, "function": "GL_LEQUAL" }
+          },
+          "lights": ["sun1", "sun2", "sun3", "sun4"],
+          "tint": [1, 1, 1, 1],
+          "albedo": [0.75, 0.75, 0.75],
+          "roughness": 0.75,
+          "metallic": 0.5,
+          "emission": [0, 0, 0],
+          "ambientOcclusion": 1
+        },
+        "metal_2_4": {
+          "type": "lit",
+          "shader": "pbr",
+          "pipelineState": {
+            "faceCulling": { "enabled": false },
+            "depthTesting": { "enabled": true, "function": "GL_LEQUAL" }
+          },
+          "lights": ["sun1", "sun2", "sun3", "sun4"],
+          "tint": [1, 1, 1, 1],
+          "albedo": [0.75, 0.75, 0.75],
+          "roughness": 1.0,
+          "metallic": 0.5,
+          "emission": [0, 0, 0],
+          "ambientOcclusion": 1
+        },
+        "metal_3_0": {
+          "type": "lit",
+          "shader": "pbr",
+          "pipelineState": {
+            "faceCulling": { "enabled": false },
+            "depthTesting": { "enabled": true, "function": "GL_LEQUAL" }
+          },
+          "lights": ["sun1", "sun2", "sun3", "sun4"],
+          "tint": [1, 1, 1, 1],
+          "albedo": [0.75, 0.75, 0.75],
+          "roughness": 0.0,
+          "metallic": 0.75,
+          "emission": [0, 0, 0],
+          "ambientOcclusion": 1
+        },
+        "metal_3_1": {
+          "type": "lit",
+          "shader": "pbr",
+          "pipelineState": {
+            "faceCulling": { "enabled": false },
+            "depthTesting": { "enabled": true, "function": "GL_LEQUAL" }
+          },
+          "lights": ["sun1", "sun2", "sun3", "sun4"],
+          "tint": [1, 1, 1, 1],
+          "albedo": [0.75, 0.75, 0.75],
+          "roughness": 0.25,
+          "metallic": 0.75,
+          "emission": [0, 0, 0],
+          "ambientOcclusion": 1
+        },
+        "metal_3_2": {
+          "type": "lit",
+          "shader": "pbr",
+          "pipelineState": {
+            "faceCulling": { "enabled": false },
+            "depthTesting": { "enabled": true, "function": "GL_LEQUAL" }
+          },
+          "lights": ["sun1", "sun2", "sun3", "sun4"],
+          "tint": [1, 1, 1, 1],
+          "albedo": [0.75, 0.75, 0.75],
+          "roughness": 0.5,
+          "metallic": 0.75,
+          "emission": [0, 0, 0],
+          "ambientOcclusion": 1
+        },
+        "metal_3_3": {
+          "type": "lit",
+          "shader": "pbr",
+          "pipelineState": {
+            "faceCulling": { "enabled": false },
+            "depthTesting": { "enabled": true, "function": "GL_LEQUAL" }
+          },
+          "lights": ["sun1", "sun2", "sun3", "sun4"],
+          "tint": [1, 1, 1, 1],
+          "albedo": [0.75, 0.75, 0.75],
+          "roughness": 0.75,
+          "metallic": 0.75,
+          "emission": [0, 0, 0],
+          "ambientOcclusion": 1
+        },
+        "metal_3_4": {
+          "type": "lit",
+          "shader": "pbr",
+          "pipelineState": {
+            "faceCulling": { "enabled": false },
+            "depthTesting": { "enabled": true, "function": "GL_LEQUAL" }
+          },
+          "lights": ["sun1", "sun2", "sun3", "sun4"],
+          "tint": [1, 1, 1, 1],
+          "albedo": [0.75, 0.75, 0.75],
+          "roughness": 1.0,
+          "metallic": 0.75,
+          "emission": [0, 0, 0],
+          "ambientOcclusion": 1
+        },
+        "metal_4_0": {
+          "type": "lit",
+          "shader": "pbr",
+          "pipelineState": {
+            "faceCulling": { "enabled": false },
+            "depthTesting": { "enabled": true, "function": "GL_LEQUAL" }
+          },
+          "lights": ["sun1", "sun2", "sun3", "sun4"],
+          "tint": [1, 1, 1, 1],
+          "albedo": [0.75, 0.75, 0.75],
+          "roughness": 0.0,
+          "metallic": 1.0,
+          "emission": [0, 0, 0],
+          "ambientOcclusion": 1
+        },
+        "metal_4_1": {
+          "type": "lit",
+          "shader": "pbr",
+          "pipelineState": {
+            "faceCulling": { "enabled": false },
+            "depthTesting": { "enabled": true, "function": "GL_LEQUAL" }
+          },
+          "lights": ["sun1", "sun2", "sun3", "sun4"],
+          "tint": [1, 1, 1, 1],
+          "albedo": [0.75, 0.75, 0.75],
+          "roughness": 0.25,
+          "metallic": 1.0,
+          "emission": [0, 0, 0],
+          "ambientOcclusion": 1
+        },
+        "metal_4_2": {
+          "type": "lit",
+          "shader": "pbr",
+          "pipelineState": {
+            "faceCulling": { "enabled": false },
+            "depthTesting": { "enabled": true, "function": "GL_LEQUAL" }
+          },
+          "lights": ["sun1", "sun2", "sun3", "sun4"],
+          "tint": [1, 1, 1, 1],
+          "albedo": [0.75, 0.75, 0.75],
+          "roughness": 0.5,
+          "metallic": 1.0,
+          "emission": [0, 0, 0],
+          "ambientOcclusion": 1
+        },
+        "metal_4_3": {
+          "type": "lit",
+          "shader": "pbr",
+          "pipelineState": {
+            "faceCulling": { "enabled": false },
+            "depthTesting": { "enabled": true, "function": "GL_LEQUAL" }
+          },
+          "lights": ["sun1", "sun2", "sun3", "sun4"],
+          "tint": [1, 1, 1, 1],
+          "albedo": [0.75, 0.75, 0.75],
+          "roughness": 0.75,
+          "metallic": 1.0,
+          "emission": [0, 0, 0],
+          "ambientOcclusion": 1
+        },
+        "metal_4_4": {
+          "type": "lit",
+          "shader": "pbr",
+          "pipelineState": {
+            "faceCulling": { "enabled": false },
+            "depthTesting": { "enabled": true, "function": "GL_LEQUAL" }
+          },
+          "lights": ["sun1", "sun2", "sun3", "sun4"],
+          "tint": [1, 1, 1, 1],
+          "albedo": [0.75, 0.75, 0.75],
+          "roughness": 1.0,
+          "metallic": 1.0,
+          "emission": [0, 0, 0],
+          "ambientOcclusion": 1
         }
       },
       "lights": {
@@ -174,19 +532,312 @@
         }
       }
     },
-    "grid": {
-      "rows": 7,
-      "columns": 7,
-      "gap": 2.5,
-      "test_metallic_roughness": true
-    },
-    "camera": {
-      "eye": [4, 1, 5],
-      "center": [0, 0, 0],
-      "up": [0, 1, 0],
-      "fov": 90,
-      "near": 0.01,
-      "far": 1000
-    }
+    "world": [
+      {
+        "position": [0, 0, 10],
+        "components": [
+          {
+            "type": "Camera",
+            "fovY": 60.0
+          },
+          {
+            "type": "Free Camera Controller",
+            "speedupFactors": 1.5,
+            "positionSensitivity": [2.0, 2.0, 2.0],
+            "rotationSensitivity": 0.001
+          }
+        ]
+      },
+      {
+        "position": [-8, -8, -1],
+        "components": [
+          {
+            "type": "Mesh Renderer",
+            "mesh": "sphere",
+            "material": "metal_0_0"
+          }
+        ]
+      },
+      {
+        "position": [-4, -8, -1],
+        "components": [
+          {
+            "type": "Mesh Renderer",
+            "mesh": "sphere",
+            "material": "metal_0_1"
+          }
+        ]
+      },
+      {
+        "position": [0, -8, -1],
+        "components": [
+          {
+            "type": "Mesh Renderer",
+            "mesh": "sphere",
+            "material": "metal_0_2"
+          }
+        ]
+      },
+      {
+        "position": [4, -8, -1],
+        "components": [
+          {
+            "type": "Mesh Renderer",
+            "mesh": "sphere",
+            "material": "metal_0_3"
+          }
+        ]
+      },
+      {
+        "position": [8, -8, -1],
+        "components": [
+          {
+            "type": "Mesh Renderer",
+            "mesh": "sphere",
+            "material": "metal_0_4"
+          }
+        ]
+      },
+      {
+        "position": [-8, -4, -1],
+        "components": [
+          {
+            "type": "Mesh Renderer",
+            "mesh": "sphere",
+            "material": "metal_1_0"
+          }
+        ]
+      },
+      {
+        "position": [-4, -4, -1],
+        "components": [
+          {
+            "type": "Mesh Renderer",
+            "mesh": "sphere",
+            "material": "metal_1_1"
+          }
+        ]
+      },
+      {
+        "position": [0, -4, -1],
+        "components": [
+          {
+            "type": "Mesh Renderer",
+            "mesh": "sphere",
+            "material": "metal_1_2"
+          }
+        ]
+      },
+      {
+        "position": [4, -4, -1],
+        "components": [
+          {
+            "type": "Mesh Renderer",
+            "mesh": "sphere",
+            "material": "metal_1_3"
+          }
+        ]
+      },
+      {
+        "position": [8, -4, -1],
+        "components": [
+          {
+            "type": "Mesh Renderer",
+            "mesh": "sphere",
+            "material": "metal_1_4"
+          }
+        ]
+      },
+      {
+        "position": [-8, 0, -1],
+        "components": [
+          {
+            "type": "Mesh Renderer",
+            "mesh": "sphere",
+            "material": "metal_2_0"
+          }
+        ]
+      },
+      {
+        "position": [-4, 0, -1],
+        "components": [
+          {
+            "type": "Mesh Renderer",
+            "mesh": "sphere",
+            "material": "metal_2_1"
+          }
+        ]
+      },
+      {
+        "position": [0, 0, -1],
+        "components": [
+          {
+            "type": "Mesh Renderer",
+            "mesh": "sphere",
+            "material": "metal_2_2"
+          }
+        ]
+      },
+      {
+        "position": [4, 0, -1],
+        "components": [
+          {
+            "type": "Mesh Renderer",
+            "mesh": "sphere",
+            "material": "metal_2_3"
+          }
+        ]
+      },
+      {
+        "position": [8, 0, -1],
+        "components": [
+          {
+            "type": "Mesh Renderer",
+            "mesh": "sphere",
+            "material": "metal_2_4"
+          }
+        ]
+      },
+      {
+        "position": [-8, 4, -1],
+        "components": [
+          {
+            "type": "Mesh Renderer",
+            "mesh": "sphere",
+            "material": "metal_3_0"
+          }
+        ]
+      },
+      {
+        "position": [-4, 4, -1],
+        "components": [
+          {
+            "type": "Mesh Renderer",
+            "mesh": "sphere",
+            "material": "metal_3_1"
+          }
+        ]
+      },
+      {
+        "position": [0, 4, -1],
+        "components": [
+          {
+            "type": "Mesh Renderer",
+            "mesh": "sphere",
+            "material": "metal_3_2"
+          }
+        ]
+      },
+      {
+        "position": [4, 4, -1],
+        "components": [
+          {
+            "type": "Mesh Renderer",
+            "mesh": "sphere",
+            "material": "metal_3_3"
+          }
+        ]
+      },
+      {
+        "position": [8, 4, -1],
+        "components": [
+          {
+            "type": "Mesh Renderer",
+            "mesh": "sphere",
+            "material": "metal_3_4"
+          }
+        ]
+      },
+      {
+        "position": [-8, 8, -1],
+        "components": [
+          {
+            "type": "Mesh Renderer",
+            "mesh": "sphere",
+            "material": "metal_4_0"
+          }
+        ]
+      },
+      {
+        "position": [-4, 8, -1],
+        "components": [
+          {
+            "type": "Mesh Renderer",
+            "mesh": "sphere",
+            "material": "metal_4_1"
+          }
+        ]
+      },
+      {
+        "position": [0, 8, -1],
+        "components": [
+          {
+            "type": "Mesh Renderer",
+            "mesh": "sphere",
+            "material": "metal_4_2"
+          }
+        ]
+      },
+      {
+        "position": [4, 8, -1],
+        "components": [
+          {
+            "type": "Mesh Renderer",
+            "mesh": "sphere",
+            "material": "metal_4_3"
+          }
+        ]
+      },
+      {
+        "position": [8, 8, -1],
+        "components": [
+          {
+            "type": "Mesh Renderer",
+            "mesh": "sphere",
+            "material": "metal_4_4"
+          }
+        ]
+      },
+      {
+        "position": [-10.0, 10.0, 10.0],
+        "components": [
+          {
+            "type": "Mesh Renderer",
+            "mesh": "sphere",
+            "material": "sun"
+          }
+        ]
+      },
+      {
+        "position": [-10.0, -10.0, 10.0],
+        "components": [
+          {
+            "type": "Mesh Renderer",
+            "mesh": "sphere",
+            "material": "sun"
+          }
+        ]
+      },
+      {
+        "position": [10.0, 10.0, 10.0],
+        "components": [
+          {
+            "type": "Mesh Renderer",
+            "mesh": "sphere",
+            "material": "sun"
+          }
+        ]
+      },
+      {
+        "position": [10.0, -10.0, 10.0],
+        "components": [
+          {
+            "type": "Mesh Renderer",
+            "mesh": "sphere",
+            "material": "sun"
+          }
+        ]
+      }
+    ]
   }
 }

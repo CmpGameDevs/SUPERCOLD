@@ -22,7 +22,7 @@ struct Material {
     float metallic;
     float roughness;
     float ambientOcclusion;
-    vec3 emissive;
+    vec3 emission;
 
     sampler2D textureAlbedo;
     sampler2D textureMetallic;
@@ -164,9 +164,9 @@ void main() {
     }
 
     // emissive
-    vec3 emissive = material.emissive;
+    vec3 emission = material.emission;
     if (material.useTextureEmissive) {
-        emissive = texture(material.textureEmissive, textureCoordinates).rgb;
+        emission = texture(material.textureEmissive, textureCoordinates).rgb;
     }
 
     vec3 V = normalize(cameraPosition - worldCoordinates); // view vector pointing at camera
@@ -225,7 +225,7 @@ void main() {
 
     vec3 ambient = (kD * diffuse + specular) * ao;
 
-    vec3 color = Lo + ambient + emissive;
+    vec3 color = Lo + ambient + emission;
 
     color = color / (color + vec3(1.0));
     color = pow(color, vec3(1.0 / 2.2));
