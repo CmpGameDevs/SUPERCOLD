@@ -46,7 +46,7 @@ namespace our
                 glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, -1.0f, 0.0f)),
                 glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, -1.0f, 0.0f))};
 
-        void Initialize();
+        void initialize();
 
         void initializeShader();
 
@@ -56,7 +56,7 @@ namespace our
 
         void initializeTexture();
 
-        void setup();
+        void setup(glm::ivec2 windowSize);
 
         void bindTextures();
 
@@ -75,11 +75,6 @@ namespace our
 
         ~HDRSystem()
         {
-            delete equirectangular_shader;
-            delete irradiance_shader;
-            delete background_shader;
-            delete brdf_shader;
-            delete prefilter_shader;
             delete cubeMapBuffer;
             delete envCubeMap;
             delete irradianceMap;

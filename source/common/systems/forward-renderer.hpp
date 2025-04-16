@@ -4,7 +4,7 @@
 #include "../components/camera.hpp"
 #include "../components/mesh-renderer.hpp"
 #include "../asset-loader.hpp"
-
+#include <ibl/hdr-system.hpp>
 #include <glad/gl.h>
 #include <vector>
 #include <algorithm>
@@ -36,6 +36,7 @@ namespace our
         // Objects used for rendering a skybox
         Mesh* skySphere;
         TexturedMaterial* skyMaterial;
+        HDRSystem* hdrSystem;
         // Objects used for Postprocessing
         GLuint postprocessFrameBuffer, postProcessVertexArray;
         Texture2D *colorTarget, *depthTarget;
