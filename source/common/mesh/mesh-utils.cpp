@@ -5,7 +5,6 @@
 #include <tinyobj/tiny_obj_loader.h>
 
 
-// #define TINYGLTF_NO_STB_IMAGE
 #define TINYGLTF_IMPLEMENTATION
 #define TINYGLTF_NO_STB_IMAGE_WRITE
 #include <tinygltf/tiny_gltf.h>
