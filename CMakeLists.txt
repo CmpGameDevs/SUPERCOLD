@@ -21,6 +21,17 @@ set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)           # Don't build Installation I
 set(GLFW_USE_HYBRID_HPG ON CACHE BOOL "" FORCE)     # Add variables to use High Performance Graphics Card if available
 add_subdirectory(vendor/glfw)                       # Build the GLFW project to use later as a library
 
+# Bullet Physics build options
+set(BUILD_UNIT_TESTS OFF CACHE BOOL "" FORCE)
+set(BUILD_EXTRAS OFF CACHE BOOL "" FORCE)
+set(BUILD_CPU_DEMOS OFF CACHE BOOL "" FORCE)
+set(BUILD_BULLET2_DEMOS OFF CACHE BOOL "" FORCE)
+set(BUILD_ENET OFF CACHE BOOL "" FORCE)
+set(BUILD_CLSOCKET OFF CACHE BOOL "" FORCE)
+
+# Add Bullet Physics subdirectory
+add_subdirectory(vendor/bullet3)
+
 # A variable with all the source files of GLAD
 set(GLAD_SOURCE vendor/glad/src/gl.c)
 # A variables with all the source files of Dear ImGui
@@ -33,14 +44,6 @@ set(IMGUI_SOURCES
         vendor/imgui/imgui_impl/imgui_impl_glfw.cpp
         vendor/imgui/imgui_impl/imgui_impl_opengl3.cpp
         )
-
-# FIX: Remove this part 
-# Add platform-specific ImGui sources
-if(WIN32)
-    list(APPEND IMGUI_SOURCES
-        vendor/imgui/imgui_impl/imgui_impl_win32.cpp
-    )
-endif()
 
 # Combine all vendor source files together into a single variable
 set(VENDOR_SOURCES ${GLAD_SOURCE} ${IMGUI_SOURCES})
@@ -124,6 +127,7 @@ include_directories(
         vendor/glm
         vendor/imgui
         vendor/utils
+        vendor/bullet3/src
         ${OPENGL_INCLUDE_DIR}
         ${GLEW_INCLUDE_DIRS}
 )
@@ -152,4 +156,4 @@ set(STATES_SOURCES
 # Each target compiles one example source file and the common & vendor source files
 # Then we link GLFW with each target
 add_executable(GAME_APPLICATION source/main.cpp ${STATES_SOURCES} ${COMMON_SOURCES} ${VENDOR_SOURCES})
-target_link_libraries(GAME_APPLICATION glfw ${OPENGL_LIBRARIES} ${GLEW_LIBRARIES})
+target_link_libraries(GAME_APPLICATION glfw ${OPENGL_LIBRARIES} ${GLEW_LIBRARIES} BulletDynamics BulletCollision LinearMath)
