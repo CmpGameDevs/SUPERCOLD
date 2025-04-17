@@ -149,7 +149,7 @@ namespace our
         brdfLUTTexture->unbind();
     }
 
-    void our::HDRSystem::renderBackground(glm::mat4 projection, glm::mat4 view)
+    void our::HDRSystem::renderBackground(glm::mat4 projection, glm::mat4 view, float bloomBrightnessCutoff)
     {
         if (enable == false) return;
         glActiveTexture(GL_TEXTURE0 + our::TextureUnits::TEXTURE_UNIT_ENVIRONMENT);
@@ -157,6 +157,7 @@ namespace our
         background_shader->use();
         background_shader->set("projection", projection);
         background_shader->set("view", view);
+        background_shader->set("bloomBrightnessCutoff", bloomBrightnessCutoff);
         our::mesh_utils::renderCube();
     }
 

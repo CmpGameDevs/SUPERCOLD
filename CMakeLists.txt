@@ -85,6 +85,10 @@ set(COMMON_SOURCES
         source/common/ibl/cubemap.cpp
         source/common/ibl/hdr-system.hpp
         source/common/ibl/hdr-system.cpp
+        source/common/ibl/bloom-buffer.hpp
+        source/common/ibl/bloom-buffer.cpp
+        source/common/ibl/fullscreenquad.hpp
+        source/common/ibl/fullscreenquad.cpp
 
         source/common/ecs/component.hpp
         source/common/ecs/transform.hpp

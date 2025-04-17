@@ -4,10 +4,19 @@
 #include "../components/camera.hpp"
 #include "../components/mesh-renderer.hpp"
 #include "../asset-loader.hpp"
+#include <ibl/bloom-buffer.hpp>
+#include <shader/shader.hpp>
 #include <ibl/hdr-system.hpp>
+#include <ibl/fullscreenquad.hpp>
 #include <glad/gl.h>
 #include <vector>
 #include <algorithm>
+
+enum BloomDirection {
+    BOTH = 0,
+    HORIZONTAL = 1,
+    VERTICAL = 2
+};
 
 namespace our
 {
@@ -38,9 +47,26 @@ namespace our
         TexturedMaterial* skyMaterial;
         HDRSystem* hdrSystem;
         // Objects used for Postprocessing
-        GLuint postprocessFrameBuffer, postProcessVertexArray;
+        BloomFramebuffer *bloomBuffers[2];
+        unsigned int bloomFramebufferResult;
+        bool bloomEnabled = true;
+        float bloomIntensity = 1.0;
+        int bloomIterations = 10;
+        int bloomDirection = BloomDirection::BOTH;
+        bool tonemappingEnabled = false;
+        float gammaCorrectionFactor = 2.2;
+        float bloomBrightnessCutoff = 1.0;
+
+        ShaderProgram* bloomShader;
+
+        GLuint postprocessFrameBuffer, postProcessVertexArray , bloomColorTexture;
         Texture2D *colorTarget, *depthTarget;
         TexturedMaterial* postprocessMaterial;
+
+        FullscreenQuad* fullscreenQuad;
+
+    private:
+        void renderBloom();    
     public:
         // Initialize the renderer including the sky and the Postprocessing objects.
         // windowSize is the width & height of the window (in pixels).
