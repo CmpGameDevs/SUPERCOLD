@@ -124,4 +124,12 @@ namespace our {
             }
         }
     }
-} // namespace our
+
+    void CollisionSystem::destroy() {
+        if (physicsWorld) {
+            delete physicsWorld;
+            physicsWorld = nullptr;
+        }
+    }
+    
+}

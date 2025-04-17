@@ -58,6 +58,8 @@ class PhysicsTestState : public our::State {
     void onDestroy() override {
         // Don't forget to destroy the renderer
         renderer.destroy();
+        // Destroy the collision system and free resources
+        collisionSystem.destroy();
         // On exit, we call exit for the camera controller system to make sure that the mouse is unlocked
         cameraController.exit();
         // Clear the world

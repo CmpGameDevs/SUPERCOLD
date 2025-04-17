@@ -4,6 +4,14 @@
 
 namespace our {
     
+    CollisionComponent::~CollisionComponent() {
+        if(bulletBody) {
+            delete bulletBody->getCollisionShape();
+            delete bulletBody->getMotionState();
+            delete bulletBody;
+        }
+    }
+    
     void CollisionComponent::deserialize(const nlohmann::json& data) {
         // Shape parsing
         if(data.contains("shape")) {

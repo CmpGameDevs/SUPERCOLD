@@ -10,7 +10,6 @@ namespace our {
 
 class CollisionSystem {
     btDiscreteDynamicsWorld* physicsWorld = nullptr;
-    std::function<void(Entity*, Entity*)> onCollision;
 
 public:
     // Initialize the collision system with a Bullet physics world
@@ -22,10 +21,8 @@ public:
     // Update entity transforms and physics simulation
     void update(World* world, float deltaTime);
     
-    // Collision callback
-    void setCollisionCallback(std::function<void(Entity*, Entity*)> callback) { 
-        onCollision = callback; 
-    }
+    // Destroy the collision system and free resources
+    void destroy();
 };
 
 } // namespace our

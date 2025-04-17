@@ -25,6 +25,8 @@ namespace our {
         bool isKinematic = false;
         btRigidBody* bulletBody = nullptr;
 
+        virtual ~CollisionComponent();
+
         // The ID of this component type is "Collision"
         static std::string getID() { return "Collision"; }
 
