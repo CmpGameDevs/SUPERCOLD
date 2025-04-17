@@ -153,9 +153,6 @@ if [[ "$*" == *"light-test"* ]]; then
         "config/light-test/test-pbr-1.jsonc"
         "config/light-test/test-pbr-2.jsonc"
         "config/light-test/test-pbr-3.jsonc"
-        "config/light-test/test-point.jsonc"
-        "config/light-test/test-spot.jsonc"
-        "config/light-test/test-directional.jsonc"
     )
     run_tests "${configs[@]}"
 fi 

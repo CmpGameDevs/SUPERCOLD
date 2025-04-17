@@ -35,11 +35,11 @@ set(IMGUI_SOURCES
         )
 
 # Add platform-specific ImGui sources
-if(WIN32)
-    list(APPEND IMGUI_SOURCES
-        vendor/imgui/imgui_impl/imgui_impl_win32.cpp
-    )
-endif()
+# if(WIN32)
+#     list(APPEND IMGUI_SOURCES
+#         vendor/imgui/imgui_impl/imgui_impl_win32.cpp
+#     )
+# endif()
 
 # Combine all vendor source files together into a single variable
 set(VENDOR_SOURCES ${GLAD_SOURCE} ${IMGUI_SOURCES})
