@@ -110,8 +110,12 @@ set(COMMON_SOURCES
         source/common/components/fps-controller.cpp
         source/common/components/movement.hpp
         source/common/components/movement.cpp
+        source/common/components/collision.cpp
+        source/common/components/collision.cpp
         source/common/components/component-deserializer.hpp
 
+        source/common/systems/collision-system.hpp
+        source/common/systems/collision-system.cpp
         source/common/systems/forward-renderer.hpp
         source/common/systems/forward-renderer.cpp
         source/common/systems/free-camera-controller.hpp
@@ -150,6 +154,7 @@ set(STATES_SOURCES
         source/states/entity-test-state.hpp
         source/states/renderer-test-state.hpp
         source/states/light-test-state.hpp
+        source/states/physics-test-state.hpp
 )
 
 # For each example, we add an executable target
