@@ -160,26 +160,16 @@
           "position": [8, 4, -1],
           "components": [
             {
-              "type": "Mesh Renderer",
-              "mesh": "sphere",
-              "material": "metal_0_0"
-            },
-            {
               "type": "Collision",
               "shape": "box",
               "mass": 4.0,
-              "halfExtents": [1, 0.5, 0]
+              "halfExtents": [1, 0.5, 4]
             }
           ]
         },
         {
           "position": [8, 5, -1],
           "components": [
-            {
-              "type": "Mesh Renderer",
-              "mesh": "sphere",
-              "material": "metal_0_0"
-            },
             {
               "type": "Collision",
               "shape": "sphere",
@@ -189,13 +179,8 @@
           ]
         },
         {
-          "position": [7, 4, -1],
+          "position": [7, 4, -2],
           "components": [
-            {
-              "type": "Mesh Renderer",
-              "mesh": "sphere",
-              "material": "metal_0_0"
-            },
             {
               "type": "Collision",
               "shape": "sphere",
@@ -208,11 +193,6 @@
           "position": [7, 1, -1],
           "components": [
             {
-              "type": "Mesh Renderer",
-              "mesh": "sphere",
-              "material": "metal_0_0"
-            },
-            {
               "type": "Collision",
               "shape": "sphere",
               "mass": 0,
@@ -224,15 +204,43 @@
           "position": [5, 4, -1],
           "components": [
             {
-              "type": "Mesh Renderer",
-              "mesh": "sphere",
-              "material": "metal_0_0"
-            },
-            {
               "type": "Collision",
               "shape": "box",
               "mass": 0.3,
               "halfExtents": [1, 1, 1]
+            }
+          ]
+        },
+        {
+          "position": [2, 2, -1],
+          "components": [
+            {
+              "type": "Collision",
+              "shape": "box",
+              "mass": 0.3,
+              "halfExtents": [3, 2, 1]
+            }
+          ]
+        },
+        {
+          "position": [2, 4, -1],
+          "components": [
+            {
+              "type": "Collision",
+              "shape": "sphere",
+              "mass": 1,
+              "halfExtents": [0.5, 2, 0]
+            }
+          ]
+        },
+        {
+          "position": [4, -5, -1],
+          "components": [
+            {
+              "type": "Collision",
+              "shape": "box",
+              "mass": 0,
+              "halfExtents": [8, 0.1, 8]
             }
           ]
         },

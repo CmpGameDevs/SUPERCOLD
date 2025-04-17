@@ -45,7 +45,7 @@ class PhysicsTestState : public our::State {
             solver,
             collisionConfig
         );
-        collisionSystem.initialize(physicsWorld);
+        collisionSystem.initialize(size, physicsWorld);
     }
 
     void onDraw(double deltaTime) override {
@@ -53,6 +53,9 @@ class PhysicsTestState : public our::State {
         collisionSystem.stepSimulation((float)deltaTime);
         collisionSystem.update(&world, (float)deltaTime);
         renderer.render(&world);
+        // Draw collision wireframes
+        collisionSystem.getPhysicsWorld()->debugDrawWorld();
+        collisionSystem.getDebugDrawer()->flushLines(&world);
     }
 
     void onDestroy() override {

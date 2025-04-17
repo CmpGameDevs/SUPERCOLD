@@ -1,11 +1,15 @@
 #include "collision-system.hpp"
 #include "../components/collision.hpp"
 #include "../ecs/transform.hpp"
-#include "../ecs/world.hpp"
 
 namespace our {
-    void CollisionSystem::initialize(btDynamicsWorld* physicsWorld) {
+
+    void CollisionSystem::initialize(glm::ivec2 windowSize, btDynamicsWorld* physicsWorld) {
         this->physicsWorld = static_cast<btDiscreteDynamicsWorld*>(physicsWorld);
+        this->debugDrawer = new GLDebugDrawer(windowSize);
+        this->physicsWorld->setDebugDrawer(debugDrawer);
+        if (this->physicsWorld->getDebugDrawer())
+            this->physicsWorld->getDebugDrawer()->setDebugMode(btIDebugDraw::DBG_DrawWireframe);
         this->physicsWorld->setGravity(btVector3(0, -9.81f, 0));
     }
 
@@ -126,10 +130,15 @@ namespace our {
     }
 
     void CollisionSystem::destroy() {
+        if (debugDrawer) {
+            delete debugDrawer;
+            debugDrawer = nullptr;
+        }
+
         if (physicsWorld) {
             delete physicsWorld;
             physicsWorld = nullptr;
         }
     }
-    
+
 }
