@@ -51,6 +51,38 @@ namespace our {
                                 collision->halfExtents.y    // height
                             );
                             break;
+                        case CollisionShape::MESH: {
+                            if (!collision->triangleMesh) {
+                                // Build triangle mesh from vertices/indices
+                                collision->triangleMesh = new btTriangleMesh();
+                                for (size_t i = 0; i < collision->indices.size(); i += 3) {
+                                    auto& v0 = collision->vertices[collision->indices[i]].position;
+                                    auto& v1 = collision->vertices[collision->indices[i+1]].position;
+                                    auto& v2 = collision->vertices[collision->indices[i+2]].position;
+                                    
+                                    collision->triangleMesh->addTriangle(
+                                        btVector3(v0.x, v0.y, v0.z),
+                                        btVector3(v1.x, v1.y, v1.z),
+                                        btVector3(v2.x, v2.y, v2.z)
+                                    );
+                                }
+                            }
+                    
+                            if (collision->mass <= 0.0f) {
+                                shape = new btBvhTriangleMeshShape(collision->triangleMesh, true);
+                            } else {
+                                // For dynamic objects, create convex hull
+                                auto* convex = new btConvexHullShape(
+                                    (btScalar*)&collision->vertices[0].position,
+                                    (int)collision->vertices.size(),
+                                    sizeof(our::Vertex)
+                                );
+                                convex->optimizeConvexHull();
+                                convex->setMargin(0.0f);
+                                shape = convex;
+                            }
+                            break;
+                        }
                     }
 
                     // Create rigid body
@@ -64,8 +96,6 @@ namespace our {
                     btVector3 inertia(0, 0, 0);
                     if(collision->mass > 0 && !collision->isKinematic)
                         shape->calculateLocalInertia(collision->mass, inertia);
-                    else if (collision->isKinematic)
-                        collision->mass = 0.0f;
                     
                     btMotionState* motionState = new btDefaultMotionState(btTrans);
                     btRigidBody::btRigidBodyConstructionInfo rbInfo(
@@ -77,8 +107,13 @@ namespace our {
                     collision->bulletBody = new btRigidBody(rbInfo);
                     collision->bulletBody->setUserPointer(entity);
 
+                    if (collision->isKinematic) {
+                        collision->bulletBody->setCollisionFlags(collision->bulletBody->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT);
+                        collision->bulletBody->setActivationState(DISABLE_DEACTIVATION);
+                    }
+
                     // Add a damping to the body if it has mass to simulate air resistance
-                    if (collision->mass) {
+                    if (collision->mass > 0.0f) {
                         btScalar linearDamping = 0.1f / collision->mass; 
                         btScalar angularDamping = 0.05f / collision->mass;
     
@@ -105,6 +140,7 @@ namespace our {
                     btQuaternion totalRotation = quatRoll * quatYaw * quatPitch;
                     trans.setRotation(totalRotation);
                     collision->bulletBody->setWorldTransform(trans);
+                    collision->bulletBody->activate();
                 } else {
                     // Update ECS from physics
                     btTransform trans;

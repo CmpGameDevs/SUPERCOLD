@@ -2,7 +2,7 @@
 
 #include <application.hpp>
 #include <asset-loader.hpp>
-#include <components/free-camera-controller.hpp>
+#include <systems/free-camera-controller.hpp>
 #include <systems/forward-renderer.hpp>
 #include <systems/collision-system.hpp>
 #include <btBulletDynamicsCommon.h>

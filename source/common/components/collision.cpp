@@ -1,4 +1,3 @@
-// source/common/components/collision.cpp
 #include "collision.hpp"
 #include "../deserialize-utils.hpp"
 
@@ -19,6 +18,22 @@ namespace our {
             if(shapeStr == "box") shape = CollisionShape::BOX;
             else if(shapeStr == "sphere") shape = CollisionShape::SPHERE;
             else if(shapeStr == "capsule") shape = CollisionShape::CAPSULE;
+            else if(shapeStr == "mesh") {
+                shape = CollisionShape::MESH;
+                if(data.contains("vertices")) {
+                    for(auto& v : data["vertices"]) {
+                        vertices.push_back({
+                            glm::vec3(v["position"][0], v["position"][1], v["position"][2]),
+                            our::Color{},  // Color not needed for collision
+                            glm::vec2{},   // Tex coord not needed
+                            glm::vec3{}    // Normal not needed
+                        });
+                    }
+                }
+                if(data.contains("indices")) {
+                    indices = data["indices"].get<std::vector<uint32_t>>();
+                }
+            }
         }
         
         // Physics properties

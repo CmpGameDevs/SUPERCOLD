@@ -1,9 +1,9 @@
-// source/common/components/collision.hpp
 #pragma once
 
 #include "../ecs/component.hpp"
 #include <btBulletDynamicsCommon.h>
 #include <glm/glm.hpp>
+#include "../mesh/vertex.hpp"
 
 namespace our {
 
@@ -11,7 +11,8 @@ namespace our {
     enum class CollisionShape {
         BOX,
         SPHERE,
-        CAPSULE
+        CAPSULE,
+        MESH
     };
 
     // This component denotes that the CollisionSystem will check for collisions with this entity.
@@ -24,6 +25,11 @@ namespace our {
         glm::vec3 halfExtents {0.5f};
         bool isKinematic = false;
         btRigidBody* bulletBody = nullptr;
+
+        // For mesh collision, we need to store the vertices and indices of the mesh
+        std::vector<our::Vertex> vertices;
+        std::vector<uint32_t> indices;
+        btTriangleMesh* triangleMesh = nullptr;
 
         virtual ~CollisionComponent();
 
