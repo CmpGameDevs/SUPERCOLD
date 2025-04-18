@@ -1,5 +1,7 @@
 #include "collision.hpp"
 #include "../deserialize-utils.hpp"
+#include "../asset-loader.hpp"
+#include <mesh/mesh.hpp>
 
 namespace our {
     
@@ -20,6 +22,11 @@ namespace our {
             else if(shapeStr == "capsule") shape = CollisionShape::CAPSULE;
             else if(shapeStr == "mesh") {
                 shape = CollisionShape::MESH;
+                if (data.contains("mesh")) {
+                    Mesh* mesh = AssetLoader<Mesh>::get(data["mesh"].get<std::string>());
+                    vertices = mesh->cpuVertices;
+                    indices = mesh->cpuIndices;
+                }
                 if(data.contains("vertices")) {
                     for(auto& v : data["vertices"]) {
                         vertices.push_back({

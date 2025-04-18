@@ -199,6 +199,20 @@ if( ($tests.Count -eq 0) -or ($tests -contains $requirement)){
     $failure += $LASTEXITCODE
 }
 
+$requirement = "physics-test"
+if( ($tests.Count -eq 0) -or ($tests -contains $requirement)){
+    $files = @(
+        "test-geometry.png",
+        "test-mesh.png",
+        "mesh-0.png",
+        "mesh-1.png"
+    )
+    Write-Output ""
+    Write-Output "Comparing $requirement output:"
+    & "./scripts/compare-group.ps1" -requirement $requirement -files $files -tolerance 0.04 -threshold 64
+    $failure += $LASTEXITCODE
+}
+
 ############################
 ############################
 ############################
