@@ -71,7 +71,7 @@ namespace our
             maxMipLevels = data.value("maxMipLevels", 5);
         }
 
-        void renderBackground(glm::mat4 projection, glm::mat4 view);
+        void renderBackground(glm::mat4 projection, glm::mat4 view, float bloomBrightnessCutoff);
 
         ~HDRSystem()
         {

@@ -45,6 +45,7 @@ set(IMGUI_SOURCES
         vendor/imgui/imgui_impl/imgui_impl_opengl3.cpp
         )
 
+
 # Combine all vendor source files together into a single variable
 set(VENDOR_SOURCES ${GLAD_SOURCE} ${IMGUI_SOURCES})
 
@@ -89,6 +90,12 @@ set(COMMON_SOURCES
         source/common/ibl/cubemap.cpp
         source/common/ibl/hdr-system.hpp
         source/common/ibl/hdr-system.cpp
+        source/common/ibl/bloom-buffer.hpp
+        source/common/ibl/bloom-buffer.cpp
+        source/common/ibl/fullscreenquad.hpp
+        source/common/ibl/fullscreenquad.cpp
+        source/common/ibl/postprocess.hpp
+        source/common/ibl/postprocess.cpp
 
         source/common/ecs/component.hpp
         source/common/ecs/transform.hpp

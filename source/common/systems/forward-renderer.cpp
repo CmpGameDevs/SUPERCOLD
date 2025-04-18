@@ -26,7 +26,6 @@ namespace our
             hdrSystem->enable = false;
         }
 
-
         // Then we check if there is a sky texture in the configuration
         if (config.contains("sky"))
         {
@@ -76,58 +75,12 @@ namespace our
         // Then we check if there is a postprocessing shader in the configuration
         if (config.contains("postprocess"))
         {
-            // TODO: (Req 11) Create a framebuffer
-            glGenFramebuffers(1, &postprocessFrameBuffer);
-
-            // TODO: (Req 11) Create a color and a depth texture and attach them to the framebuffer
-            //  Hints: The color format can be (Red, Green, Blue and Alpha components with 8 bits for each channel).
-            //  The depth format can be (Depth component with 24 bits).
-            colorTarget = new Texture2D();
-            colorTarget->bind();
-
-            GLsizei levelsCnt = (GLsizei)glm::floor(glm::log2((float)glm::max(windowSize.x, windowSize.y))) + 1;
-            glTexStorage2D(GL_TEXTURE_2D, levelsCnt, GL_RGBA8, windowSize.x, windowSize.y);
-
-            depthTarget = new Texture2D();
-            depthTarget->bind();
-
-            glTexStorage2D(GL_TEXTURE_2D, 1, GL_DEPTH_COMPONENT24, windowSize.x, windowSize.y);
-
-            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, postprocessFrameBuffer);
-
-            glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorTarget->getOpenGLName(), 0);
-            glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTarget->getOpenGLName(), 0);
-
-            // TODO: (Req 11) Unbind the framebuffer just to be safe
-            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-
-            // Create a vertex array to use for drawing the texture
-            glGenVertexArrays(1, &postProcessVertexArray);
-
-            // Create a sampler to use for sampling the scene texture in the post processing shader
-            Sampler *postprocessSampler = new Sampler();
-            postprocessSampler->set(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            postprocessSampler->set(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            postprocessSampler->set(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-            postprocessSampler->set(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-            // Create the post processing shader
-            ShaderProgram *postprocessShader = new ShaderProgram();
-            postprocessShader->attach("assets/shaders/fullscreen.vert", GL_VERTEX_SHADER);
-            postprocessShader->attach(config.value<std::string>("postprocess", ""), GL_FRAGMENT_SHADER);
-            postprocessShader->link();
-
-            // Create a post processing material
-            postprocessMaterial = new TexturedMaterial();
-            postprocessMaterial->shader = postprocessShader;
-            postprocessMaterial->texture = colorTarget;
-            postprocessMaterial->sampler = postprocessSampler;
-            // The default options are fine but we don't need to interact with the depth buffer
-            // so it is more performant to disable the depth mask
-            postprocessMaterial->pipelineState.depthMask = false;
+            postprocess = new PostProcess();
+            postprocess->init(windowSize, config["postprocess"]); 
         }
-    }
 
+    }
+    
     void ForwardRenderer::destroy()
     {
         // Delete all objects related to the sky
@@ -140,15 +93,10 @@ namespace our
             delete skyMaterial;
         }
         // Delete all objects related to post processing
-        if (postprocessMaterial)
+        if (postprocess)
         {
-            glDeleteFramebuffers(1, &postprocessFrameBuffer);
-            glDeleteVertexArrays(1, &postProcessVertexArray);
-            delete colorTarget;
-            delete depthTarget;
-            delete postprocessMaterial->sampler;
-            delete postprocessMaterial->shader;
-            delete postprocessMaterial;
+            postprocess->destroy();
+            delete postprocess;
         }
 
         delete hdrSystem;
@@ -201,8 +149,7 @@ namespace our
             // HINT: the following return should return true "first" should be drawn before "second". 
             float distance1 = glm::dot(first.center, cameraForward);
             float distance2 = glm::dot(second.center, cameraForward);
-            return distance1 < distance2;
-        });
+            return distance1 < distance2; });
 
         // TODO: (Req 9) Get the camera ViewProjection matrix and store it in VP
         glm::mat4 view = camera->getViewMatrix();
@@ -223,18 +170,21 @@ namespace our
         glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
         glDepthMask(GL_TRUE);
 
+        float bloomBrightnessCutoff = 1.0f;
         // If there is a postprocess material, bind the framebuffer
-        if (postprocessMaterial)
+        if (postprocess)
         {
             // TODO: (Req 11) bind the framebuffer
-            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, postprocessFrameBuffer);
+            postprocess->bind();
+            bloomBrightnessCutoff = postprocess->getBloomBrightnessCutoff();
         }
 
         // TODO: (Req 9) Clear the color and depth buffers
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         //! The order of the hdrSystem is important
-        if(this->hdrSystem){
+        if (this->hdrSystem)
+        {
             // bind pre-computed IBL data
             this->hdrSystem->bindTextures();
         }
@@ -245,11 +195,12 @@ namespace our
         {
             glm::mat4 MVP = VP * command.localToWorld;
             command.material->setup();
-            command.material->shader->set("transform",MVP);
+            command.material->shader->set("transform", MVP);
             command.material->shader->set("cameraPosition", camera->getOwner()->localTransform.position);
             command.material->shader->set("view", view);
             command.material->shader->set("projection", projection);
-            command.material->shader->set("model", command.localToWorld);
+            command.material->shader->set("model", command.localToWorld);   
+            command.material->shader->set("bloomBrightnessCutoff", bloomBrightnessCutoff);
             command.mesh->draw();
         }
 
@@ -282,37 +233,35 @@ namespace our
             // TODO: (Req 10) draw the sky sphere
             this->skySphere->draw();
         }
+
         // TODO: (Req 9) Draw all the transparent commands
         //  Don't forget to set the "transform" uniform to be equal the model-view-projection matrix for each render command
         for (auto &command : transparentCommands)
         {
             glm::mat4 MVP = VP * command.localToWorld;
             command.material->setup();
-            command.material->shader->set("transform",MVP);
+            command.material->shader->set("transform", MVP);
             command.material->shader->set("cameraPosition", camera->getOwner()->localTransform.position);
             command.material->shader->set("view", view);
             command.material->shader->set("projection", projection);
             command.material->shader->set("model", command.localToWorld);
+            command.material->shader->set("bloomBrightnessCutoff", bloomBrightnessCutoff);
             command.mesh->draw();
         }
-
+        
         //! The order of the hdrSystem is important
-        if(this->hdrSystem){
-            // Render the background if the HDR system is enabled
-            hdrSystem->renderBackground(projection, view);
-        }
-
-        // If there is a postprocess material, apply postprocessing
-        if (postprocessMaterial)
+        if (this->hdrSystem)
         {
-            // TODO: (Req 11) Return to the default framebuffer
-            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-
-            // TODO: (Req 11) Setup the postprocess material and draw the fullscreen triangle
-            postprocessMaterial->setup();
-            glBindVertexArray(postProcessVertexArray);
-            glDrawArrays(GL_TRIANGLES, 0, 3);    
+            // Render the background if the HDR system is enabled
+            hdrSystem->renderBackground(projection, view, 10);
         }
+        
+        // If there is a postprocess material, apply postprocessing
+        if (postprocess)
+        {           
+            postprocess->renderPostProcess();   
+        }
+        
     }
-
+    
 }

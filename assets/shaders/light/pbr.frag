@@ -1,10 +1,11 @@
 #version 330 core
 precision highp float;
 #define PI 3.1415926535897932384626433832795
-#define MAX_LIGHTS 4
+#define MAX_LIGHTS 16
 #define GREYSCALE_WEIGHT_VECTOR vec3(0.2126, 0.7152, 0.0722)
 
 layout (location = 0) out vec4 FragColor;
+layout (location = 1) out vec4 BloomColor; // output to be used by bloom shader
 
 in vec3 worldCoordinates;
 in vec2 textureCoordinates;
@@ -50,6 +51,8 @@ uniform samplerCube irradianceMap;
 uniform samplerCube prefilterMap;
 uniform sampler2D brdfLUT;
 
+// Post parameters
+uniform float bloomBrightnessCutoff;
 
 // Fresnel function (Fresnel-Schlick approximation)
 //
@@ -231,4 +234,10 @@ void main() {
     color = pow(color, vec3(1.0 / 2.2));
 
     FragColor = vec4(color, 1.0);
+
+    // bloom color output
+	// use greyscale conversion here because not all colors are equally "bright"
+    float greyscaleBrightness = dot(FragColor.rgb, GREYSCALE_WEIGHT_VECTOR);
+	BloomColor = greyscaleBrightness > bloomBrightnessCutoff ? vec4(emission, 1.0) : vec4(0.0, 0.0, 0.0, 1.0);
+
 }

@@ -4,10 +4,15 @@
 #include "../components/camera.hpp"
 #include "../components/mesh-renderer.hpp"
 #include "../asset-loader.hpp"
+#include <ibl/bloom-buffer.hpp>
+#include <shader/shader.hpp>
 #include <ibl/hdr-system.hpp>
+#include <ibl/fullscreenquad.hpp>
+#include <ibl/postprocess.hpp>
 #include <glad/gl.h>
 #include <vector>
 #include <algorithm>
+
 
 namespace our
 {
@@ -38,9 +43,8 @@ namespace our
         TexturedMaterial* skyMaterial;
         HDRSystem* hdrSystem;
         // Objects used for Postprocessing
-        GLuint postprocessFrameBuffer, postProcessVertexArray;
-        Texture2D *colorTarget, *depthTarget;
-        TexturedMaterial* postprocessMaterial;
+        PostProcess* postprocess;    
+
     public:
         // Initialize the renderer including the sky and the Postprocessing objects.
         // windowSize is the width & height of the window (in pixels).
