@@ -1,0 +1,104 @@
+{
+    "start-scene": "physics-test",
+    "window":
+    {
+        "title":"Physics Test Window",
+        "size":{
+            "width":512,
+            "height":512
+        },
+        "fullscreen": false
+    },
+    "screenshots":{
+        "directory": "screenshots/physics-test",
+        "requests": [
+            { "file": "mesh-1.png", "frame":  120 }
+        ]
+    },
+    "scene": {
+        "renderer": {
+            "hdr": {
+            "enable": false,
+            "hdr_texture": "barcelona_rooftop",
+            "maxMipLevels": 5
+            }
+        },
+        "assets": {
+            "meshes": {
+                "sphere": "assets/models/sphere/sphere.gltf"
+            }
+        },
+        "world": [
+            {
+                "position": [0, 0, 10],
+                "components": [
+                    {
+                    "type": "Camera",
+                    "fovY": 60.0
+                    },
+                    {
+                    "type": "Free Camera Controller",
+                    "speedupFactors": 1.5,
+                    "positionSensitivity": [2.0, 2.0, 2.0],
+                    "rotationSensitivity": 0.001
+                    }
+                ]
+            },
+            {
+                "position": [0, -4, -1],
+                "components": [
+                    {
+                        "type": "Collision",
+                        "shape": "box",
+                        "mass": 0,
+                        "halfExtents": [20, 0.5, 20]
+                    }
+                ]
+            },
+            {
+                "position": [0, -1, -1],
+                "components": [
+                    {
+                        "type": "Collision",
+                        "shape": "mesh",
+                        "mass": 1,
+                        "mesh": "sphere"
+                    }
+                ]
+            },
+            {
+                "position": [0, 4, -1],
+                "components": [
+                    {
+                        "type": "Collision",
+                        "shape": "mesh",
+                        "mass": 3,
+                        "mesh": "sphere"
+                    }
+                ]
+            },
+            {
+                "position": [0, 2, -1],
+                "components": [
+                    {
+                        "type": "Collision",
+                        "shape": "sphere",
+                        "mass": 5,
+                        "halfExtents": [0.8, 0.1, 0]
+                    }
+                ]
+            },
+            {
+                "position": [0, 1, -1],
+                "components": [
+                    {
+                        "type": "Collision",
+                        "shape": "box",
+                        "mass": 0.2,
+                        "halfExtents": [5, 0.1, 5]
+                    }
+                ]
+            }
+        ]
+    }
+}

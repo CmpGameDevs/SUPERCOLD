@@ -1,5 +1,6 @@
 #include "collision-system.hpp"
 #include "../ecs/transform.hpp"
+#include <BulletCollision/CollisionShapes/btShapeHull.h>
 
 namespace our {
 
@@ -73,17 +74,28 @@ namespace our {
                 }
         
                 if (collision->mass <= 0.0f) {
-                    shape = new btBvhTriangleMeshShape(collision->triangleMesh, true);
+                    shape = new btBvhTriangleMeshShape(collision->triangleMesh, true, true);
                 } else {
                     // For dynamic objects, create convex hull
-                    auto* convex = new btConvexHullShape(
+                    auto* convexRaw = new btConvexHullShape(
                         (btScalar*)&collision->vertices[0].position,
                         (int)collision->vertices.size(),
                         sizeof(our::Vertex)
                     );
-                    convex->optimizeConvexHull();
-                    convex->setMargin(0.0f);
-                    shape = convex;
+                    convexRaw->setMargin(0.1f);
+                    
+                    // Simplify using btShapeHull
+                    btShapeHull* hull = new btShapeHull(convexRaw);
+                    hull->buildHull(convexRaw->getMargin());
+                    
+                    btConvexHullShape* simplified = new btConvexHullShape();
+                    for (int i = 0; i < hull->numVertices(); ++i) {
+                        simplified->addPoint(hull->getVertexPointer()[i]);
+                    }
+                    
+                    delete convexRaw;
+                    delete hull;
+                    shape = simplified;
                 }
                 break;
             }

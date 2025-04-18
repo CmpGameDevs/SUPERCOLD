@@ -41,6 +41,9 @@ namespace our {
         }
 
     public:
+        // Add CPU-side storage
+        std::vector<Vertex> cpuVertices;
+        std::vector<unsigned int> cpuIndices;
 
         // The constructor takes two vectors:
         // - vertices which contain the vertex data.
@@ -49,7 +52,7 @@ namespace our {
         // a vertex buffer to store the vertex data on the VRAM,
         // an element buffer to store the element data on the VRAM,
         // a vertex array object to define how to read the vertex & element buffer during rendering 
-        Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& elements)
+        Mesh(const std::vector<Vertex>& vertices, const std::vector<unsigned int>& elements): cpuVertices(vertices), cpuIndices(elements)
         {
             //TODO: (Req 2) Write this function
             // remember to store the number of elements in "elementCount" since you will need it for drawing
