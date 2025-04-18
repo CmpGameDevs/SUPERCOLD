@@ -1,0 +1,473 @@
+{
+    "start-scene": "physics-test",
+    "window": {
+      "title": "Physics Test Window",
+      "size": {
+        "width": 1280,
+        "height": 720
+      },
+      "fullscreen": false
+    },
+    "screenshots": {
+      "directory": "screenshots/physics-test",
+      "requests": [{ "file": "test-mesh.png", "frame": 1 }]
+    },
+    "scene": {
+      "renderer": {
+        "hdr": {
+          "enable": false,
+          "hdr_texture": "barcelona_rooftop",
+          "maxMipLevels": 5
+        }
+      },
+      "assets": {
+        "shaders": {
+          "pbr": {
+            "vs": "assets/shaders/light/pbr.vert",
+            "fs": "assets/shaders/light/pbr.frag"
+          },
+          "equirectangular": {
+            "vs": "assets/shaders/light/ibl/cubemap.vert",
+            "fs": "assets/shaders/light/ibl/equirectangular.frag"
+          },
+          "background": {
+            "vs": "assets/shaders/light/ibl/background.vert",
+            "fs": "assets/shaders/light/ibl/background.frag"
+          },
+          "irradiance": {
+            "vs": "assets/shaders/light/ibl/cubemap.vert",
+            "fs": "assets/shaders/light/ibl/irradiance.frag"
+          },
+          "prefilter": {
+            "vs": "assets/shaders/light/ibl/cubemap.vert",
+            "fs": "assets/shaders/light/ibl/prefilter.frag"
+          },
+          "brdf": {
+            "vs": "assets/shaders/light/ibl/brdf.vert",
+            "fs": "assets/shaders/light/ibl/brdf.frag"
+          }
+        },
+        "textures": {},
+        "samplers": {
+          "default": {}
+        },
+        "meshes": {
+          "sphere": "assets/models/sphere/sphere.gltf",
+          "box": "assets/models/cube.gltf",
+          "plane": "assets/models/plane.gltf"
+        },
+        "materials": {
+          "sun": {
+            "type": "lit",
+            "shader": "pbr",
+            "pipelineState": {
+              "faceCulling": {
+                "enabled": false
+              },
+              "depthTesting": {
+                "enabled": true,
+                "function": "GL_LEQUAL"
+              }
+            },
+            "lights": [],
+            "tint": [1, 1, 1, 1],
+            "albedo": [1, 1, 1],
+            "roughness": 0.99,
+            "metallic": 0.1,
+            "emission": [300, 300, 300],
+            "ambientOcclusion": 1
+          },
+          "metal_0_0": {
+            "type": "lit",
+            "shader": "pbr",
+            "pipelineState": {
+              "faceCulling": { "enabled": false },
+              "depthTesting": { "enabled": true, "function": "GL_LEQUAL" }
+            },
+            "lights": ["sun1", "sun2", "sun3", "sun4"],
+            "tint": [1, 1, 1, 1],
+            "albedo": [0.5, 0.0, 0.0],
+            "roughness": 0.1,
+            "metallic": 0.2,
+            "emission": [0, 0, 0],
+            "ambientOcclusion": 1
+          }
+        },
+        "lights": {
+          "sun1": {
+            "type": "point",
+            "enabled": true,
+            "color": [300, 300, 300],
+            "position": [-10.0, 10.0, 10.0],
+            "attenuation": {
+              "constant": 0,
+              "linear": 0,
+              "quadratic": 1
+            }
+          },
+          "sun2": {
+            "type": "point",
+            "enabled": true,
+            "color": [300, 300, 300],
+            "position": [10.0, 10.0, 10.0],
+            "attenuation": {
+              "constant": 0,
+              "linear": 0,
+              "quadratic": 1
+            }
+          },
+          "sun3": {
+            "type": "point",
+            "enabled": true,
+            "color": [300, 300, 300],
+            "position": [-10.0, -10.0, 10.0],
+            "attenuation": {
+              "constant": 0,
+              "linear": 0,
+              "quadratic": 1
+            }
+          },
+          "sun4": {
+            "type": "point",
+            "enabled": true,
+            "color": [300, 300, 300],
+            "position": [10.0, -10.0, 10.0],
+            "attenuation": {
+              "constant": 0,
+              "linear": 0,
+              "quadratic": 1
+            }
+          }
+        }
+      },
+      "world": [
+        {
+          "position": [0, 0, 10],
+          "components": [
+            {
+              "type": "Camera",
+              "fovY": 60.0
+            },
+            {
+              "type": "Free Camera Controller",
+              "speedupFactors": 1.5,
+              "positionSensitivity": [2.0, 2.0, 2.0],
+              "rotationSensitivity": 0.001
+            }
+          ]
+        },
+        {
+          "position": [8, 2, -8],
+          "components": [
+            {
+              "type": "Collision",
+              "shape": "mesh",    // box
+              "mass": 0,
+              "vertices": [
+                { "position": [-1.0, -1.0, -1.0] },
+                { "position": [ 1.0, -1.0, -1.0] },
+                { "position": [ 1.0,  1.0, -1.0] },
+                { "position": [-1.0,  1.0, -1.0] },
+                { "position": [-1.0, -1.0,  1.0] },
+                { "position": [ 1.0, -1.0,  1.0] },
+                { "position": [ 1.0,  1.0,  1.0] },
+                { "position": [-1.0,  1.0,  1.0] }
+              ],
+              "indices": [
+                // Front face
+                4, 5, 6,
+                6, 7, 4,
+                // Back face
+                1, 0, 3,
+                3, 2, 1,
+                // Left face
+                0, 4, 7,
+                7, 3, 0,
+                // Right face
+                5, 1, 2,
+                2, 6, 5,
+                // Top face
+                3, 7, 6,
+                6, 2, 3,
+                // Bottom face
+                0, 1, 5,
+                5, 4, 0
+              ]
+            }
+          ]
+        },
+        {
+          "position": [8, 2, -1],
+          "components": [
+            {
+              "type": "Collision",
+              "shape": "mesh",  // box
+              "mass": 4.0,
+              "vertices": [
+                { "position": [-1.0, -1.0, -1.0] },
+                { "position": [ 1.0, -1.0, -1.0] },
+                { "position": [ 1.0,  1.0, -1.0] },
+                { "position": [-1.0,  1.0, -1.0] },
+                { "position": [-1.0, -1.0,  1.0] },
+                { "position": [ 1.0, -1.0,  1.0] },
+                { "position": [ 1.0,  1.0,  1.0] },
+                { "position": [-1.0,  1.0,  1.0] }
+              ],
+              "indices": [
+                // Front face
+                4, 5, 6,
+                6, 7, 4,
+                // Back face
+                1, 0, 3,
+                3, 2, 1,
+                // Left face
+                0, 4, 7,
+                7, 3, 0,
+                // Right face
+                5, 1, 2,
+                2, 6, 5,
+                // Top face
+                3, 7, 6,
+                6, 2, 3,
+                // Bottom face
+                0, 1, 5,
+                5, 4, 0
+              ]
+            }
+          ]
+        },
+        {
+          "position": [-6, 2, -8],
+          "components": [
+            {
+              "type": "Collision",
+              "shape": "mesh",    // Irregular object
+              "mass": 0,
+              "vertices": [
+                { "position": [-1.0, -0.8,  0.5] },
+                { "position": [ 0.8, -1.2, -0.4] },
+                { "position": [-0.3,  0.9, -1.1] },
+                { "position": [ 1.2,  0.5,  1.0] },
+                { "position": [-1.2,  0.3,  1.3] },
+                { "position": [ 0.4,  1.2,  0.2] }
+              ],
+              "indices": [
+                0, 1, 2,
+                0, 2, 4,
+                1, 3, 2,
+                2, 3, 5,
+                3, 4, 5,
+                0, 4, 1,
+                1, 4, 3,
+                2, 5, 4,
+                0, 2, 5
+              ]
+            }
+          ]
+        },
+        {
+          "position": [-6, 4, -1],
+          "name": "irregular object",
+          "components": [
+            {
+              "type": "Collision",
+              "shape": "mesh",    // Irregular object
+              "mass": 0.2,
+              "vertices": [
+                { "position": [-1.0, -0.8,  0.5] },
+                { "position": [ 0.8, -1.2, -0.4] },
+                { "position": [-0.3,  0.9, -1.1] },
+                { "position": [ 1.2,  0.5,  1.0] },
+                { "position": [-1.2,  0.3,  1.3] },
+                { "position": [ 0.4,  1.2,  0.2] }
+              ],
+              "indices": [
+                0, 1, 2,
+                0, 2, 4,
+                1, 3, 2,
+                2, 3, 5,
+                3, 4, 5,
+                0, 4, 1,
+                1, 4, 3,
+                2, 5, 4,
+                0, 2, 5
+              ]
+            }
+          ]
+        },
+        {
+          "position": [-3, 2, -8],
+          "name": "static pyramid",
+          "components": [
+            {
+              "type": "Collision",
+              "shape": "mesh",  // pyramid
+              "mass": 0,
+              "vertices": [
+                { "position": [-1.0, -1.0, -1.0] },
+                { "position": [ 1.0, -1.0, -1.0] },
+                { "position": [ 1.0, -1.0,  1.0] },
+                { "position": [-1.0, -1.0,  1.0] },
+                { "position": [ 0.0,  1.0,  0.0] }
+              ],
+              "indices": [
+                // base (two tris)
+                0, 1, 2,
+                2, 3, 0,
+                // sides
+                0, 1, 4,
+                1, 2, 4,
+                2, 3, 4,
+                3, 0, 4
+              ]
+            }
+          ]
+        },
+        {
+          "position": [-3, 4, -1],
+          "name": "pyramid",
+          "components": [
+            {
+              "type": "Collision",
+              "shape": "mesh",  // pyramid
+              "mass": 7.0,
+              "vertices": [
+                { "position": [-1.0, -1.0, -1.0] },
+                { "position": [ 1.0, -1.0, -1.0] },
+                { "position": [ 1.0, -1.0,  1.0] },
+                { "position": [-1.0, -1.0,  1.0] },
+                { "position": [ 0.0,  1.0,  0.0] }
+              ],
+              "indices": [
+                // base (two tris)
+                0, 1, 2,
+                2, 3, 0,
+                // sides
+                0, 1, 4,
+                1, 2, 4,
+                2, 3, 4,
+                3, 0, 4
+              ]
+            }
+          ]
+        },
+        {
+          "position": [2, 2, -8],
+          "name": "static upside-down pyramid",
+          "components": [
+            {
+              "type": "Collision",
+              "shape": "mesh",  // upside down pyramid
+              "mass": 0,
+              "vertices": [
+                { "position": [-1.0,  1.0, -1.0] },
+                { "position": [ 1.0,  1.0, -1.0] },
+                { "position": [ 1.0,  1.0,  1.0] },
+                { "position": [-1.0,  1.0,  1.0] },
+                { "position": [ 0.0, -1.0,  0.0] }
+              ],
+              "indices": [
+                0, 1, 2,
+                2, 3, 0,
+                0, 1, 4,
+                1, 2, 4,
+                2, 3, 4,
+                3, 0, 4
+              ]
+            }
+          ]
+        },
+        {
+          "position": [2, 2, -1],
+          "name": "upside-down pyramid",
+          "components": [
+            {
+              "type": "Collision",
+              "shape": "mesh",  // upside down pyramid
+              "mass": 0.3,
+              "vertices": [
+                { "position": [-1.0,  1.0, -1.0] },
+                { "position": [ 1.0,  1.0, -1.0] },
+                { "position": [ 1.0,  1.0,  1.0] },
+                { "position": [-1.0,  1.0,  1.0] },
+                { "position": [ 0.0, -1.0,  0.0] }
+              ],
+              "indices": [
+                0, 1, 2,
+                2, 3, 0,
+                0, 1, 4,
+                1, 2, 4,
+                2, 3, 4,
+                3, 0, 4
+              ]
+            }
+          ]
+        },
+        {
+          "position": [2, 4, -1],
+          "name": "sphere",
+          "components": [
+            {
+              "type": "Collision",
+              "shape": "sphere",
+              "mass": 1,
+              "halfExtents": [0.5, 2, 0]
+            }
+          ]
+        },
+        {
+          "position": [4, -5, -1],
+          "name": "plane",
+          "components": [
+            {
+              "type": "Collision",
+              "shape": "box",
+              "mass": 0,
+              "halfExtents": [15, 0.1, 15]
+            }
+          ]
+        },
+        {
+          "position": [-10.0, 10.0, 10.0],
+          "components": [
+            {
+              "type": "Mesh Renderer",
+              "mesh": "sphere",
+              "material": "sun"
+            }
+          ]
+        },
+        {
+          "position": [-10.0, -10.0, 10.0],
+          "components": [
+            {
+              "type": "Mesh Renderer",
+              "mesh": "sphere",
+              "material": "sun"
+            }
+          ]
+        },
+        {
+          "position": [10.0, 10.0, 10.0],
+          "components": [
+            {
+              "type": "Mesh Renderer",
+              "mesh": "sphere",
+              "material": "sun"
+            }
+          ]
+        },
+        {
+          "position": [10.0, -10.0, 10.0],
+          "components": [
+            {
+              "type": "Mesh Renderer",
+              "mesh": "sphere",
+              "material": "sun"
+            }
+          ]
+        }
+      ]
+    }
+  }
+  
