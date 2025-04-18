@@ -132,6 +132,16 @@ if [ $# -eq 0 ] || [[ "$*" == *"postprocess-test"* ]]; then
     compare_test "postprocess-test" "0.04" "64" "${files[@]}"
 fi
 
+if [ $# -eq 0 ] || [[ "$*" == *"physics-test"* ]]; then
+    files=(
+        "test-geometry.png"
+        "test-mesh.png"
+        "mesh-0.png"
+        "mesh-1.png"
+    )
+    compare_test "physics-test" "0.04" "64" "${files[@]}"
+fi
+
 echo -e "\nOverall Results"
 if [ $failure -eq 0 ]; then
     echo "SUCCESS: All outputs are correct"

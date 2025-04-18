@@ -156,3 +156,14 @@ if [[ "$*" == *"light-test"* ]]; then
     )
     run_tests "${configs[@]}"
 fi 
+
+if [[ "$*" == *"physics-test"* ]]; then
+    echo -e "\nRunning physics-test:\n"
+    configs=(
+        "config/light-test/test-0.jsonc"
+        "config/light-test/test-1.jsonc"
+        "config/light-test/mesh-0.jsonc"
+        "config/light-test/mesh-1.jsonc"
+    )
+    run_tests "${configs[@]}"
+fi 
