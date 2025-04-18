@@ -89,6 +89,8 @@ set(COMMON_SOURCES
         source/common/ibl/bloom-buffer.cpp
         source/common/ibl/fullscreenquad.hpp
         source/common/ibl/fullscreenquad.cpp
+        source/common/ibl/postprocess.hpp
+        source/common/ibl/postprocess.cpp
 
         source/common/ecs/component.hpp
         source/common/ecs/transform.hpp
