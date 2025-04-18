@@ -267,6 +267,7 @@
         },
         {
           "position": [-6, 4, -1],
+          "name": "irregular object",
           "components": [
             {
               "type": "Collision",
@@ -296,6 +297,7 @@
         },
         {
           "position": [-3, 2, -8],
+          "name": "static pyramid",
           "components": [
             {
               "type": "Collision",
@@ -323,6 +325,7 @@
         },
         {
           "position": [-3, 4, -1],
+          "name": "pyramid",
           "components": [
             {
               "type": "Collision",
@@ -350,6 +353,7 @@
         },
         {
           "position": [2, 2, -8],
+          "name": "static upside-down pyramid",
           "components": [
             {
               "type": "Collision",
@@ -375,6 +379,7 @@
         },
         {
           "position": [2, 2, -1],
+          "name": "upside-down pyramid",
           "components": [
             {
               "type": "Collision",
@@ -400,6 +405,7 @@
         },
         {
           "position": [2, 4, -1],
+          "name": "sphere",
           "components": [
             {
               "type": "Collision",
@@ -411,6 +417,7 @@
         },
         {
           "position": [4, -5, -1],
+          "name": "plane",
           "components": [
             {
               "type": "Collision",

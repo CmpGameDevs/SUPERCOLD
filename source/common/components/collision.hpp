@@ -1,8 +1,9 @@
 #pragma once
 
-#include "../ecs/component.hpp"
+#include <unordered_set>
 #include <btBulletDynamicsCommon.h>
 #include <glm/glm.hpp>
+#include "../ecs/component.hpp"
 #include "../mesh/vertex.hpp"
 
 namespace our {
@@ -30,6 +31,9 @@ namespace our {
         std::vector<our::Vertex> vertices;
         std::vector<uint32_t> indices;
         btTriangleMesh* triangleMesh = nullptr;
+
+        // For collision detection, we need to store the collided entities
+        std::unordered_set<Entity*> collidedEntities;
 
         virtual ~CollisionComponent();
 

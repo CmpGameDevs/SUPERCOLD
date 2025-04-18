@@ -50,12 +50,9 @@ class PhysicsTestState : public our::State {
 
     void onDraw(double deltaTime) override {
         cameraController.update(&world, (float)deltaTime);
-        collisionSystem.stepSimulation((float)deltaTime);
         collisionSystem.update(&world, (float)deltaTime);
         renderer.render(&world);
-        // Draw collision wireframes
-        collisionSystem.getPhysicsWorld()->debugDrawWorld();
-        collisionSystem.getDebugDrawer()->flushLines(&world);
+        collisionSystem.debugDrawWorld(&world);
     }
 
     void onDestroy() override {

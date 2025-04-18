@@ -6,12 +6,15 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/glm.hpp>
 #include <glad/gl.h>
-#include "../ecs/entity.hpp"
-#include "../ecs/world.hpp"
-#include "../shader/shader.hpp"
-#include "../components/camera.hpp"
+#include <ecs/entity.hpp>
+#include <ecs/world.hpp>
+#include <shader/shader.hpp>
+#include <components/collision.hpp>
+#include <components/camera.hpp>
 
 namespace our {
+
+class CollisionSystem;  // Forward declaration of CollisionSystem
 
 class GLDebugDrawer : public btIDebugDraw {
     glm::ivec2 windowSize;
@@ -106,17 +109,28 @@ class CollisionSystem {
     btDiscreteDynamicsWorld* physicsWorld = nullptr;
     GLDebugDrawer* debugDrawer = nullptr;
 
+    // Step the physics simulation by a given time step
+    void _stepSimulation(float deltaTime);
+    // Process all entities in the world and update their transforms and physics bodies
+    void _processEntities(World* world);
+    // Sync the transforms of the entity and its collision component
+    void _syncTransforms(Entity* entity, CollisionComponent* collision, Transform* transform);
+    // Create a rigid body for the entity based on its collision component and transform
+    void _createRigidBody(Entity* entity, CollisionComponent* collision, Transform* transform);
+    // Clear previous collisions for the entity
+    void _clearPreviousCollisions(World* world);
+    // Detect collisions between entities and update their collision components
+    void _detectCollisions();
+
 public:
     // Initialize the collision system with a Bullet physics world
     void initialize(glm::ivec2 windowSize, btDynamicsWorld* physicsWorld);
 
-    GLDebugDrawer* getDebugDrawer() { return debugDrawer; }
+    // Debug draw the world using the debug drawer
+    void debugDrawWorld(World* world);
 
     // Get the Bullet physics world
     btDiscreteDynamicsWorld* getPhysicsWorld() { return physicsWorld; }
-
-    // Step the physics simulation by a given time step
-    void stepSimulation(float deltaTime);
 
     // Update entity transforms and physics simulation
     void update(World* world, float deltaTime);
