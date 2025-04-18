@@ -34,6 +34,7 @@ set(IMGUI_SOURCES
         vendor/imgui/imgui_impl/imgui_impl_opengl3.cpp
         )
 
+# FIX: Remove this part 
 # Add platform-specific ImGui sources
 if(WIN32)
     list(APPEND IMGUI_SOURCES
@@ -102,6 +103,8 @@ set(COMMON_SOURCES
         source/common/components/mesh-renderer.cpp
         source/common/components/free-camera-controller.hpp
         source/common/components/free-camera-controller.cpp
+        source/common/components/fps-controller.hpp
+        source/common/components/fps-controller.cpp
         source/common/components/movement.hpp
         source/common/components/movement.cpp
         source/common/components/component-deserializer.hpp
@@ -109,6 +112,7 @@ set(COMMON_SOURCES
         source/common/systems/forward-renderer.hpp
         source/common/systems/forward-renderer.cpp
         source/common/systems/free-camera-controller.hpp
+        source/common/systems/fps-controller.hpp
         source/common/systems/movement.hpp
 )
 
