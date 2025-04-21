@@ -112,46 +112,33 @@ class PhysicsTestState : public our::State {
         }
     }
 
-    void onDraw(double deltaTime) override {
+    void applyForces() {
         auto keyboard = getApp()->getKeyboard();
         our::Entity* ballEntity = nullptr;
-        our::Entity* camera = nullptr;
+        our::CameraComponent *camera = nullptr;
         for (auto entity : world.getEntities()) {
-            if (entity->getComponent<our::CameraComponent>()) {
-                camera = entity;
-            }
-            if (entity->name == "Ball") {
-                ballEntity = entity;
-            }
+            if (!camera) camera = entity->getComponent<our::CameraComponent>();
+            if (entity->name == "Ball") ballEntity = entity;
         }
-        if (keyboard.isPressed(GLFW_KEY_F)) {
-            if (ballEntity) {
-                // Get player's forward direction from their transform
-                our::Entity* player = camera;
-                glm::vec3 throwDirection = camera->localTransform.rotation * glm::vec3(0, 0, -1); // Forward direction
-                throwDirection = glm::normalize(throwDirection); // Normalize the direction
-                
-                // Apply impulse (direction * strength)
-                collisionSystem.applyImpulse(ballEntity, glm::vec3(0, 1, 0));
-            }
-        } else if (keyboard.isPressed(GLFW_KEY_R)) {
-            if (ballEntity) {
-                // Reset the ball's position and velocity
-                collisionSystem.applyTorque(ballEntity, glm::vec3(0, 10.0f, 0));
-            }
-        } else if (keyboard.isPressed(GLFW_KEY_T)) {
-            if (ballEntity) {
-                glm::vec3 handPosition = camera->localTransform.position + glm::vec3(0, 1.0f, 0);
-                // Make a random throw direction
-                glm::vec3 throwDirection = glm::vec3(
-                    0.0f, 1.0f, 0.0f // Upward direction
-                );
-                glm::vec3 torque = glm::normalize(glm::vec3(1.0f, 1.0f, 0.0f)) * 10.0f;
-                collisionSystem.applyTorque(ballEntity, torque);
-                collisionSystem.applyImpulse(ballEntity, throwDirection, handPosition);
-            }
-        }
+        if (!ballEntity) return;
 
+        if (keyboard.isPressed(GLFW_KEY_F)) {
+            auto cameraMatrix = camera->getOwner()->getLocalToWorldMatrix();
+            glm::vec3 cameraForward = glm::normalize(glm::vec3(cameraMatrix[2]));
+            collisionSystem.applyImpulse(ballEntity, cameraForward * 2.0f);
+        } else if (keyboard.isPressed(GLFW_KEY_R)) {
+            collisionSystem.applyTorque(ballEntity, glm::vec3(0, 10.0f, 0));
+        } else if (keyboard.isPressed(GLFW_KEY_T)) {
+            glm::vec3 handPosition = camera->getOwner()->localTransform.position + glm::vec3(0, 1.0f, 0);
+            glm::vec3 throwDirection = glm::vec3(0.0f, 1.0f, 0.0f);
+            glm::vec3 torque = glm::normalize(glm::vec3(1.0f, 1.0f, 0.0f)) * 3.0f;
+            collisionSystem.applyTorque(ballEntity, torque);
+            collisionSystem.applyImpulse(ballEntity, throwDirection, handPosition);
+        }
+    }
+
+    void onDraw(double deltaTime) override {
+        applyForces();
         cameraController.update(&world, (float)deltaTime);
         collisionSystem.update(&world, (float)deltaTime);
         raycast();
