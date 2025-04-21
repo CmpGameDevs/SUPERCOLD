@@ -5,15 +5,18 @@
 #include <systems/free-camera-controller.hpp>
 #include <systems/forward-renderer.hpp>
 #include <systems/collision-system.hpp>
+#include <systems/fps-controller.hpp>
+#include <core/time-scale.hpp>
 #include <btBulletDynamicsCommon.h>
 
 class PhysicsTestState : public our::State {
 
     our::World world;
     our::ForwardRenderer renderer;
-    our::FreeCameraControllerSystem cameraController;
-
+    our::FPSControllerSystem fpsController;
     our::CollisionSystem collisionSystem;
+    game::TimeScaler timeScaler;
+    float timeScale;
 
     void onInitialize() override {
         auto& config = getApp()->getConfig()["scene"];
@@ -27,7 +30,7 @@ class PhysicsTestState : public our::State {
             world.deserialize(config["world"]);
         }
 
-        cameraController.enter(getApp());
+        fpsController.enter(getApp());
 
         glm::ivec2 size = getApp()->getFrameBufferSize();
         renderer.initialize(size, config["renderer"]);
@@ -46,6 +49,7 @@ class PhysicsTestState : public our::State {
             collisionConfig
         );
         collisionSystem.initialize(size, physicsWorld);
+        timeScale = 1.0f;
     }
 
     void raycast() {
@@ -138,9 +142,15 @@ class PhysicsTestState : public our::State {
     }
 
     void onDraw(double deltaTime) override {
+        fpsController.update(&world, (float)deltaTime);
+
+        float speed = fpsController.getSpeedMagnitude();
+        timeScaler.update(speed);
+        timeScale = timeScaler.getTimeScale();
+        float scaledDeltaTime = (float)deltaTime * timeScale;
+
         applyForces();
-        cameraController.update(&world, (float)deltaTime);
-        collisionSystem.update(&world, (float)deltaTime);
+        collisionSystem.update(&world, scaledDeltaTime);
         raycast();
         renderer.render(&world);
         collisionSystem.debugDrawWorld(&world);
@@ -152,7 +162,7 @@ class PhysicsTestState : public our::State {
         // Destroy the collision system and free resources
         collisionSystem.destroy();
         // On exit, we call exit for the camera controller system to make sure that the mouse is unlocked
-        cameraController.exit();
+        fpsController.exit();
         // Clear the world
         world.clear();
         // and we delete all the loaded assets to free memory on the RAM and the VRAM

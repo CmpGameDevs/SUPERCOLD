@@ -5,16 +5,21 @@
 #include <asset-loader.hpp>
 #include <ecs/world.hpp>
 #include <systems/forward-renderer.hpp>
+#include <systems/collision-system.hpp>
 #include <systems/fps-controller.hpp>
 #include <systems/movement.hpp>
+#include <core/time-scale.hpp>
 
 // This state shows how to use the ECS framework and deserialization.
 class Playstate : public our::State {
 
     our::World world;
     our::ForwardRenderer renderer;
-    our::FPSControllerSystem cameraController;
+    our::CollisionSystem collisionSystem;
+    our::FPSControllerSystem fpsController;
     our::MovementSystem movementSystem;
+    game::TimeScaler timeScaler;
+    float timeScale;
 
     void onInitialize() override {
         // First of all, we get the scene configuration from the app config
@@ -28,16 +33,25 @@ class Playstate : public our::State {
             world.deserialize(config["world"]);
         }
         // We initialize the camera controller system since it needs a pointer to the app
-        cameraController.enter(getApp());
+        fpsController.enter(getApp());
         // Then we initialize the renderer
         auto size = getApp()->getFrameBufferSize();
         renderer.initialize(size, config["renderer"]);
+
+        timeScale = 1.0f;
     }
 
     void onDraw(double deltaTime) override {
         // Here, we just run a bunch of systems to control the world logic
-        movementSystem.update(&world, (float)deltaTime);
-        cameraController.update(&world, (float)deltaTime);
+        fpsController.update(&world, (float)deltaTime);
+
+        float speed = fpsController.getSpeedMagnitude();
+        timeScaler.update(speed);
+        timeScale = timeScaler.getTimeScale();
+
+        float scaledDeltaTime = (float)deltaTime * timeScale;
+
+        movementSystem.update(&world, scaledDeltaTime);
         // And finally we use the renderer system to draw the scene
         renderer.render(&world);
 
@@ -45,7 +59,7 @@ class Playstate : public our::State {
         auto &keyboard = getApp()->getKeyboard();
 
         if (keyboard.justPressed(GLFW_KEY_ESCAPE)) {
-            // If the escape  key is pressed in this frame, go to the play state
+            // If the escape key is pressed in this frame, go to the play state
             getApp()->changeState("menu");
         }
     }
@@ -54,7 +68,7 @@ class Playstate : public our::State {
         // Don't forget to destroy the renderer
         renderer.destroy();
         // On exit, we call exit for the camera controller system to make sure that the mouse is unlocked
-        cameraController.exit();
+        fpsController.exit();
         // Clear the world
         world.clear();
         // and we delete all the loaded assets to free memory on the RAM and the VRAM
