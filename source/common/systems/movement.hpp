@@ -19,15 +19,23 @@ namespace our
 
         // This should be called every frame to update all entities containing a MovementComponent. 
         void update(World* world, float deltaTime) {
-            // For each entity in the world
-            for(auto entity : world->getEntities()){
-                // Get the movement component if it exists
+            for (auto entity : world->getEntities()) {
                 MovementComponent* movement = entity->getComponent<MovementComponent>();
-                // If the movement component exists
-                if(movement){
-                    // Change the position and rotation based on the linear & angular velocity and delta time.
-                    entity->localTransform.position += deltaTime * movement->linearVelocity;
-                    entity->localTransform.rotation += deltaTime * movement->angularVelocity;
+                if (!movement) continue;
+        
+                // Apply linear velocity to position
+                entity->localTransform.position += movement->linearVelocity * deltaTime;
+        
+                // Apply angular velocity
+                glm::vec3 angular = movement->angularVelocity;
+                float angle = glm::length(angular);
+        
+                if (angle > 1e-5f) { // Avoid tiny rotations / division by zero
+                    glm::vec3 axis = glm::normalize(angular);
+                    float rotationAngle = angle * deltaTime;
+        
+                    glm::quat deltaRotation = glm::angleAxis(rotationAngle, axis);
+                    entity->localTransform.rotation = glm::normalize(deltaRotation * entity->localTransform.rotation);
                 }
             }
         }

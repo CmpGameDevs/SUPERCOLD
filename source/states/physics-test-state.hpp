@@ -54,7 +54,9 @@ class PhysicsTestState : public our::State {
 
     void raycast() {
         our::Entity* playerEntity = nullptr;
+        our::CameraComponent *camera = nullptr;
         for (auto entity : world.getEntities()) {
+            if (!camera) camera = entity->getComponent<our::CameraComponent>();
             if (entity->name == "raycast") {
                 playerEntity = entity;
                 break;
@@ -62,34 +64,35 @@ class PhysicsTestState : public our::State {
         }
 
         if (playerEntity) {
-            glm::vec3 rayStart = playerEntity->localTransform.position;
+            glm::mat4 worldMatrix = playerEntity->getLocalToWorldMatrix();
+            glm::vec3 rayStart = glm::vec3(worldMatrix[3]);
             float rayLength = 5.0f;
             
             std::vector<glm::vec3> directions = {
                 // Horizontal (XZ plane)
                 glm::vec3(1, 0, 0),    // Right
-                glm::vec3(1, 0, 1),    // Right-Forward
-                glm::vec3(0, 0, 1),    // Forward
-                glm::vec3(-1, 0, 1),   // Left-Forward
+                // glm::vec3(1, 0, 1),    // Right-Forward
+                // glm::vec3(0, 0, 1),    // Forward
+                // glm::vec3(-1, 0, 1),   // Left-Forward
                 glm::vec3(-1, 0, 0),   // Left
                 glm::vec3(-1, 0, -1),  // Left-Back
                 glm::vec3(0, 0, -1),   // Back
                 glm::vec3(1, 0, -1),   // Right-Back
             
-                // Vertical only
-                glm::vec3(0, 1, 0),    // Up
-                glm::vec3(0, -1, 0),   // Down
+                // // Vertical only
+                // glm::vec3(0, 1, 0),    // Up
+                // glm::vec3(0, -1, 0),   // Down
             
-                // Vertical + horizontal (diagonal in Y as well)
-                glm::vec3(1, 1, 0),    // Up-Right
-                glm::vec3(-1, 1, 0),   // Up-Left
-                glm::vec3(0, 1, 1),    // Up-Forward
-                glm::vec3(0, 1, -1),   // Up-Back
+                // // Vertical + horizontal (diagonal in Y as well)
+                // glm::vec3(1, 1, 0),    // Up-Right
+                // glm::vec3(-1, 1, 0),   // Up-Left
+                // glm::vec3(0, 1, 1),    // Up-Forward
+                // glm::vec3(0, 1, -1),   // Up-Back
             
-                glm::vec3(1, -1, 0),   // Down-Right
-                glm::vec3(-1, -1, 0),  // Down-Left
-                glm::vec3(0, -1, 1),   // Down-Forward
-                glm::vec3(0, -1, -1)   // Down-Back
+                // glm::vec3(1, -1, 0),   // Down-Right
+                // glm::vec3(-1, -1, 0),  // Down-Left
+                // glm::vec3(0, -1, 1),   // Down-Forward
+                // glm::vec3(0, -1, -1)   // Down-Back
             };
 
             // Apply player's rotation to directions
@@ -113,6 +116,9 @@ class PhysicsTestState : public our::State {
                 // Draw debug ray
                 collisionSystem.debugDrawRay(rayStart, rayEnd, isHit ? glm::vec3(1, 0, 0) : glm::vec3(0, 1, 1));
             }
+
+            // Update the player rotation to only face the camera direction
+            playerEntity->localTransform.rotation = camera->getOwner()->localTransform.rotation;
         }
     }
 

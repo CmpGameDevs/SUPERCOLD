@@ -1,6 +1,7 @@
 #include "collision-system.hpp"
 #include "../ecs/transform.hpp"
 #include <BulletCollision/CollisionShapes/btShapeHull.h>
+#include <glm/gtx/matrix_decompose.hpp>
 
 namespace our {
 
@@ -24,18 +25,29 @@ namespace our {
     void CollisionSystem::_processEntities(World* world) {
         for(auto entity : world->getEntities()) {
             auto collision = entity->getComponent<CollisionComponent>();
-            Transform* transform = &entity->localTransform;
+            if(!collision) continue;
+
+            glm::mat4 worldMatrix = entity->getLocalToWorldMatrix();
+            // Get transforfom from the world matrix
+            Transform transform;
+            transform.position = glm::vec3(worldMatrix[3]);
+            transform.rotation = entity->localTransform.rotation;
+            transform.scale = glm::vec3(glm::length(worldMatrix[0]), glm::length(worldMatrix[1]), glm::length(worldMatrix[2]));
             
-            if(collision && transform) {
-                if(!collision->bulletBody) {
-                    _createRigidBody(entity, collision, transform);
-                }
-                _syncTransforms(entity, collision, transform);
+            if(!collision->bulletBody) {
+                _createRigidBody(entity, collision, &transform);
+            }
+            _syncTransforms(entity, collision, &transform);
+            if (!collision->isKinematic) {
+                Transform *localTransform = &entity->localTransform;
+                localTransform->position = transform.position;
+                localTransform->rotation = transform.rotation;
+                localTransform->scale = transform.scale;
             }
         }
     }
 
-    void CollisionSystem::_createRigidBody(Entity* entity, CollisionComponent* collision, Transform* transform) {
+    void CollisionSystem::_createRigidBody(Entity* entity, CollisionComponent* collision, const Transform* transform) {
         btCollisionShape* shape = nullptr;
                     
         // Create shape based on component data
@@ -73,7 +85,7 @@ namespace our {
                     }
                 }
         
-                if (collision->mass <= 0.0f) {
+                if (collision->mass <= 0.0f && !collision->isKinematic) {
                     shape = new btBvhTriangleMeshShape(collision->triangleMesh, true, true);
                 } else {
                     // For dynamic objects, create convex hull
@@ -82,7 +94,7 @@ namespace our {
                         (int)collision->vertices.size(),
                         sizeof(our::Vertex)
                     );
-                    convexRaw->setMargin(0.1f);
+                    convexRaw->setMargin(0.01f);
                     
                     // Simplify using btShapeHull
                     btShapeHull* hull = new btShapeHull(convexRaw);
@@ -101,6 +113,8 @@ namespace our {
             }
         }
     
+        if (collision->isKinematic) collision->mass = 0.0f;
+
         btTransform btTrans;
         btTrans.setIdentity();
         btTrans.setOrigin(btVector3(
@@ -133,7 +147,12 @@ namespace our {
             btScalar angularDamping = 0.05f / collision->mass;
             collision->bulletBody->setDamping(linearDamping, angularDamping);
         }
-        physicsWorld->addRigidBody(collision->bulletBody);
+
+        int collisionGroup = collision->isKinematic ? btBroadphaseProxy::KinematicFilter : 
+                     (collision->mass > 0 ? btBroadphaseProxy::DefaultFilter : btBroadphaseProxy::StaticFilter);
+        int collisionMask = collision->isKinematic ? (btBroadphaseProxy::StaticFilter | btBroadphaseProxy::DefaultFilter) :
+                     (btBroadphaseProxy::AllFilter);
+        physicsWorld->addRigidBody(collision->bulletBody, collisionGroup, collisionMask);
     }
 
     void CollisionSystem::_syncTransforms(Entity* entity, CollisionComponent* collision, Transform* transform) {
@@ -143,6 +162,7 @@ namespace our {
         if(collision->isKinematic) {
             // Update physics from ECS
             btTransform trans;
+            trans.setIdentity();
             trans.setOrigin(btVector3(
                 transform->position.x,
                 transform->position.y,
@@ -156,8 +176,10 @@ namespace our {
             // Combine quaternions in the correct order: roll * yaw * pitch (ZYX)
             btQuaternion totalRotation = quatRoll * quatYaw * quatPitch;
             trans.setRotation(totalRotation);
+            collision->bulletBody->getMotionState()->setWorldTransform(trans);
             collision->bulletBody->setWorldTransform(trans);
             collision->bulletBody->activate();
+            physicsWorld->updateSingleAabb(collision->bulletBody);
         } else {
             // Update ECS from physics
             btTransform trans;
@@ -169,14 +191,12 @@ namespace our {
                 trans.getOrigin().z()
             );
             auto rotation = trans.getRotation();
-            auto quat = glm::quat(
+            transform->rotation = glm::quat(
                 rotation.w(),
                 rotation.x(),
                 rotation.y(),
                 rotation.z()
             );
-            // Convert quaternion to Euler angles (pitch, yaw, roll)
-            transform->rotation = glm::eulerAngles(quat);
         }
     }
 

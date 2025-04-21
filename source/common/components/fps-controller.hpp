@@ -7,6 +7,8 @@
 namespace our {
 class FPSControllerComponent : public Component {
   public:
+    float pitch = 0.0f;
+    float yaw = 0.0f;
     // Basic sensitivity settings
     float rotationSensitivityX = 0.01f;
     float rotationSensitivityY = 0.01f;

@@ -2,6 +2,8 @@
 
 #include <glm/glm.hpp>
 #include <json/json.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/quaternion.hpp>
 
 namespace our {
 
@@ -9,7 +11,7 @@ namespace our {
     struct Transform {
     public:
         glm::vec3 position = glm::vec3(0, 0, 0); // The position is defined as a vec3. (0,0,0) means no translation
-        glm::vec3 rotation = glm::vec3(0, 0, 0); // The rotation is defined using euler angles (y: yaw, x: pitch, z: roll). (0,0,0) means no rotation
+        glm::quat rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f); // The rotation is defined using euler angles (y: yaw, x: pitch, z: roll). (0,0,0) means no rotation
         glm::vec3 scale = glm::vec3(1, 1, 1); // The scale is defined as a vec3. (1,1,1) means no scaling.
 
         // This function computes and returns a matrix that represents this transform

@@ -116,7 +116,7 @@ class CollisionSystem {
     // Sync the transforms of the entity and its collision component
     void _syncTransforms(Entity* entity, CollisionComponent* collision, Transform* transform);
     // Create a rigid body for the entity based on its collision component and transform
-    void _createRigidBody(Entity* entity, CollisionComponent* collision, Transform* transform);
+    void _createRigidBody(Entity* entity, CollisionComponent* collision, const Transform* transform);
     // Clear previous collisions for the entity
     void _clearPreviousCollisions(World* world);
     // Detect collisions between entities and update their collision components

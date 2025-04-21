@@ -227,7 +227,8 @@ if( ($tests.Count -eq 0) -or ($tests -contains "physics-test")){
         "config/physics-test/test-0.jsonc",
         "config/physics-test/test-1.jsonc",
         "config/physics-test/mesh-0.jsonc",
-        "config/physics-test/mesh-1.jsonc"
+        "config/physics-test/mesh-1.jsonc",
+        "config/physics-test/forces-0.jsonc"
     )
     Write-Output ""
     Write-Output "Running physics-test:"
