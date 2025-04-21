@@ -48,9 +48,74 @@ class PhysicsTestState : public our::State {
         collisionSystem.initialize(size, physicsWorld);
     }
 
+    void raycast() {
+        our::Entity* playerEntity = nullptr;
+        for (auto entity : world.getEntities()) {
+            if (entity->name == "raycast") {
+                playerEntity = entity;
+                break;
+            }
+        }
+
+        if (playerEntity) {
+            glm::vec3 rayStart = playerEntity->localTransform.position;
+            float rayLength = 5.0f;
+            
+            std::vector<glm::vec3> directions = {
+                // Horizontal (XZ plane)
+                glm::vec3(1, 0, 0),    // Right
+                glm::vec3(1, 0, 1),    // Right-Forward
+                glm::vec3(0, 0, 1),    // Forward
+                glm::vec3(-1, 0, 1),   // Left-Forward
+                glm::vec3(-1, 0, 0),   // Left
+                glm::vec3(-1, 0, -1),  // Left-Back
+                glm::vec3(0, 0, -1),   // Back
+                glm::vec3(1, 0, -1),   // Right-Back
+            
+                // Vertical only
+                glm::vec3(0, 1, 0),    // Up
+                glm::vec3(0, -1, 0),   // Down
+            
+                // Vertical + horizontal (diagonal in Y as well)
+                glm::vec3(1, 1, 0),    // Up-Right
+                glm::vec3(-1, 1, 0),   // Up-Left
+                glm::vec3(0, 1, 1),    // Up-Forward
+                glm::vec3(0, 1, -1),   // Up-Back
+            
+                glm::vec3(1, -1, 0),   // Down-Right
+                glm::vec3(-1, -1, 0),  // Down-Left
+                glm::vec3(0, -1, 1),   // Down-Forward
+                glm::vec3(0, -1, -1)   // Down-Back
+            };
+
+            // Apply player's rotation to directions
+            glm::quat playerRotation = playerEntity->localTransform.rotation;
+            for (auto& dir : directions) {
+                dir = glm::normalize(playerRotation * dir);
+            }
+
+            for (const auto& direction : directions) {
+                glm::vec3 rayEnd = rayStart + direction * rayLength;
+                our::CollisionComponent* hitComponent;
+                glm::vec3 hitPoint, hitNormal;
+                
+                bool isHit = collisionSystem.raycast(rayStart, rayEnd, hitComponent, hitPoint, hitNormal);
+                if (isHit) {
+                    if (hitComponent) {
+                        auto hitEntity = hitComponent->getOwner();
+                    }
+                }
+                
+                // Draw debug ray
+                collisionSystem.debugDrawRay(rayStart, rayEnd, isHit ? glm::vec3(1, 0, 0) : glm::vec3(0, 1, 1));
+            }
+        }
+    }
+
     void onDraw(double deltaTime) override {
         cameraController.update(&world, (float)deltaTime);
         collisionSystem.update(&world, (float)deltaTime);
+        raycast();
         renderer.render(&world);
         collisionSystem.debugDrawWorld(&world);
     }

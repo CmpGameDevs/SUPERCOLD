@@ -67,13 +67,15 @@
                 ]
             },
             {
-                "position": [0, 1, -1],
+                "position": [0, 2, -1],
+                "name": "raycast",
                 "components": [
                     {
                         "type": "Collision",
                         "shape": "mesh",
-                        "mass": 0,
-                        "mesh": "sphere"
+                        "mass": 1,
+                        "mesh": "sphere",
+                        "isKinematic": true
                     }
                 ]
             }
