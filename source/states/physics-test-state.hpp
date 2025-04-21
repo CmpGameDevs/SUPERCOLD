@@ -112,7 +112,33 @@ class PhysicsTestState : public our::State {
         }
     }
 
+    void applyForces() {
+        auto keyboard = getApp()->getKeyboard();
+        our::Entity* ballEntity = nullptr;
+        our::CameraComponent *camera = nullptr;
+        for (auto entity : world.getEntities()) {
+            if (!camera) camera = entity->getComponent<our::CameraComponent>();
+            if (entity->name == "Ball") ballEntity = entity;
+        }
+        if (!ballEntity) return;
+
+        if (keyboard.isPressed(GLFW_KEY_F)) {
+            auto cameraMatrix = camera->getOwner()->getLocalToWorldMatrix();
+            glm::vec3 cameraForward = glm::normalize(glm::vec3(cameraMatrix[2]));
+            collisionSystem.applyImpulse(ballEntity, cameraForward * 2.0f);
+        } else if (keyboard.isPressed(GLFW_KEY_R)) {
+            collisionSystem.applyTorque(ballEntity, glm::vec3(0, 10.0f, 0));
+        } else if (keyboard.isPressed(GLFW_KEY_T)) {
+            glm::vec3 handPosition = camera->getOwner()->localTransform.position + glm::vec3(0, 1.0f, 0);
+            glm::vec3 throwDirection = glm::vec3(0.0f, 1.0f, 0.0f);
+            glm::vec3 torque = glm::normalize(glm::vec3(1.0f, 1.0f, 0.0f)) * 3.0f;
+            collisionSystem.applyTorque(ballEntity, torque);
+            collisionSystem.applyImpulse(ballEntity, throwDirection, handPosition);
+        }
+    }
+
     void onDraw(double deltaTime) override {
+        applyForces();
         cameraController.update(&world, (float)deltaTime);
         collisionSystem.update(&world, (float)deltaTime);
         raycast();
