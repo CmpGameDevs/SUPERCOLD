@@ -1,0 +1,11 @@
+Model Information:
+* title:	Halo creatures
+* source:	https://sketchfab.com/3d-models/halo-creatures-e26c543bbcee43f3be9d094ee6e5a070
+* author:	That one larry (https://sketchfab.com/profanity2009)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Halo creatures" (https://sketchfab.com/3d-models/halo-creatures-e26c543bbcee43f3be9d094ee6e5a070) by That one larry (https://sketchfab.com/profanity2009) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

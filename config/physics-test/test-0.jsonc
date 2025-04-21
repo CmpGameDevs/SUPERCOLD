@@ -227,9 +227,9 @@
           "components": [
             {
               "type": "Collision",
-              "shape": "sphere",
+              "shape": "capsule",
               "mass": 1,
-              "halfExtents": [0.5, 2, 0]
+              "halfExtents": [3, 2, 1]
             }
           ]
         },

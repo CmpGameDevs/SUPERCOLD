@@ -7,6 +7,7 @@
 #include "mesh-renderer.hpp"
 #include "movement.hpp"
 #include "collision.hpp"
+#include "model.hpp"
 
 namespace our {
 
@@ -28,7 +29,10 @@ inline void deserializeComponent(const nlohmann::json &data, Entity *entity) {
         component = entity->addComponent<MeshRendererComponent>();
     } else if (type == CollisionComponent::getID()) {
         component = entity->addComponent<CollisionComponent>();
+    } else if (type == Model::getID()) {
+        component = entity->addComponent<Model>();
     }
+    
     if (component)
         component->deserialize(data);
 }

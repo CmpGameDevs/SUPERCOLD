@@ -19,6 +19,7 @@ namespace our {
         static const int TEXTURE_UNIT_HDR = 9;
         static const int TEXTURE_UNIT_BRDF = 10;
         static const int TEXTURE_UNIT_PREFILTER = 11;
+        static const int TEXTURE_UNIT_METALLIC_ROUGHNESS = 12;
     };
 
 }

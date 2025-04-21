@@ -78,6 +78,7 @@ namespace our
         shader->set("material.useTextureAlbedo", useTextureAlbedo);
         shader->set("material.useTextureMetallic", useTextureMetallic);
         shader->set("material.useTextureRoughness", useTextureRoughness);
+        shader->set("material.useTextureMetallicRoughness", useTextureMetallicRoughness);
         shader->set("material.useTextureNormal", useTextureNormal);
         shader->set("material.useTextureAmbientOcclusion", useTextureAmbientOcclusion);
         shader->set("material.useTextureEmissive", useTextureEmissive);
@@ -108,6 +109,12 @@ namespace our
             glActiveTexture(GL_TEXTURE0 + our::TextureUnits::TEXTURE_UNIT_ROUGHNESS);
             textureRoughness->bind();
             shader->set("material.textureRoughness", our::TextureUnits::TEXTURE_UNIT_ROUGHNESS);
+        }
+        if (useTextureMetallicRoughness)
+        {
+            glActiveTexture(GL_TEXTURE0 + our::TextureUnits::TEXTURE_UNIT_METALLIC_ROUGHNESS);
+            textureMetallicRoughness->bind();
+            shader->set("material.textureMetallicRoughness", our::TextureUnits::TEXTURE_UNIT_METALLIC_ROUGHNESS);
         }
         if (useTextureNormal)
         {
@@ -174,7 +181,8 @@ namespace our
         useTextureAlbedo = data.value("useTextureAlbedo", false);
         useTextureMetallic = data.value("useTextureMetallic", false);
         useTextureRoughness = data.value("useTextureRoughness", false);
-        useTextureNormal = data.value("useTextureNormal", false);
+        useTextureMetallicRoughness = data.value("useTextureMetallicRoughness", false);
+        useTextureNormal = data.value("useTextureNormal", false); 
         useTextureAmbientOcclusion = data.value("useTextureAmbientOcclusion", false);
         useTextureEmissive = data.value("useTextureEmissive", false);
         albedo = data.value("albedo", glm::vec3(1.0f, 1.0f, 1.0f));
@@ -185,6 +193,7 @@ namespace our
         textureAlbedo = AssetLoader<Texture2D>::get(data.value("textureAlbedo", ""));
         textureMetallic = AssetLoader<Texture2D>::get(data.value("textureMetallic", ""));
         textureRoughness = AssetLoader<Texture2D>::get(data.value("textureRoughness", ""));
+        textureMetallicRoughness = AssetLoader<Texture2D>::get(data.value("textureMetallicRoughness", ""));
         textureNormal = AssetLoader<Texture2D>::get(data.value("textureNormal", ""));
         textureAmbientOcclusion = AssetLoader<Texture2D>::get(data.value("textureAmbientOcclusion", ""));
         textureEmissive = AssetLoader<Texture2D>::get(data.value("textureEmissive", ""));

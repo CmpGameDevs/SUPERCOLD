@@ -64,6 +64,7 @@ namespace our {
             bool useTextureAlbedo = false;
             bool useTextureMetallic = false;
             bool useTextureRoughness = false;
+            bool useTextureMetallicRoughness = false;
             bool useTextureNormal = false;
             bool useTextureAmbientOcclusion = false;
             bool useTextureEmissive = false;
@@ -77,6 +78,7 @@ namespace our {
             Texture2D* textureAlbedo;
             Texture2D* textureMetallic;
             Texture2D* textureRoughness;
+            Texture2D* textureMetallicRoughness;
             Texture2D* textureNormal;
             Texture2D* textureAmbientOcclusion;
             Texture2D* textureEmissive;

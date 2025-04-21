@@ -1,0 +1,220 @@
+{
+    "start-scene": "light-test",
+    "window":
+    {
+        "title":"Light Test Window",
+        "size":{
+            "width":1280,
+            "height":720
+        },
+        "fullscreen": false
+    },
+    "screenshots":{
+        "directory": "screenshots/light-test",
+        "requests": [
+            { "file": "test-array.png", "frame":  1 }
+        ]
+    },
+    "scene": {
+        "renderer":{
+            "hdr": {
+                "enable": true,
+                "hdr_texture": "barcelona_rooftop",
+                "maxMipLevels": 5
+            },
+            "postprocess":{
+                "bloomEnabled": true,
+                "bloomIntensity": 2,
+                "bloomIterations": 50,
+                "bloomDirection": 0,
+                "tonemappingEnabled": false,
+                "gammaCorrectionFactor": 1,
+                "bloomBrightnessCutoff": 0.4
+            }
+        },
+        "assets":{
+            "shaders":{
+                "pbr":{
+                    "vs":"assets/shaders/light/pbr.vert",
+                    "fs":"assets/shaders/light/pbr.frag"
+                },
+                "equirectangular":{
+                    "vs":"assets/shaders/light/ibl/cubemap.vert",
+                    "fs":"assets/shaders/light/ibl/equirectangular.frag"
+                },
+                "background":{
+                    "vs":"assets/shaders/light/ibl/background.vert",
+                    "fs":"assets/shaders/light/ibl/background.frag"
+                },
+                "irradiance":{
+                    "vs":"assets/shaders/light/ibl/cubemap.vert",
+                    "fs":"assets/shaders/light/ibl/irradiance.frag"
+                },
+                "prefilter":{
+                    "vs":"assets/shaders/light/ibl/cubemap.vert",
+                    "fs":"assets/shaders/light/ibl/prefilter.frag"
+                },
+                "brdf":{
+                    "vs":"assets/shaders/light/ibl/brdf.vert",
+                    "fs":"assets/shaders/light/ibl/brdf.frag"
+                },
+                "bloom":{
+                    "vs":"assets/shaders/postprocess/bloom.vert",
+                    "fs":"assets/shaders/postprocess/bloom.frag"
+                },
+                "postprocess":{
+                    "vs":"assets/shaders/postprocess/post.vert",
+                    "fs":"assets/shaders/postprocess/post.frag"
+                }
+            },
+            "textures":{
+                "helmet_normal": "assets/textures/pbr/helmet/normal.jpg",
+                "helmet_metallic": "assets/textures/pbr/helmet/metallic.jpg",
+                "helmet_roughness": "assets/textures/pbr/helmet/roughness.jpg",
+                "helmet_albedo": "assets/textures/pbr/helmet/albedo.jpg",
+                "helmet_ambientOcclusion": "assets/textures/pbr/helmet/ao.jpg",
+                "helmet_emissive": "assets/textures/pbr/helmet/emissive.jpg",
+                
+                // "newport_loft": "assets/textures/hdr/newport_loft.hdr",
+                // "circus_backstage": "assets/textures/hdr/circus_backstage.hdr"
+                "barcelona_rooftop": "assets/textures/hdr/barcelona_rooftop.hdr"
+                // "arches_pinetree": "assets/textures/hdr/arches_pinetree.hdr"
+            },
+            "samplers":{
+                "default":{}
+            },
+            "meshes":{
+                "helmet": "assets/models/helmet/DamagedHelmet.gltf",
+                "sphere": "assets/models/sphere/sphere.gltf"
+            },
+            "materials":{
+                "helmet":{
+                    "type": "lit",
+                    "shader": "pbr",
+                    "pipelineState": {
+                        "faceCulling":{
+                            "enabled": false
+                        },
+                        "depthTesting":{
+                            "enabled": true,
+                            "function": "GL_LEQUAL"
+                        }
+                    },
+                    "lights": ["sun1"],
+                    "tint": [1, 1, 1, 1],
+                    "useTextureAlbedo": true,
+                    "useTextureNormal": true,
+                    "useTextureMetallic": true,
+                    "useTextureRoughness": true,
+                    "useTextureAmbientOcclusion": true,
+                    "useTextureEmissive": true,
+                    "albedo": [0.75, 0.75, 0.75],
+                    "roughness": 0.5,
+                    "metallic": 0.85,
+                    "emission": [0, 0, 0],
+                    "ambientOcclusion": 1,
+                    "textureAlbedo": "helmet_albedo",
+                    "textureNormal": "helmet_normal",
+                    "textureMetallic": "helmet_metallic",
+                    "textureRoughness": "helmet_roughness",
+                    "textureAmbientOcclusion": "helmet_ambientOcclusion",
+                    "textureEmissive": "helmet_emissive"
+                },
+                "sun":{
+                    "type": "lit",
+                    "shader": "pbr",
+                    "pipelineState": {
+                        "faceCulling":{
+                            "enabled": false
+                        },
+                        "depthTesting":{
+                            "enabled": true,
+                            "function": "GL_LEQUAL"
+                        }
+                    },
+                    "lights": [],
+                    "tint": [1, 1, 1, 1],
+                    "useTextureAlbedo": false,
+                    "useTextureNormal": false,
+                    "useTextureMetallic": false,
+                    "useTextureRoughness": false,
+                    "useTextureAmbientOcclusion": false,
+                    "useTextureEmissive": false,
+                    "albedo": [1, 1, 1],
+                    "roughness": 0.99,
+                    "metallic": 0.1,
+                    "emission": [1.5, 1.5, 1.5],
+                    "ambientOcclusion": 1,
+                    "textureAlbedo": "grass_albedo",
+                    "textureNormal": "grass_normal",
+                    "textureMetallic": "grass_metallic",
+                    "textureRoughness": "grass_roughness",
+                    "textureAmbientOcclusion": "grass_ambientOcclusion",
+                    "textureEmissive": "grass_metal"
+                }
+
+            },
+            "lights": {
+                "sun1":{
+                    "type": "point",
+                    "enabled": true,
+                    "color": [100, 100 , 100],
+                    "position": [-10.0,  10.0, 10.0],
+                    "attenuation": {
+                        "constant": 0,
+                        "linear": 0,
+                        "quadratic": 1
+                    }
+                }
+        }
+        },
+        "world":[
+            {
+                "position": [0, 0, 10],
+                "components": [
+                    {
+                        "type": "Camera",
+                        "fovY": 60.0
+                    },
+                    {
+                        "type": "Free Camera Controller",
+                        "speedupFactors": 1.5,
+                        "positionSensitivity": [2.0, 2.0, 2.0],
+                        "rotationSensitivity": 0.001
+
+                    }
+                ]
+            },
+            {
+                "position": [0.0, 0.0, 0.0],
+                "scale": [3, 3, 3],
+                "components": [
+                    {
+                        "type": "Model",
+                        "path": "assets/models/robot/scene.gltf"
+                    }
+                ]
+            },
+            {
+                "position": [0.0, 0.0, 10.0],
+                "scale": [3, 3, 3],
+                "components": [
+                    {
+                        "type": "Model",
+                        "path": "assets/models/buster_drone/scene.gltf"
+                    }
+                ]
+            },
+            {
+                "position": [-10.0,  10.0, 10.0],
+                "components": [
+                    {
+                        "type": "Mesh Renderer",
+                        "mesh": "sphere",
+                        "material": "sun"
+                    }
+                ]
+            }
+        ]
+    }
+}
