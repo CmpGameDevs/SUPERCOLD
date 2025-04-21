@@ -108,6 +108,7 @@ namespace our
         CameraComponent *camera = nullptr;
         opaqueCommands.clear();
         transparentCommands.clear();
+        modelCommands.clear();
         for (auto entity : world->getEntities())
         {
             // If we hadn't found a camera yet, we look for a camera in this entity
@@ -133,6 +134,17 @@ namespace our
                     opaqueCommands.push_back(command);
                 }
             }
+
+            if(auto model = entity->getComponent<Model>(); model)
+            {
+                // We construct a command from it
+                RenderCommand command;
+                command.localToWorld = model->getOwner()->getLocalToWorldMatrix();
+                command.center = glm::vec3(command.localToWorld * glm::vec4(0, 0, 0, 1));
+                command.model = model;
+                modelCommands.push_back(command);
+            }
+
         }
 
         // If there is no camera, we return (we cannot render without a camera)
@@ -233,7 +245,12 @@ namespace our
             // TODO: (Req 10) draw the sky sphere
             this->skySphere->draw();
         }
-
+        
+        for(auto &command : modelCommands)
+        {
+            command.model->draw(camera, command.localToWorld, windowSize, bloomBrightnessCutoff);
+        }
+        
         // TODO: (Req 9) Draw all the transparent commands
         //  Don't forget to set the "transform" uniform to be equal the model-view-projection matrix for each render command
         for (auto &command : transparentCommands)
@@ -248,6 +265,7 @@ namespace our
             command.material->shader->set("bloomBrightnessCutoff", bloomBrightnessCutoff);
             command.mesh->draw();
         }
+
         
         //! The order of the hdrSystem is important
         if (this->hdrSystem)

@@ -1,0 +1,11 @@
+Model Information:
+* title:	CCity Building Set 1
+* source:	https://sketchfab.com/3d-models/ccity-building-set-1-a2d5c7bfcc2148fb8994864c43dfcc97
+* author:	Neberkenezer (https://sketchfab.com/neberkenezer)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "CCity Building Set 1" (https://sketchfab.com/3d-models/ccity-building-set-1-a2d5c7bfcc2148fb8994864c43dfcc97) by Neberkenezer (https://sketchfab.com/neberkenezer) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

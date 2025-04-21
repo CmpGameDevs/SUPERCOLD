@@ -120,6 +120,8 @@ set(COMMON_SOURCES
         source/common/components/collision.cpp
         source/common/components/collision.cpp
         source/common/components/component-deserializer.hpp
+        source/common/components/model.hpp
+        source/common/components/model.cpp
 
         source/common/systems/collision-system.hpp
         source/common/systems/collision-system.cpp

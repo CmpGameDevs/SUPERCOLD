@@ -1,0 +1,11 @@
+Model Information:
+* title:	Space Loop City
+* source:	https://sketchfab.com/3d-models/space-loop-city-76882b787e6c4e0e9dd52db4f90c2622
+* author:	Neberkenezer (https://sketchfab.com/neberkenezer)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Space Loop City" (https://sketchfab.com/3d-models/space-loop-city-76882b787e6c4e0e9dd52db4f90c2622) by Neberkenezer (https://sketchfab.com/neberkenezer) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

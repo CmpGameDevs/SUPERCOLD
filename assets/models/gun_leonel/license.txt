@@ -1,0 +1,11 @@
+Model Information:
+* title:	Gun (Leonel)
+* source:	https://sketchfab.com/3d-models/gun-leonel-c0b0293476664de1bc81fbb4f81bba00
+* author:	Haikyousha (https://sketchfab.com/haikyousha)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Gun (Leonel)" (https://sketchfab.com/3d-models/gun-leonel-c0b0293476664de1bc81fbb4f81bba00) by Haikyousha (https://sketchfab.com/haikyousha) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

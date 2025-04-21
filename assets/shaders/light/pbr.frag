@@ -15,6 +15,7 @@ struct Material {
     bool useTextureAlbedo;
     bool useTextureMetallic;
     bool useTextureRoughness;
+    bool useTextureMetallicRoughness;
     bool useTextureNormal;
     bool useTextureAmbientOcclusion;
     bool useTextureEmissive;
@@ -28,6 +29,7 @@ struct Material {
     sampler2D textureAlbedo;
     sampler2D textureMetallic;
     sampler2D textureRoughness;
+    sampler2D textureMetallicRoughness;
     sampler2D textureNormal;
     sampler2D textureAmbientOcclusion;
     sampler2D textureEmissive;
@@ -146,12 +148,20 @@ void main() {
     // metallic/roughness
     float metallic = material.metallic;
     float roughness = material.roughness;
-    if (material.useTextureMetallic) {
-        metallic = texture(material.textureMetallic, textureCoordinates).r;
-    }
 
-    if (material.useTextureRoughness) {
-        roughness = texture(material.textureRoughness, textureCoordinates).r;
+    if (material.useTextureMetallic && material.useTextureRoughness) {
+        if (material.useTextureMetallic) {
+            metallic = texture(material.textureMetallic, textureCoordinates).r;
+        }
+
+        if (material.useTextureRoughness) {
+            roughness = texture(material.textureRoughness, textureCoordinates).r;
+        }
+    }
+    else if (material.useTextureMetallicRoughness) {
+        vec3 metallicRoughness = texture(material.textureMetallicRoughness, textureCoordinates).rgb;
+        metallic = metallicRoughness.b;
+        roughness = metallicRoughness.g;
     }
 
     // normal
@@ -233,7 +243,7 @@ void main() {
     color = color / (color + vec3(1.0));
     color = pow(color, vec3(1.0 / 2.2));
 
-    FragColor = vec4(color, 1.0);
+    FragColor = vec4(color , 1.0);
 
     // bloom color output
 	// use greyscale conversion here because not all colors are equally "bright"
