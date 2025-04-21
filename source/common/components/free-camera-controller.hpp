@@ -13,6 +13,8 @@ namespace our {
     // For a more simple example of how to use the ECS framework, see "movement.hpp"
     class FreeCameraControllerComponent : public Component {
     public:
+        float pitch = 0.0f;
+        float yaw = 0.0f;
         // The senstivity paramter defined sensitive the camera rotation & fov is to the mouse moves and wheel scrolling
         float rotationSensitivity = 0.01f; // The angle change per pixel of mouse movement
         float fovSensitivity = 0.3f; // The fov angle change per unit of mouse wheel scrolling

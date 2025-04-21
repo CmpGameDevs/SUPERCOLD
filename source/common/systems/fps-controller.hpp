@@ -7,6 +7,8 @@
 #include <glm/gtc/constants.hpp>
 #include <glm/gtx/fast_trigonometry.hpp>
 #include <glm/trigonometric.hpp>
+#include <glm/gtx/quaternion.hpp>
+#include <glm/gtx/euler_angles.hpp>
 
 namespace our {
 
@@ -54,26 +56,30 @@ class FPSControllerSystem {
 
     // Handles mouse input for rotation
     void handleRotation(FPSControllerComponent *controller) {
-        if (!mouseLocked)
-            return;
-
+        if (!mouseLocked) return;
+    
         glm::vec2 delta = app->getMouse().getMouseDelta();
-        glm::vec3 &rotation = controller->getOwner()->localTransform.rotation;
-
-        float yDelta = delta.y * controller->rotationSensitivityY;
-        if (controller->invertYAxis) {
-            yDelta = -yDelta;
-        }
-
-        rotation.x -= yDelta;
-        rotation.y -= delta.x * controller->rotationSensitivityX;
-
-        // Clamp vertical rotation
-        rotation.x = clamp(rotation.x, glm::radians(controller->minVerticalRotation),
-                           glm::radians(controller->maxVerticalRotation));
-
-        // Wrap the yaw angle
-        rotation.y = glm::wrapAngle(rotation.y);
+        
+        float pitchDelta = delta.y * controller->rotationSensitivityY;
+        float yawDelta = delta.x * controller->rotationSensitivityX;
+    
+        if (controller->invertYAxis)
+            pitchDelta = -pitchDelta;
+    
+        controller->pitch = glm::clamp(
+            controller->pitch - pitchDelta,
+            glm::radians(controller->minVerticalRotation),
+            glm::radians(controller->maxVerticalRotation)
+        );
+    
+        controller->yaw -= yawDelta;
+    
+        // Create rotation quaternion
+        glm::quat qPitch = glm::angleAxis(controller->pitch, glm::vec3(1, 0, 0));
+        glm::quat qYaw = glm::angleAxis(controller->yaw, glm::vec3(0, 1, 0));
+    
+        // Final rotation: yaw first (world Y), then pitch (local X)
+        controller->getOwner()->localTransform.rotation = qYaw * qPitch;
     }
 
     // Handles FOV adjustment with mouse wheel
