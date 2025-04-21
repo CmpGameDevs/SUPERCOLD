@@ -8,6 +8,8 @@
 #include "mesh/mesh-utils.hpp"
 #include "material/material.hpp"
 #include "deserialize-utils.hpp"
+#include "audio/audio-buffer.hpp"
+#include "audio/audio-utils.hpp"
 
 namespace our
 {
@@ -145,6 +147,18 @@ namespace our
         }
     };
 
+    template <>
+    void AssetLoader<AudioBuffer>::deserialize(const nlohmann::json &data)
+    {
+        if (data.is_object())
+        {
+            for (auto &[name, desc] : data.items())
+            {
+                std::string path = desc.get<std::string>();
+                assets.try_emplace(name, audio_utils::loadWavFile(path));
+            }
+        }
+    };
 
     void deserializeAllAssets(const nlohmann::json &assetData)
     {
@@ -162,6 +176,8 @@ namespace our
             AssetLoader<Light>::deserialize(assetData["lights"]);
         if (assetData.contains("materials"))
             AssetLoader<Material>::deserialize(assetData["materials"]);
+        if (assetData.contains("audio"))
+            AssetLoader<AudioBuffer>::deserialize(assetData["audio"]);
     }
 
     void clearAllAssets()
@@ -172,6 +188,7 @@ namespace our
         AssetLoader<Mesh>::clear();
         AssetLoader<Material>::clear();
         AssetLoader<Light>::clear();
+        AssetLoader<AudioBuffer>::clear();
     }
 
 }

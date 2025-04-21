@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+find_package(OpenAL CONFIG REQUIRED)
 
 if(NOT WIN32)
         # Find required packages
@@ -67,6 +68,10 @@ set(COMMON_SOURCES
         source/common/mesh/mesh.hpp
         source/common/mesh/mesh-utils.hpp
         source/common/mesh/mesh-utils.cpp
+        
+        source/common/audio/audio-buffer.hpp
+        source/common/audio/audio-utils.hpp
+        source/common/audio/audio-utils.cpp
 
         source/common/texture/sampler.hpp
         source/common/texture/sampler.cpp
@@ -122,7 +127,11 @@ set(COMMON_SOURCES
         source/common/components/component-deserializer.hpp
         source/common/components/model.hpp
         source/common/components/model.cpp
+        source/common/components/audio.hpp
+        source/common/components/audio.cpp
 
+        source/common/systems/audio-system.hpp
+        source/common/systems/audio-system.cpp
         source/common/systems/collision-system.hpp
         source/common/systems/collision-system.cpp
         source/common/systems/forward-renderer.hpp
@@ -170,4 +179,14 @@ set(STATES_SOURCES
 # Each target compiles one example source file and the common & vendor source files
 # Then we link GLFW with each target
 add_executable(GAME_APPLICATION source/main.cpp ${STATES_SOURCES} ${COMMON_SOURCES} ${VENDOR_SOURCES})
-target_link_libraries(GAME_APPLICATION glfw ${OPENGL_LIBRARIES} ${GLEW_LIBRARIES} BulletDynamics BulletCollision LinearMath)
+
+target_link_libraries(GAME_APPLICATION 
+    PRIVATE
+        glfw 
+        ${OPENGL_LIBRARIES} 
+        ${GLEW_LIBRARIES} 
+        BulletDynamics 
+        BulletCollision 
+        LinearMath
+        OpenAL::OpenAL
+)
