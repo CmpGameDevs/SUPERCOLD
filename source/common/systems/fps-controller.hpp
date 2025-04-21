@@ -189,6 +189,10 @@ class FPSControllerSystem {
         app->getMouse().lockMouse(app->getWindow());
     }
 
+    float getSpeedMagnitude() {
+        return glm::length(currentVelocity);
+    }
+    
     // Updates the FPS controller every frame
     void update(World *world, float deltaTime) {
         auto [camera, controller] = findControlledEntity(world);

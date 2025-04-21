@@ -193,7 +193,7 @@ class Menustate: public our::State {
             }
         }
         if (!inside)
-            audioSystem->setCategoryVolume("music", 0.8f, 0.5f);
+            audioSystem->setCategoryVolume("music", 0.4f, 0.5f);
 
     }
 

@@ -1,20 +1,71 @@
 {
-    "start-scene": "menu",
-    "window": {
-        "title": "Default Game Window",
-        "size": {
-            "width": 1920,
-            "height": 1080
+    "start-scene": "play",
+    "window":
+    {
+        "title":"SUPERCOLD",
+        "size":{
+            "width":1280,
+            "height":720
         },
         "fullscreen": true
     },
+    "screenshots":{
+        "directory": "screenshots/play-test",
+        "requests": [
+            { "file": "test-array.png", "frame":  1 }
+        ]
+    },
     "scene": {
-        "renderer": {
-            "sky": "assets/textures/sky.jpg",
-            "postprocess": {}
+        "renderer":{
+            "hdr": {
+                "enable": true,
+                "hdr_texture": "green_space",
+                "maxMipLevels": 5
+            },
+            "postprocess":{
+                "bloomEnabled": true,
+                "bloomIntensity": 0.8,
+                "bloomIterations": 50,
+                "bloomDirection": 0,
+                "tonemappingEnabled": false,
+                "gammaCorrectionFactor": 1,
+                "bloomBrightnessCutoff": 0.75
+            }
         },
-        "assets": {
-            "shaders": {
+        "assets":{
+            "shaders":{
+                "pbr":{
+                    "vs":"assets/shaders/light/pbr.vert",
+                    "fs":"assets/shaders/light/pbr.frag"
+                },
+                "equirectangular":{
+                    "vs":"assets/shaders/light/ibl/cubemap.vert",
+                    "fs":"assets/shaders/light/ibl/equirectangular.frag"
+                },
+                "background":{
+                    "vs":"assets/shaders/light/ibl/background.vert",
+                    "fs":"assets/shaders/light/ibl/background.frag"
+                },
+                "irradiance":{
+                    "vs":"assets/shaders/light/ibl/cubemap.vert",
+                    "fs":"assets/shaders/light/ibl/irradiance.frag"
+                },
+                "prefilter":{
+                    "vs":"assets/shaders/light/ibl/cubemap.vert",
+                    "fs":"assets/shaders/light/ibl/prefilter.frag"
+                },
+                "brdf":{
+                    "vs":"assets/shaders/light/ibl/brdf.vert",
+                    "fs":"assets/shaders/light/ibl/brdf.frag"
+                },
+                "bloom":{
+                    "vs":"assets/shaders/postprocess/bloom.vert",
+                    "fs":"assets/shaders/postprocess/bloom.frag"
+                },
+                "postprocess":{
+                    "vs":"assets/shaders/postprocess/post.vert",
+                    "fs":"assets/shaders/postprocess/post.frag"
+                },
                 "tinted": {
                     "vs": "assets/shaders/tinted.vert",
                     "fs": "assets/shaders/tinted.frag"
@@ -22,36 +73,20 @@
                 "textured":{
                     "vs":"assets/shaders/textured.vert",
                     "fs":"assets/shaders/textured.frag"
-                },
-                "postprocess":{
-                    "vs":"assets/shaders/postprocess/post.vert",
-                    "fs":"assets/shaders/postprocess/vignette.frag"
                 }
             },
-            "textures": {
-                "moon": "assets/textures/moon.jpg",
-                "grass": "assets/textures/grass_ground_d.jpg",
-                "wood": "assets/textures/wood.jpg",
-                "glass": "assets/textures/glass-panels.png",
-                "monkey": "assets/textures/monkey.png"
+            "textures":{
+                "green_space": "assets/textures/hdr/green_space.hdr"
             },
-            "meshes": {
-                "cube": "assets/models/cube.obj",
-                "monkey": "assets/models/monkey.obj",
-                "plane": "assets/models/plane.obj",
-                "sphere": "assets/models/sphere.obj"
+            "samplers":{
+                "default":{}
             },
-            "audio": {
-                "background": "assets/audio/music/main_track.wav",
-                "car": "assets/audio/sfx/car.wav"
+            "meshes":{
+                "helmet": "assets/models/helmet/DamagedHelmet.gltf",
+                "sphere": "assets/models/sphere/sphere.gltf",
+                "cube": "assets/models/cube.obj"
             },
-            "samplers": {
-                "default": {},
-                "pixelated": {
-                    "MAG_FILTER": "GL_NEAREST"
-                }
-            },
-            "materials": {
+            "materials":{
                 "metal": {
                     "type": "tinted",
                     "shader": "tinted",
@@ -70,101 +105,92 @@
                         1
                     ]
                 },
-                "glass": {
-                    "type": "textured",
-                    "shader": "textured",
+                "helmet":{
+                    "type": "lit",
+                    "shader": "pbr",
                     "pipelineState": {
-                        "faceCulling": {
+                        "faceCulling":{
                             "enabled": false
                         },
-                        "depthTesting": {
-                            "enabled": true
-                        },
-                        "blending": {
+                        "depthTesting":{
                             "enabled": true,
-                            "sourceFactor": "GL_SRC_ALPHA",
-                            "destinationFactor": "GL_ONE_MINUS_SRC_ALPHA"
-                        },
-                        "depthMask": false
-                    },
-                    "transparent": true,
-                    "tint": [
-                        1,
-                        1,
-                        1,
-                        1
-                    ],
-                    "texture": "glass",
-                    "sampler": "pixelated"
-                },
-                "grass": {
-                    "type": "textured",
-                    "shader": "textured",
-                    "pipelineState": {
-                        "faceCulling": {
-                            "enabled": false
-                        },
-                        "depthTesting": {
-                            "enabled": true
+                            "function": "GL_LEQUAL"
                         }
                     },
-                    "tint": [
-                        1,
-                        1,
-                        1,
-                        1
-                    ],
-                    "texture": "grass",
-                    "sampler": "default"
+                    "lights": ["sun1"],
+                    "tint": [1, 1, 1, 1],
+                    "useTextureAlbedo": true,
+                    "useTextureNormal": true,
+                    "useTextureMetallic": true,
+                    "useTextureRoughness": true,
+                    "useTextureAmbientOcclusion": true,
+                    "useTextureEmissive": true,
+                    "albedo": [0.75, 0.75, 0.75],
+                    "roughness": 0.5,
+                    "metallic": 0.85,
+                    "emission": [0, 0, 0],
+                    "ambientOcclusion": 1,
+                    "textureAlbedo": "helmet_albedo",
+                    "textureNormal": "helmet_normal",
+                    "textureMetallic": "helmet_metallic",
+                    "textureRoughness": "helmet_roughness",
+                    "textureAmbientOcclusion": "helmet_ambientOcclusion",
+                    "textureEmissive": "helmet_emissive"
                 },
-                "monkey": {
-                    "type": "textured",
-                    "shader": "textured",
+                "sun":{
+                    "type": "lit",
+                    "shader": "pbr",
                     "pipelineState": {
-                        "faceCulling": {
+                        "faceCulling":{
                             "enabled": false
                         },
-                        "depthTesting": {
-                            "enabled": true
+                        "depthTesting":{
+                            "enabled": true,
+                            "function": "GL_LEQUAL"
                         }
                     },
-                    "tint": [
-                        1,
-                        1,
-                        1,
-                        1
-                    ],
-                    "texture": "monkey",
-                    "sampler": "default"
-                },
-                "moon": {
-                    "type": "textured",
-                    "shader": "textured",
-                    "pipelineState": {
-                        "faceCulling": {
-                            "enabled": false
-                        },
-                        "depthTesting": {
-                            "enabled": true
-                        }
-                    },
-                    "tint": [
-                        1,
-                        1,
-                        1,
-                        1
-                    ],
-                    "texture": "moon",
-                    "sampler": "default"
+                    "lights": [],
+                    "tint": [1, 1, 1, 1],
+                    "useTextureAlbedo": false,
+                    "useTextureNormal": false,
+                    "useTextureMetallic": false,
+                    "useTextureRoughness": false,
+                    "useTextureAmbientOcclusion": false,
+                    "useTextureEmissive": false,
+                    "albedo": [1, 1, 1],
+                    "roughness": 0.99,
+                    "metallic": 0.1,
+                    "emission": [0.5, 0.5, 0.5],
+                    "ambientOcclusion": 1,
+                    "textureAlbedo": "grass_albedo",
+                    "textureNormal": "grass_normal",
+                    "textureMetallic": "grass_metallic",
+                    "textureRoughness": "grass_roughness",
+                    "textureAmbientOcclusion": "grass_ambientOcclusion",
+                    "textureEmissive": "grass_metal"
                 }
-            }
+
+            },
+            "lights": {
+                "sun1":{
+                    "type": "point",
+                    "enabled": true,
+                    "color": [100, 100 , 100],
+                    "position": [-10.0,  10.0, 10.0],
+                    "attenuation": {
+                        "constant": 0,
+                        "linear": 0,
+                        "quadratic": 1
+                    }
+                }
+        }
         },
-        "world": [
+        "world":[
             {
                 "position": [
                     0,
-                    0,
-                    10
+                    0.8,
+                    0
                 ],
                 "components": [
                     {
@@ -210,7 +236,7 @@
                         "scale": [
                             0.1,
                             0.1,
-                            1.0
+                            1
                         ],
                         "components": [
                             {
@@ -223,205 +249,22 @@
                 ]
             },
             {
-                "rotation": [
-                    -45,
-                    0,
-                    0
-                ],
+                "position": [0.0, -1, 0.0],
+                "scale": [0.001, 0.001, 0.001],
                 "components": [
                     {
-                        "type": "Mesh Renderer",
-                        "mesh": "monkey",
-                        "material": "monkey"
-                    },
-                    {
-                        "type": "Movement",
-                        "linearVelocity": [
-                            0,
-                            0.1,
-                            0
-                        ],
-                        "angularVelocity": [
-                            0,
-                            45,
-                            0
-                        ]
+                        "type": "Model",
+                        "path": "assets/models/city/scene.gltf"
                     }
                 ]
             },
             {
-                "position": [
-                    0,
-                    -1,
-                    0
-                ],
-                "rotation": [
-                    -90,
-                    0,
-                    0
-                ],
-                "scale": [
-                    10,
-                    10,
-                    1
-                ],
-                "components": [
-                    {
-                        "type": "Mesh Renderer",
-                        "mesh": "plane",
-                        "material": "grass"
-                    }
-                ]
-            },
-            {
-                "position": [
-                    0,
-                    1,
-                    2
-                ],
-                "rotation": [
-                    0,
-                    0,
-                    0
-                ],
-                "scale": [
-                    2,
-                    2,
-                    2
-                ],
-                "components": [
-                    {
-                        "type": "Mesh Renderer",
-                        "mesh": "plane",
-                        "material": "glass"
-                    }
-                ]
-            },
-            {
-                "position": [
-                    0,
-                    1,
-                    -2
-                ],
-                "rotation": [
-                    0,
-                    0,
-                    0
-                ],
-                "scale": [
-                    2,
-                    2,
-                    2
-                ],
-                "components": [
-                    {
-                        "type": "Mesh Renderer",
-                        "mesh": "plane",
-                        "material": "glass"
-                    }
-                ]
-            },
-            {
-                "position": [
-                    2,
-                    1,
-                    0
-                ],
-                "rotation": [
-                    0,
-                    90,
-                    0
-                ],
-                "scale": [
-                    2,
-                    2,
-                    2
-                ],
-                "components": [
-                    {
-                        "type": "Mesh Renderer",
-                        "mesh": "plane",
-                        "material": "glass"
-                    }
-                ]
-            },
-            {
-                "position": [
-                    -2,
-                    1,
-                    0
-                ],
-                "rotation": [
-                    0,
-                    90,
-                    0
-                ],
-                "scale": [
-                    2,
-                    2,
-                    2
-                ],
-                "components": [
-                    {
-                        "type": "Mesh Renderer",
-                        "mesh": "plane",
-                        "material": "glass"
-                    }
-                ]
-            },
-            {
-                "position": [
-                    0,
-                    3,
-                    0
-                ],
-                "rotation": [
-                    90,
-                    0,
-                    0
-                ],
-                "scale": [
-                    2,
-                    2,
-                    2
-                ],
-                "components": [
-                    {
-                        "type": "Mesh Renderer",
-                        "mesh": "plane",
-                        "material": "glass"
-                    }
-                ]
-            },
-            {
-                "position": [
-                    0,
-                    10,
-                    0
-                ],
-                "rotation": [
-                    45,
-                    45,
-                    0
-                ],
-                "scale": [
-                    5,
-                    5,
-                    5
-                ],
+                "position": [-10.0,  10.0, 10.0],
                 "components": [
                     {
                         "type": "Mesh Renderer",
                         "mesh": "sphere",
-                        "material": "moon"
-                    },
-                    {
-                        "type": "Movement",
-                        "angularVelocity": [
-                            0,
-                            90,
-                            0
-                        ]
+                        "material": "sun"
                     }
                 ]
             }
