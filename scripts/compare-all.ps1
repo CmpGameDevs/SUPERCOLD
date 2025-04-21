@@ -205,7 +205,8 @@ if( ($tests.Count -eq 0) -or ($tests -contains $requirement)){
         "test-geometry.png",
         "test-mesh.png",
         "mesh-0.png",
-        "mesh-1.png"
+        "mesh-1.png",
+        "forces-0.png"
     )
     Write-Output ""
     Write-Output "Comparing $requirement output:"

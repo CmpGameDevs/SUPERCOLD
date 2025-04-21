@@ -167,6 +167,7 @@ if [[ "$*" == *"physics-test"* ]]; then
         "config/light-test/test-1.jsonc"
         "config/light-test/mesh-0.jsonc"
         "config/light-test/mesh-1.jsonc"
+        "config/light-test/forces-0.jsonc"
     )
     run_tests "${configs[@]}"
 fi 

@@ -138,6 +138,7 @@ if [ $# -eq 0 ] || [[ "$*" == *"physics-test"* ]]; then
         "test-mesh.png"
         "mesh-0.png"
         "mesh-1.png"
+        "forces-0.png"
     )
     compare_test "physics-test" "0.04" "64" "${files[@]}"
 fi

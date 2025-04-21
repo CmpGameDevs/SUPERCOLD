@@ -10,7 +10,7 @@
     },
     "screenshots": {
       "directory": "screenshots/physics-test",
-      "requests": [{ "file": "test-geometry.png", "frame": 120 }]
+      "requests": [{ "file": "test-geometry.png", "frame": 1 }]
     },
     "scene": {
       "renderer": {
