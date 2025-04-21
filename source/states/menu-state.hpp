@@ -1,11 +1,20 @@
 #pragma once
 
+#include <AL/al.h>
+#include <AL/alc.h>
+#include <iostream>
+
 #include <application.hpp>
 #include <shader/shader.hpp>
 #include <texture/texture2d.hpp>
 #include <texture/texture-utils.hpp>
 #include <material/material.hpp>
 #include <mesh/mesh.hpp>
+#include <ecs/world.hpp>
+
+#include <audio/audio-utils.hpp>
+#include <asset-loader.hpp>
+#include <systems/audio-system.hpp>
 
 #include <functional>
 #include <array>
@@ -46,6 +55,8 @@ class Menustate: public our::State {
     float time;
     // An array of the button that we can interact with
     std::array<Button, 2> buttons;
+    // Audio system
+    our::AudioSystem* audioSystem;
 
     void onInitialize() override {
         // First, we create a material for the menu's background
@@ -98,28 +109,41 @@ class Menustate: public our::State {
         //      We store [this] in the capture list since we will use it in the action.
         // - The argument list () which is the arguments that the lambda should receive when it is called.
         //      We leave it empty since button actions receive no input.
-        // - The body {} which contains the code to be executed. 
-        buttons[0].position = {830.0f, 607.0f};
-        buttons[0].size = {400.0f, 33.0f};
+        // - The body {} which contains the code to be executed.
+        glm::ivec2 size = getApp()->getFrameBufferSize();
+        buttons[0].size = {750.0f, 50.0f};
+        buttons[0].position = {size.x / 2.0f - buttons[0].size.x / 2.0f - 60.0f, size.y - buttons[0].size.y - 67.0f};
         buttons[0].action = [this](){this->getApp()->changeState("play");};
 
-        buttons[1].position = {830.0f, 644.0f};
-        buttons[1].size = {400.0f, 33.0f};
+        // Position it in top left corner of the screen
+        buttons[1].position = {276.0f, 281.0f};
+        buttons[1].size = {133.0f, 38.0f};
         buttons[1].action = [this](){this->getApp()->close();};
+
+        auto &config = getApp()->getConfig()["scene"];
+        // If we have assets in the scene config, we deserialize them
+        if (config.contains("assets")) {
+            our::AssetLoader<our::AudioBuffer>::deserialize(config["assets"]["audio"]);
+        }
+
+        audioSystem = new our::AudioSystem(getApp()->getAudioContext());
     }
 
     void onDraw(double deltaTime) override {
+        // Play the background music
+        audioSystem->playBackgroundMusic("background", 0.2f);
+        audioSystem->update(nullptr, deltaTime);
+
         // Get a reference to the keyboard object
         auto& keyboard = getApp()->getKeyboard();
 
-        if(keyboard.justPressed(GLFW_KEY_SPACE)){
+        if(keyboard.justPressed(GLFW_KEY_SPACE) || keyboard.justPressed(GLFW_KEY_ENTER)){
             // If the space key is pressed in this frame, go to the play state
             getApp()->changeState("play");
         } else if(keyboard.justPressed(GLFW_KEY_ESCAPE)) {
             // If the escape key is pressed in this frame, exit the game
             getApp()->close();
         }
-
         // Get a reference to the mouse object and get the current mouse position
         auto& mouse = getApp()->getMouse();
         glm::vec2 mousePosition = mouse.getMousePosition();
@@ -132,7 +156,6 @@ class Menustate: public our::State {
                     button.action();
             }
         }
-
         // Get the framebuffer size to set the viewport and the create the projection matrix.
         glm::ivec2 size = getApp()->getFrameBufferSize();
         // Make sure the viewport covers the whole size of the framebuffer.
@@ -159,14 +182,19 @@ class Menustate: public our::State {
         rectangle->draw();
 
         // For every button, check if the mouse is inside it. If the mouse is inside, we draw the highlight rectangle over it.
+        bool inside = false;
         for(auto& button: buttons){
             if(button.isInside(mousePosition)){
                 highlightMaterial->setup();
                 highlightMaterial->shader->set("transform", VP*button.getLocalToWorld());
                 rectangle->draw();
+                audioSystem->setCategoryVolume("music", 0.2f, 1.5f);
+                inside = true;
             }
         }
-        
+        if (!inside)
+            audioSystem->setCategoryVolume("music", 0.8f, 0.5f);
+
     }
 
     void onDestroy() override {

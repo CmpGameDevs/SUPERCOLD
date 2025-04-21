@@ -1,5 +1,7 @@
 #pragma once
 
+#include <AL/al.h>
+#include <AL/alc.h>
 #include <glm/vec2.hpp>
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
@@ -63,7 +65,10 @@ namespace our {
         State * currentState = nullptr;         // This will store the current scene that is being run
         State * nextState = nullptr;            // If it is requested to go to another scene, this will contain a pointer to that scene
 
-        
+        // OpenAL Context
+        ALCdevice* audioDevice;
+        ALCcontext* audioContext;
+
         // Virtual functions to be overrode and change the default behaviour of the application
         // according to the example needs.
         virtual void configureOpenGL();                             // This function sets OpenGL Window Hints in GLFW.
@@ -119,6 +124,8 @@ namespace our {
 
         [[nodiscard]] const nlohmann::json& getConfig() const { return app_config; }
 
+        ALCdevice* getAudioDevice() { return audioDevice; }
+        ALCcontext* getAudioContext() { return audioContext; }
         // Get the size of the frame buffer of the window in pixels.
         glm::ivec2 getFrameBufferSize() {
             glm::ivec2 size;

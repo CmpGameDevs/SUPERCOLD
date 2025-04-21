@@ -3,8 +3,8 @@
     "window": {
         "title": "Default Game Window",
         "size": {
-            "width": 1280,
-            "height": 720
+            "width": 1920,
+            "height": 1080
         },
         "fullscreen": true
     },
@@ -40,6 +40,10 @@
                 "monkey": "assets/models/monkey.obj",
                 "plane": "assets/models/plane.obj",
                 "sphere": "assets/models/sphere.obj"
+            },
+            "audio": {
+                "background": "assets/audio/music/main_track.wav",
+                "car": "assets/audio/sfx/car.wav"
             },
             "samplers": {
                 "default": {},

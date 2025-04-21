@@ -18,6 +18,16 @@
 #include <imgui_impl/imgui_impl_glfw.h>
 #include <imgui_impl/imgui_impl_opengl3.h>
 
+// Add OpenAL error checking macros
+#define AL_CHECK_ERRORS() \
+    { \
+        ALenum err = alGetError(); \
+        while(err != AL_NO_ERROR) { \
+            std::cerr << "OpenAL Error: " << alGetString(err) << std::endl; \
+            err = alGetError(); \
+        } \
+    }
+
 #if !defined(NDEBUG)
 // If NDEBUG (no debug) is not defined, enable OpenGL debug messages
 #define ENABLE_OPENGL_DEBUG_MESSAGES
@@ -252,6 +262,20 @@ int our::Application::run(int run_for_frames) {
         }
     }
 
+    audioDevice = alcOpenDevice(nullptr);
+    if (!audioDevice) {
+        std::cerr << "Failed to open OpenAL device\n";
+        return -1;
+    }
+
+    audioContext = alcCreateContext(audioDevice, nullptr);
+    alcMakeContextCurrent(audioContext);
+    if (!audioContext) {
+        std::cerr << "Failed to create OpenAL context\n";
+        alcCloseDevice(audioDevice);
+        return -1;
+    }
+
     // If a scene change was requested, apply it
     if (nextState) {
         currentState = nextState;
@@ -376,6 +400,11 @@ int our::Application::run(int run_for_frames) {
 
     // And finally terminate GLFW
     glfwTerminate();
+
+    // Cleanup OpenAL resources
+    alcDestroyContext(audioContext);
+    alcCloseDevice(audioDevice);
+
     return 0; // Good bye
 }
 

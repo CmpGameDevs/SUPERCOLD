@@ -8,6 +8,7 @@
 #include "movement.hpp"
 #include "collision.hpp"
 #include "model.hpp"
+#include "audio.hpp"
 
 namespace our {
 
@@ -31,10 +32,12 @@ inline void deserializeComponent(const nlohmann::json &data, Entity *entity) {
         component = entity->addComponent<CollisionComponent>();
     } else if (type == Model::getID()) {
         component = entity->addComponent<Model>();
+    } else if (type == AudioComponent::getID()) {
+        component = entity->addComponent<AudioComponent>();
     }
-    
+
     if (component)
         component->deserialize(data);
 }
 
-} // namespace our
+}
