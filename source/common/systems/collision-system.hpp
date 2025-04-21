@@ -126,7 +126,6 @@ public:
     // Initialize the collision system with a Bullet physics world
     void initialize(glm::ivec2 windowSize, btDynamicsWorld* physicsWorld);
 
-
     // Get the Bullet physics world
     btDiscreteDynamicsWorld* getPhysicsWorld() { return physicsWorld; }
 
@@ -136,6 +135,15 @@ public:
     // Perform a raycast and return hit results
     bool raycast(const glm::vec3& start, const glm::vec3& end, 
         CollisionComponent*& hitComponent, glm::vec3& hitPoint, glm::vec3& hitNormal);
+
+    // Apply an instant impulse (e.g., for throwing)
+    void applyImpulse(Entity* entity, const glm::vec3& force, const glm::vec3& position = glm::vec3(0));
+    
+    // Apply continuous force (e.g., wind, thrusters)
+    void applyForce(Entity* entity, const glm::vec3& force, const glm::vec3& position = glm::vec3(0));
+    
+    // Apply torque for rotation (e.g., spinning objects)
+    void applyTorque(Entity* entity, const glm::vec3& torque);
 
     // Debug draw the world using the debug drawer
     void debugDrawWorld(World* world);

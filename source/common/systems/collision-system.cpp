@@ -253,6 +253,37 @@ namespace our {
         return false;
     }
 
+    void CollisionSystem::applyImpulse(Entity* entity, const glm::vec3& force, const glm::vec3& position) {
+        if (auto collision = entity->getComponent<CollisionComponent>()) {
+            if (collision->bulletBody && collision->mass > 0.0f) {
+                btVector3 btForce(force.x, force.y, force.z);
+                btVector3 btPosition(position.x, position.y, position.z);
+                collision->bulletBody->applyImpulse(btForce, btPosition);
+                collision->bulletBody->activate();
+            }
+        }
+    }
+    
+    void CollisionSystem::applyForce(Entity* entity, const glm::vec3& force, const glm::vec3& position) {
+        if (auto collision = entity->getComponent<CollisionComponent>()) {
+            if (collision->bulletBody && collision->mass > 0.0f) {
+                btVector3 btForce(force.x, force.y, force.z);
+                btVector3 btPosition(position.x, position.y, position.z);
+                collision->bulletBody->applyForce(btForce, btPosition);
+                collision->bulletBody->activate();
+            }
+        }
+    }
+    
+    void CollisionSystem::applyTorque(Entity* entity, const glm::vec3& torque) {
+        if (auto collision = entity->getComponent<CollisionComponent>()) {
+            if (collision->bulletBody && collision->mass > 0.0f) {
+                collision->bulletBody->applyTorque(btVector3(torque.x, torque.y, torque.z));
+                collision->bulletBody->activate();
+            }
+        }
+    }
+
     void CollisionSystem::debugDrawRay(const glm::vec3& start, const glm::vec3& end, const glm::vec3& color) {
         if (debugDrawer) {
             debugDrawer->drawLine(
