@@ -137,6 +137,9 @@ namespace our {
     }
 
     void CollisionSystem::_syncTransforms(Entity* entity, CollisionComponent* collision, Transform* transform) {
+        // Skip static objects
+        if (collision->mass == 0.0f && !collision->isKinematic) return;
+
         if(collision->isKinematic) {
             // Update physics from ECS
             btTransform trans;
@@ -215,6 +218,49 @@ namespace our {
         _clearPreviousCollisions(world);
         _processEntities(world);
         _detectCollisions();
+    }
+
+    bool CollisionSystem::raycast(const glm::vec3& start, const glm::vec3& end, 
+        CollisionComponent*& hitComponent, glm::vec3& hitPoint, glm::vec3& hitNormal) {
+        if (!physicsWorld) return false;
+
+        btVector3 btStart(start.x, start.y, start.z);
+        btVector3 btEnd(end.x, end.y, end.z);
+
+        // Configure raycast query
+        btCollisionWorld::ClosestRayResultCallback rayCallback(btStart, btEnd);
+        physicsWorld->rayTest(btStart, btEnd, rayCallback);
+
+        if (rayCallback.hasHit()) {
+            hitPoint = glm::vec3(
+            rayCallback.m_hitPointWorld.x(),
+            rayCallback.m_hitPointWorld.y(),
+            rayCallback.m_hitPointWorld.z()
+            );
+            hitNormal = glm::vec3(
+            rayCallback.m_hitNormalWorld.x(),
+            rayCallback.m_hitNormalWorld.y(),
+            rayCallback.m_hitNormalWorld.z()
+            );
+            // Extract the hit entity's collision component
+            auto* hitBody = btRigidBody::upcast(rayCallback.m_collisionObject);
+            if (hitBody && hitBody->getUserPointer()) {
+                Entity* hitEntity = static_cast<Entity*>(hitBody->getUserPointer());
+                hitComponent = hitEntity->getComponent<CollisionComponent>();
+                return true;
+            }
+        }
+        return false;
+    }
+
+    void CollisionSystem::debugDrawRay(const glm::vec3& start, const glm::vec3& end, const glm::vec3& color) {
+        if (debugDrawer) {
+            debugDrawer->drawLine(
+                btVector3(start.x, start.y, start.z),
+                btVector3(end.x, end.y, end.z),
+                btVector3(color.r, color.g, color.b)
+            );
+        }
     }
 
     void CollisionSystem::debugDrawWorld(World *world) {

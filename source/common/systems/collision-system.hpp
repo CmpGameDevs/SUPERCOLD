@@ -126,15 +126,23 @@ public:
     // Initialize the collision system with a Bullet physics world
     void initialize(glm::ivec2 windowSize, btDynamicsWorld* physicsWorld);
 
-    // Debug draw the world using the debug drawer
-    void debugDrawWorld(World* world);
 
     // Get the Bullet physics world
     btDiscreteDynamicsWorld* getPhysicsWorld() { return physicsWorld; }
 
     // Update entity transforms and physics simulation
     void update(World* world, float deltaTime);
-    
+
+    // Perform a raycast and return hit results
+    bool raycast(const glm::vec3& start, const glm::vec3& end, 
+        CollisionComponent*& hitComponent, glm::vec3& hitPoint, glm::vec3& hitNormal);
+
+    // Debug draw the world using the debug drawer
+    void debugDrawWorld(World* world);
+
+    // Debug-draw a ray (call this after raycast if you want to visualize)
+    void debugDrawRay(const glm::vec3& start, const glm::vec3& end, const glm::vec3& color);
+
     // Destroy the collision system and free resources
     void destroy();
 };
