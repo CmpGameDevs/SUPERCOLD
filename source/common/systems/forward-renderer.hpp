@@ -3,7 +3,7 @@
 #include "../ecs/world.hpp"
 #include "../components/camera.hpp"
 #include "../components/mesh-renderer.hpp"
-#include "../components/model.hpp"
+#include "../components/model-renderer.hpp"
 #include "../asset-loader.hpp"
 #include <ibl/bloom-buffer.hpp>
 #include <shader/shader.hpp>

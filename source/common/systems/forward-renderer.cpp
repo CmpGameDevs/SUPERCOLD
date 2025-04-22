@@ -135,13 +135,13 @@ namespace our
                 }
             }
 
-            if(auto model = entity->getComponent<Model>(); model)
+            if(auto model_renderer = entity->getComponent<ModelComponent>(); model_renderer)
             {
                 // We construct a command from it
                 RenderCommand command;
-                command.localToWorld = model->getOwner()->getLocalToWorldMatrix();
+                command.localToWorld = model_renderer->getOwner()->getLocalToWorldMatrix();
                 command.center = glm::vec3(command.localToWorld * glm::vec4(0, 0, 0, 1));
-                command.model = model;
+                command.model = model_renderer->model;
                 modelCommands.push_back(command);
             }
 

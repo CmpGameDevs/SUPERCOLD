@@ -125,10 +125,13 @@ set(COMMON_SOURCES
         source/common/components/collision.cpp
         source/common/components/collision.cpp
         source/common/components/component-deserializer.hpp
-        source/common/components/model.hpp
-        source/common/components/model.cpp
+        source/common/components/model-renderer.hpp
+        source/common/components/model-renderer.cpp
         source/common/components/audio.hpp
         source/common/components/audio.cpp
+
+        source/common/model/model.hpp
+        source/common/model/model.cpp
 
         source/common/systems/audio-system.hpp
         source/common/systems/audio-system.cpp

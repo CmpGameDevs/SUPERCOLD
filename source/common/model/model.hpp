@@ -15,7 +15,7 @@
 using json = nlohmann::json;
 
 namespace our {
-class Model  : public Component {
+class Model {
 
     std::vector<Texture2D *> textures;
     std::vector<Material *> materials;
@@ -34,12 +34,14 @@ class Model  : public Component {
         for (auto &material : materials) delete material;
         for (auto &mesh : meshRenderers) delete mesh;
     }
+
     void draw(CameraComponent* camera, glm::mat4 localToWorld, glm::ivec2 windowSize, float bloomBrightnessCutoff);
     void loadTextures();
     void loadMesh(unsigned int indMesh);
     void loadMaterials();
     void traverseNode(unsigned int nextNode, glm::mat4 matrix = glm::mat4(1.0f));
-    void loadModel();
+    void loadModel(std::string path);
+
     // Reads a text file and outputs a string with everything in the text file
     std::string get_file_contents(std::string path);
     std::vector<unsigned char> get_file_binary_contents(const std::string& path);
@@ -63,14 +65,5 @@ class Model  : public Component {
 	std::vector<glm::vec3> groupFloatsVec3(std::vector<float> floatVec);
 	std::vector<glm::vec4> groupFloatsVec4(std::vector<float> floatVec);
 
-    // The ID of this component type is "Model"
-    static std::string getID() { return "Model"; }
-
-    // Receives the mesh & material from the AssetLoader by the names given in the json object
-    void deserialize(const nlohmann::json& data) override {
-        if(!data.is_object()) return;
-        path = data["path"].get<std::string>();
-        loadModel();
-    }
 };
 } // namespace our
