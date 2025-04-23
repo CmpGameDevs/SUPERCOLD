@@ -12,14 +12,14 @@
     "screenshots":{
         "directory": "screenshots/light-test",
         "requests": [
-            { "file": "test-array.png", "frame":  1 }
+            { "file": "model-test-4.png", "frame":  1 }
         ]
     },
     "scene": {
         "renderer":{
             "hdr": {
                 "enable": true,
-                "hdr_texture": "barcelona_rooftop",
+                "hdr_texture": "green_space",
                 "maxMipLevels": 5
             },
             "postprocess":{
@@ -68,58 +68,20 @@
                 }
             },
             "textures":{
-                "helmet_normal": "assets/textures/pbr/helmet/normal.jpg",
-                "helmet_metallic": "assets/textures/pbr/helmet/metallic.jpg",
-                "helmet_roughness": "assets/textures/pbr/helmet/roughness.jpg",
-                "helmet_albedo": "assets/textures/pbr/helmet/albedo.jpg",
-                "helmet_ambientOcclusion": "assets/textures/pbr/helmet/ao.jpg",
-                "helmet_emissive": "assets/textures/pbr/helmet/emissive.jpg",
-                
-                // "newport_loft": "assets/textures/hdr/newport_loft.hdr",
-                // "circus_backstage": "assets/textures/hdr/circus_backstage.hdr"
-                "barcelona_rooftop": "assets/textures/hdr/barcelona_rooftop.hdr"
-                // "arches_pinetree": "assets/textures/hdr/arches_pinetree.hdr"
+                "green_space": "assets/textures/hdr/green_space.hdr"
+
             },
             "samplers":{
                 "default":{}
             },
             "meshes":{
-                "helmet": "assets/models/helmet/DamagedHelmet.gltf",
                 "sphere": "assets/models/sphere/sphere.gltf"
             },
+            "models":{
+                "robot": "assets/models/robot/scene.gltf",
+                "buster_drone": "assets/models/buster_drone/scene.gltf"
+            },
             "materials":{
-                "helmet":{
-                    "type": "lit",
-                    "shader": "pbr",
-                    "pipelineState": {
-                        "faceCulling":{
-                            "enabled": false
-                        },
-                        "depthTesting":{
-                            "enabled": true,
-                            "function": "GL_LEQUAL"
-                        }
-                    },
-                    "lights": ["sun1"],
-                    "tint": [1, 1, 1, 1],
-                    "useTextureAlbedo": true,
-                    "useTextureNormal": true,
-                    "useTextureMetallic": true,
-                    "useTextureRoughness": true,
-                    "useTextureAmbientOcclusion": true,
-                    "useTextureEmissive": true,
-                    "albedo": [0.75, 0.75, 0.75],
-                    "roughness": 0.5,
-                    "metallic": 0.85,
-                    "emission": [0, 0, 0],
-                    "ambientOcclusion": 1,
-                    "textureAlbedo": "helmet_albedo",
-                    "textureNormal": "helmet_normal",
-                    "textureMetallic": "helmet_metallic",
-                    "textureRoughness": "helmet_roughness",
-                    "textureAmbientOcclusion": "helmet_ambientOcclusion",
-                    "textureEmissive": "helmet_emissive"
-                },
                 "sun":{
                     "type": "lit",
                     "shader": "pbr",
@@ -190,8 +152,8 @@
                 "scale": [3, 3, 3],
                 "components": [
                     {
-                        "type": "Model",
-                        "path": "assets/models/robot/scene.gltf"
+                        "type": "Model Renderer",
+                        "model": "robot"
                     }
                 ]
             },
@@ -200,8 +162,9 @@
                 "scale": [3, 3, 3],
                 "components": [
                     {
-                        "type": "Model",
-                        "path": "assets/models/buster_drone/scene.gltf"
+                        "type": "Model Renderer",
+                        "model": "buster_drone"
+                        
                     }
                 ]
             },

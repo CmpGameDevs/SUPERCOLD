@@ -316,7 +316,9 @@ void Model::loadMaterials() {
     }
 }
 
-void Model::loadModel() {
+void Model::loadModel(std::string path) {
+
+    this->path = path;
 
     std::string text = get_file_contents(this->path);
 
@@ -611,6 +613,7 @@ std::vector<glm::vec2> Model::groupFloatsVec2(std::vector<float> floatVec) {
     }
     return vectors;
 }
+
 std::vector<glm::vec3> Model::groupFloatsVec3(std::vector<float> floatVec) {
     const unsigned int floatsPerVector = 3;
 
@@ -624,6 +627,7 @@ std::vector<glm::vec3> Model::groupFloatsVec3(std::vector<float> floatVec) {
     }
     return vectors;
 }
+
 std::vector<glm::vec4> Model::groupFloatsVec4(std::vector<float> floatVec) {
     const unsigned int floatsPerVector = 4;
 

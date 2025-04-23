@@ -10,6 +10,7 @@
 #include "deserialize-utils.hpp"
 #include "audio/audio-buffer.hpp"
 #include "audio/audio-utils.hpp"
+#include "model/model.hpp"
 
 namespace our
 {
@@ -160,6 +161,21 @@ namespace our
         }
     };
 
+    template <>
+    void AssetLoader<Model>::deserialize(const nlohmann::json &data)
+    {
+        if (data.is_object())
+        {
+            for (auto &[name, desc] : data.items())
+            {
+                std::string path = desc.get<std::string>();
+                Model* model = new Model();
+                model->loadModel(path);
+                assets[name] = model;
+            }
+        }
+    };
+
     void deserializeAllAssets(const nlohmann::json &assetData)
     {
         if (!assetData.is_object())
@@ -178,6 +194,9 @@ namespace our
             AssetLoader<Material>::deserialize(assetData["materials"]);
         if (assetData.contains("audio"))
             AssetLoader<AudioBuffer>::deserialize(assetData["audio"]);
+        if (assetData.contains("models"))
+            AssetLoader<Model>::deserialize(assetData["models"]);
+
     }
 
     void clearAllAssets()
@@ -189,6 +208,7 @@ namespace our
         AssetLoader<Material>::clear();
         AssetLoader<Light>::clear();
         AssetLoader<AudioBuffer>::clear();
+        AssetLoader<Model>::clear();
     }
 
 }

@@ -7,7 +7,7 @@
 #include "mesh-renderer.hpp"
 #include "movement.hpp"
 #include "collision.hpp"
-#include "model.hpp"
+#include "model-renderer.hpp"
 #include "audio.hpp"
 
 namespace our {
@@ -30,8 +30,8 @@ inline void deserializeComponent(const nlohmann::json &data, Entity *entity) {
         component = entity->addComponent<MeshRendererComponent>();
     } else if (type == CollisionComponent::getID()) {
         component = entity->addComponent<CollisionComponent>();
-    } else if (type == Model::getID()) {
-        component = entity->addComponent<Model>();
+    } else if (type == ModelComponent::getID()) {
+        component = entity->addComponent<ModelComponent>();
     } else if (type == AudioComponent::getID()) {
         component = entity->addComponent<AudioComponent>();
     }
