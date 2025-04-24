@@ -8,7 +8,7 @@ cd build
 
 REM Configure with CMake
 echo Configuring project with CMake...
-cmake ..
+cmake -DCMAKE_TOOLCHAIN_FILE=C:/Users/LAPTOP/Documents/vcpkg/scripts/buildsystems/vcpkg.cmake ..
 
 REM Build the project
 echo Building project...
