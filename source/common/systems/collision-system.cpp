@@ -1,9 +1,13 @@
+#include <iostream>
 #include "collision-system.hpp"
 #include "../ecs/transform.hpp"
+#include <components/fps-controller.hpp>
 #include <btBulletDynamicsCommon.h>
 #include <BulletCollision/CollisionShapes/btShapeHull.h>
 #include <BulletCollision/CollisionDispatch/btGhostObject.h>
+#include <BulletDynamics/Character/btKinematicCharacterController.h>
 #include <glm/gtx/matrix_decompose.hpp>
+
 
 namespace our {
 
@@ -107,11 +111,6 @@ namespace our {
                 );
             }
             btCollisionShape* shape = new btBvhTriangleMeshShape(collision->triangleMesh, true, true);
-            shape->setLocalScaling(btVector3(
-                transform->scale.x,
-                transform->scale.y,
-                transform->scale.z
-            ));
             return shape;
         } else {
             // For dynamic objects, create convex hull
@@ -139,10 +138,14 @@ namespace our {
 
     void CollisionSystem::_createGhostObject(Entity* entity, CollisionComponent* collision, const Transform* transform) {
         if (collision->ghostObject) return;
-        btCollisionShape* shape = new btCapsuleShape(
+        FPSControllerComponent *controller = entity->getComponent<FPSControllerComponent>();
+        if (!controller) return;
+
+        btCollisionShape* shape = new btCapsuleShapeZ(
             collision->halfExtents.x,
             collision->halfExtents.y * 2.0f
         );
+
         btPairCachingGhostObject* ghost = new btPairCachingGhostObject();
         ghost->setCollisionShape(shape);
         ghost->setUserPointer(entity);
@@ -154,19 +157,27 @@ namespace our {
             transform->position.z
         ));
         ghost->setWorldTransform(btTrans);
-        ghost->setCollisionFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
+        ghost->setCollisionFlags(btCollisionObject::CF_CHARACTER_OBJECT);
         physicsWorld->addCollisionObject(
             ghost,
-            btBroadphaseProxy::KinematicFilter,  // Group: treat player as kinematic
-            btBroadphaseProxy::StaticFilter |    // Mask: collide with static
-            btBroadphaseProxy::KinematicFilter | // and kinematic objects
-            btBroadphaseProxy::DefaultFilter     // and default objects
+            btBroadphaseProxy::CharacterFilter,
+            btBroadphaseProxy::DefaultFilter |
+            btBroadphaseProxy::StaticFilter |
+            btBroadphaseProxy::KinematicFilter
         );
-        physicsWorld->getBroadphase()->getOverlappingPairCache()->setInternalGhostPairCallback(
-            new btGhostPairCallback()
+
+        btScalar stepHeight = 0.35f;
+        auto* characterController = new btKinematicCharacterController(
+            ghost,
+            static_cast<btConvexShape*>(shape),
+            stepHeight,
+            btVector3(0, 1, 0)
         );
+
+        physicsWorld->addAction(characterController);
         physicsWorld->updateSingleAabb(ghost);
         collision->ghostObject = ghost;
+        controller->characterController = characterController;
     }
 
     void CollisionSystem::_createRigidBody(Entity* entity, CollisionComponent* collision, const Transform* transform) {
@@ -199,6 +210,12 @@ namespace our {
                 return; // No need to create a rigid body for ghost objects
         }
 
+        shape->setLocalScaling(btVector3(
+            transform->scale.x,
+            transform->scale.y,
+            transform->scale.z
+        ));
+
         btTransform btTrans;
         btTrans.setIdentity();
         btTrans.setOrigin(btVector3(
@@ -228,7 +245,6 @@ namespace our {
         if (collision->mass > 0.0f) {
             btScalar linearDamping = 0.1f / collision->mass; 
             btScalar angularDamping = 0.05f / collision->mass;
-            collision->bulletBody->setDamping(linearDamping, angularDamping);
         }
 
         int collisionGroup = collision->isKinematic ? btBroadphaseProxy::KinematicFilter : 
@@ -246,10 +262,7 @@ namespace our {
             if (!collision->ghostObject) return;
             btTransform t = collision->ghostObject->getWorldTransform();
             transform->position = glm::vec3(t.getOrigin().x(), t.getOrigin().y(), t.getOrigin().z());
-            return;
-        }
-
-        if(collision->isKinematic) {
+        } else if(collision->isKinematic) {
             // Update physics from ECS
             btTransform trans;
             trans.setIdentity();
@@ -394,86 +407,7 @@ namespace our {
         }
     }
 
-    glm::vec3 CollisionSystem::_sweepTestGhostObject(btPairCachingGhostObject* ghost, const glm::vec3& movement) {
-        const float MIN_MOVEMENT = 0.01f;
-        const int MAX_ITERATIONS = 3;
-        const float COLLISION_MARGIN = 0.0f;
-        
-        glm::vec3 remainingMovement = movement;
-        glm::vec3 totalMovement(0.0f);
-        int iterations = 0;
-
-        btConvexShape* ghostShape = static_cast<btConvexShape*>(ghost->getCollisionShape());
-        ghostShape->setMargin(COLLISION_MARGIN);
-    
-        while (iterations++ < MAX_ITERATIONS && glm::length(remainingMovement) > MIN_MOVEMENT) {
-            btTransform start = ghost->getWorldTransform();
-            btTransform end = start;
-            end.setOrigin(start.getOrigin() + btVector3(remainingMovement.x, remainingMovement.y, remainingMovement.z));
-    
-            AllHitsConvexResultCallback allCb(
-                start.getOrigin(), end.getOrigin()
-            );
-            allCb.m_collisionFilterGroup = btBroadphaseProxy::KinematicFilter;
-            allCb.m_collisionFilterMask  = btBroadphaseProxy::StaticFilter | btBroadphaseProxy::KinematicFilter;
-            
-    
-            btConvexShape* ghostShape = static_cast<btConvexShape*>(ghost->getCollisionShape());
-            if (!ghostShape) {
-                throw std::runtime_error("Ghost object has no collision shape!");
-            }
-    
-            physicsWorld->convexSweepTest(ghostShape, start, end, allCb);
-    
-            bool collisionDetected = false;
-            if (allCb.hasHit()) {
-                const float EPS = 1e-3f;
-                float bestFrac = 1.0f;
-                int   bestIdx  = -1;
-
-                for (int i = 0; i < allCb.hitFractions.size(); ++i) {
-                    float f = allCb.hitFractions[i];
-                    if (f > EPS && f < bestFrac) {
-                        bestFrac = f;
-                        bestIdx  = i;
-                    }
-                }
-                if (bestIdx >= 0) {
-                    // Use the best hit fraction to update the ghost position
-                    btVector3 hitPointBt  = allCb.hitPointsWorld[bestIdx];
-                    btVector3 hitNormalBt = allCb.hitNormalsWorld[bestIdx];
-
-                    glm::vec3 hitNormal( hitNormalBt.x(), hitNormalBt.y(), hitNormalBt.z());
-                    hitNormal = glm::normalize(hitNormal);
-
-                    float bestFrac = allCb.hitFractions[bestIdx];
-                    glm::vec3 allowedMovement = remainingMovement * bestFrac;
-                    totalMovement += allowedMovement;
-
-                    glm::vec3 remaining = remainingMovement - allowedMovement;
-                    remainingMovement = remaining - hitNormal * glm::dot(remaining, hitNormal);
-                    
-                        // Update ghost position incrementally
-                    btTransform newTransform = start;
-                    newTransform.setOrigin(start.getOrigin() + btVector3(allowedMovement.x, allowedMovement.y, allowedMovement.z));
-                    ghost->setWorldTransform(newTransform);
-                    physicsWorld->updateSingleAabb(ghost);
-                    collisionDetected = true;
-                }
-            } 
-            if (!collisionDetected) {
-                // No collision - apply full remaining movement
-                totalMovement += remainingMovement;
-                ghost->setWorldTransform(end);
-                physicsWorld->updateSingleAabb(ghost);
-                break;
-            }
-        }
-    
-        return totalMovement;
-    }
-
-    void CollisionSystem::_pushOverlappingObjects(btPairCachingGhostObject* ghost, const glm::vec3& movement) {
+    void CollisionSystem::_pushOverlappingObjects(btPairCachingGhostObject* ghost, const glm::vec3& movement, float deltaTime) {
         ghost->getOverlappingPairCache()->cleanProxyFromPairs(
             ghost->getBroadphaseHandle(), physicsWorld->getDispatcher()
         );
@@ -495,45 +429,53 @@ namespace our {
                 const btCollisionObject* otherObj = (objA == ghost) ? objB : objA;
     
                 if (btRigidBody* rb = btRigidBody::upcast(const_cast<btCollisionObject*>(otherObj))) {
-                    // Get the name of the entity associated with the collision object
-                    Entity* entity = static_cast<Entity*>(rb->getUserPointer());
-                    // printf("Pushing entity: %s\n", entity->name.c_str());
+                    if (rb->getInvMass() <= 0.0f) continue;
 
-                    if (rb->getInvMass() > 0.0f) {
-                        btTransform dynTrans;
-                        rb->getMotionState()->getWorldTransform(dynTrans);
+                    float mass = rb->getMass();
+                    float invMass = rb->getInvMass();
+                    float strength = 1.0f;
+                    const float MAX_IMPULSE = 8.0f;
 
-                        btVector3 shift(movement.x, movement.y, movement.z);
-                        dynTrans.setOrigin(dynTrans.getOrigin() + shift);
+                    for (int p = 0; p < manifolds[j]->getNumContacts(); ++p) {
+                        const auto& pt = manifolds[j]->getContactPoint(p);
+                        float dist = pt.getDistance();  // <0 means penetration
+                        if (dist < 0.0f) {
 
-                        // Commit the new position
-                        rb->getMotionState()->setWorldTransform(dynTrans);
-                        rb->setWorldTransform(dynTrans);
-                        rb->activate();
+                            btVector3 normal = (objA == ghost)
+                                ? pt.m_normalWorldOnB
+                                : -pt.m_normalWorldOnB;
+    
+                            float penetrationDepth = -dist;
+                            if (penetrationDepth < 0.01f) continue;
+                            btVector3 v = rb->getLinearVelocity();
+                            if (v.dot(normal) > 0.0f) continue;
+
+                            float pushForce = penetrationDepth * strength; 
+                            float projectedVelocity = normal.dot(btVector3(movement.x, movement.y, movement.z)) / deltaTime;
+                            btVector3 impulse = normal * (mass * projectedVelocity * 0.8f);
+                            if (impulse.length() > MAX_IMPULSE) {
+                                impulse = impulse.normalized() * MAX_IMPULSE;
+                            }
+
+                            rb->applyCentralImpulse(impulse);
+                            rb->activate();
+                        }
                     }
                 }
             }
         }
     }
 
-    void CollisionSystem::moveGhost(Entity* entity, const glm::vec3& movement) {
+    void CollisionSystem::moveGhost(Entity* entity, const glm::vec3& movement, float deltaTime) {
         CollisionComponent *collision = entity->getComponent<CollisionComponent>();
-        if (!collision || !collision->ghostObject) return;
-        btPairCachingGhostObject* ghost = collision->ghostObject;
-
-        glm::vec3 actualMovement = _sweepTestGhostObject(ghost, movement);
-        // glm::vec3 actualMovement = movement;
-        const btTransform initialTransform = collision->ghostObject->getWorldTransform();
-    
-        try {
-            glm::vec3 actualMovement = _sweepTestGhostObject(collision->ghostObject, movement);  // Currently useless
-            _pushOverlappingObjects(collision->ghostObject, actualMovement);    // Currently buggy
-        } catch (const std::exception& e) {
-            // Reset to safe state on error
-            collision->ghostObject->setWorldTransform(initialTransform);
-            physicsWorld->updateSingleAabb(collision->ghostObject);
-            std::cerr << "Ghost movement failed: " << e.what() << std::endl;
-        }
+        FPSControllerComponent *controller = entity->getComponent<FPSControllerComponent>();
+        if (!collision || !collision->ghostObject || !controller || !controller->characterController) return;
+        
+        btVector3 walk = btVector3(movement.x, movement.y, movement.z);
+        btKinematicCharacterController* characterController = controller->characterController;
+        characterController->setWalkDirection(walk);
+        
+        _pushOverlappingObjects(collision->ghostObject, movement, deltaTime);    // Currently buggy
 
         Transform transform;
         _syncTransforms(entity, collision, &transform);

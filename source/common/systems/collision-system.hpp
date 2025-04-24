@@ -106,34 +106,6 @@ public:
     void draw3dText(const btVector3& location, const char* textString) override {}
 };
 
-struct AllHitsConvexResultCallback : public btCollisionWorld::ConvexResultCallback {
-    btVector3 m_from;  
-    btVector3 m_to;
-
-    btAlignedObjectArray<btScalar>                hitFractions;
-    btAlignedObjectArray<btVector3>               hitPointsWorld;
-    btAlignedObjectArray<btVector3>               hitNormalsWorld;
-    btAlignedObjectArray<const btCollisionObject*> hitObjects;
-
-    AllHitsConvexResultCallback(const btVector3& from, const btVector3& to)
-      : btCollisionWorld::ConvexResultCallback()
-      , m_from(from)
-      , m_to(to)
-    {}
-
-    virtual btScalar addSingleResult(
-        btCollisionWorld::LocalConvexResult&  convexResult,
-        bool                                  normalInWorldSpace
-    ) override
-    {
-        hitFractions.push_back(convexResult.m_hitFraction);
-        hitPointsWorld.push_back(m_from.lerp(m_to, convexResult.m_hitFraction));
-        hitNormalsWorld.push_back(convexResult.m_hitNormalLocal);
-        hitObjects.push_back(convexResult.m_hitCollisionObject);
-        return btScalar(1.0);
-    }
-};
-
 class CollisionSystem {
     btDiscreteDynamicsWorld* physicsWorld = nullptr;
     GLDebugDrawer* debugDrawer = nullptr;
@@ -154,10 +126,8 @@ class CollisionSystem {
     void _createGhostObject(Entity* entity, CollisionComponent* collision, const Transform* transform);
     // Clear previous collisions for the entity
     void _clearPreviousCollisions(World* world);
-    // Apply a sweep test on ghost object to detect collisions with static and kinematic objects
-    glm::vec3 _sweepTestGhostObject(btPairCachingGhostObject* ghost, const glm::vec3& movement);
     // Push overlapping objects away from the ghost object
-    void _pushOverlappingObjects(btPairCachingGhostObject* ghost, const glm::vec3& position);
+    void _pushOverlappingObjects(btPairCachingGhostObject* ghost, const glm::vec3& position, float deltaTime);
     // Detect collisions between entities and update their collision components
     void _detectCollisions();
 
@@ -185,7 +155,7 @@ public:
     void applyTorque(Entity* entity, const glm::vec3& torque);
 
     // Move a ghost object to a new position (e.g., for player movement)
-    void moveGhost(Entity* entity, const glm::vec3& movement);
+    void moveGhost(Entity* entity, const glm::vec3& movement, float deltaTime);
 
     // Debug draw the world using the debug drawer
     void debugDrawWorld(World* world);
