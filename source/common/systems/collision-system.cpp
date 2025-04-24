@@ -13,10 +13,49 @@ namespace our {
         this->physicsWorld->setDebugDrawer(debugDrawer);
         if (this->physicsWorld->getDebugDrawer())
             this->physicsWorld->getDebugDrawer()->setDebugMode(btIDebugDraw::DBG_DrawWireframe);
-        this->physicsWorld->setGravity(btVector3(0, -9.81f, 0));
+        this->physicsWorld->setGravity(btVector3(0, 0, 0));
         this->physicsWorld->getBroadphase()->getOverlappingPairCache()->setInternalGhostPairCallback(
             new btGhostPairCallback()
         );
+        this->physicsWorld->setInternalTickCallback(
+            CollisionSystem::_simulateDrag,
+            nullptr,
+            true // isPreTick
+        );
+    }
+
+    void CollisionSystem::_simulateDrag(btDynamicsWorld* world, btScalar deltaTime) {
+        const float airDensity = 1.2f;
+
+        for (int i = 0; i < world->getNumCollisionObjects(); ++i) {
+            btCollisionObject* obj = world->getCollisionObjectArray()[i];
+            btRigidBody* rb = btRigidBody::upcast(obj);
+            if (!rb || rb->getInvMass() == 0.0f) continue;
+
+            float mass = 1.0f / rb->getInvMass();
+
+            // Look up our custom drag settings
+            Entity* entity = static_cast<Entity*>(rb->getUserPointer());
+            if (!entity) continue;
+
+            auto* cc = entity->getComponent<CollisionComponent>();
+            if (!cc) continue;
+
+            float Cd = cc->dragCoefficient;
+            float A  = cc->crossSectionArea;
+
+            // Apply gravity: F = m * g
+            rb->applyCentralForce(btVector3(0, -9.81f * mass, 0));
+
+            // Apply quadratic drag: F = -½ * ρ * C_d * A * |v| * v
+            btVector3 v = rb->getLinearVelocity();
+            float speed = v.length();
+            if (speed > SIMD_EPSILON) {
+                float Fd = 0.5f * airDensity * Cd * A * speed * speed;
+                btVector3 drag = v.normalized() * (-Fd);
+                rb->applyCentralForce(drag);
+            }
+        }
     }
 
     void CollisionSystem::_stepSimulation(float deltaTime) {

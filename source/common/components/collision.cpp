@@ -27,9 +27,19 @@ namespace our {
         // Shape parsing
         if(data.contains("shape")) {
             std::string shapeStr = data["shape"];
-            if(shapeStr == "box") shape = CollisionShape::BOX;
-            else if(shapeStr == "sphere") shape = CollisionShape::SPHERE;
-            else if(shapeStr == "capsule") shape = CollisionShape::CAPSULE;
+            if(shapeStr == "box") {
+                shape = CollisionShape::BOX;
+                dragCoefficient = 1.05f;
+                crossSectionArea = halfExtents.x * halfExtents.y * 2.0f + halfExtents.x * halfExtents.z * 2.0f + halfExtents.y * halfExtents.z * 2.0f;
+            } else if(shapeStr == "sphere") {
+                shape = CollisionShape::SPHERE;
+                dragCoefficient = 0.47f;
+                crossSectionArea = glm::pi<float>() * halfExtents.x * halfExtents.x;
+            } else if(shapeStr == "capsule") {
+                shape = CollisionShape::CAPSULE;
+                dragCoefficient = 0.82f;
+                crossSectionArea = glm::pi<float>() * halfExtents.x * halfExtents.x;
+            }
             else if(shapeStr == "mesh") {
                 shape = CollisionShape::MESH;
                 if (data.contains("mesh")) {

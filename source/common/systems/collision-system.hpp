@@ -138,6 +138,8 @@ class CollisionSystem {
     btDiscreteDynamicsWorld* physicsWorld = nullptr;
     GLDebugDrawer* debugDrawer = nullptr;
 
+    // Simulate the gravity and drag forces on the physics world
+    static void _simulateDrag(btDynamicsWorld* world, btScalar deltaTime);
     // Step the physics simulation by a given time step
     void _stepSimulation(float deltaTime);
     // Process all entities in the world and update their transforms and physics bodies
