@@ -1,29 +1,29 @@
 #include "model.hpp"
+#include "animation-data.hpp"
+#include <mesh/mesh-utils.hpp>
 
 namespace our {
 
-void Model::draw(CameraComponent* camera, glm::mat4 localToWorld, glm::ivec2 windowSize, float bloomBrightnessCutoff)
-{
-        // Go over all meshes and draw each one
-        glm::mat4 view = camera->getViewMatrix();
-        glm::mat4 projection = camera->getProjectionMatrix(windowSize);
-        glm::mat4 VP = projection * view;
-        for (unsigned int i = 0; i < meshRenderers.size(); i++)
-        {
+void Model::draw(CameraComponent *camera, glm::mat4 localToWorld, glm::ivec2 windowSize, float bloomBrightnessCutoff) {
+    // Go over all meshes and draw each one
+    glm::mat4 view = camera->getViewMatrix();
+    glm::mat4 projection = camera->getProjectionMatrix(windowSize);
+    glm::mat4 VP = projection * view;
+    for (unsigned int i = 0; i < meshRenderers.size(); i++) {
 
-            Material* material = meshRenderers[i]->material;
-            Mesh* mesh = meshRenderers[i]->mesh;
-            glm::mat4 meshWorldMatrix = localToWorld * matricesMeshes[i];
-            glm::mat4 MVP = VP * meshWorldMatrix;
-            material->setup();
-            material->shader->set("transform", MVP);
-            material->shader->set("cameraPosition", camera->getOwner()->localTransform.position);
-            material->shader->set("view", view);
-            material->shader->set("projection", projection);
-            material->shader->set("model", meshWorldMatrix);
-            material->shader->set("bloomBrightnessCutoff", bloomBrightnessCutoff);
-            mesh->draw();
-        }
+        Material *material = meshRenderers[i]->material;
+        Mesh *mesh = meshRenderers[i]->mesh;
+        glm::mat4 meshWorldMatrix = localToWorld * matricesMeshes[i];
+        glm::mat4 MVP = VP * meshWorldMatrix;
+        material->setup();
+        material->shader->set("transform", MVP);
+        material->shader->set("cameraPosition", camera->getOwner()->localTransform.position);
+        material->shader->set("view", view);
+        material->shader->set("projection", projection);
+        material->shader->set("model", meshWorldMatrix);
+        material->shader->set("bloomBrightnessCutoff", bloomBrightnessCutoff);
+        mesh->draw();
+    }
 }
 
 // Reads a text file and outputs a string with everything in the text file
@@ -38,7 +38,7 @@ std::string Model::get_file_contents(std::string path) {
     return contents;
 }
 
-std::vector<unsigned char> Model::get_file_binary_contents(const std::string& path) {
+std::vector<unsigned char> Model::get_file_binary_contents(const std::string &path) {
     // Open file in binary mode with positioning at the end
     std::ifstream file(path, std::ios::binary | std::ios::ate);
     if (!file) {
@@ -52,7 +52,7 @@ std::vector<unsigned char> Model::get_file_binary_contents(const std::string& pa
 
     // Read the data
     std::vector<unsigned char> buffer(size);
-    if (!file.read(reinterpret_cast<char*>(buffer.data()), size)) {
+    if (!file.read(reinterpret_cast<char *>(buffer.data()), size)) {
         std::cerr << "ERROR: Failed to read binary file: " << path << std::endl;
         return {};
     }
@@ -71,12 +71,12 @@ std::vector<unsigned char> Model::getData() {
         std::string uri = JSON["buffers"][0]["uri"].get<std::string>();
         std::string fileDirectory = path.substr(0, path.find_last_of('/') + 1);
         std::string fullPath = fileDirectory + uri;
-        
+
         // Read binary data directly into a byte vector
         std::vector<unsigned char> binData = get_file_binary_contents(fullPath);
-        
+
         return binData;
-    } catch (const std::exception& e) {
+    } catch (const std::exception &e) {
         std::cerr << "ERROR: Failed to load binary data: " << e.what() << std::endl;
         return {};
     }
@@ -120,7 +120,8 @@ void Model::loadTextures() {
             if (samplerIndex >= 0 && samplerIndex < samplers.size()) {
                 const auto &sampler = samplers[samplerIndex];
 
-                GLint minFilter = sampler.contains("minFilter") ? sampler["minFilter"].get<int>() : GL_LINEAR_MIPMAP_LINEAR;
+                GLint minFilter =
+                    sampler.contains("minFilter") ? sampler["minFilter"].get<int>() : GL_LINEAR_MIPMAP_LINEAR;
                 GLint magFilter = sampler.contains("magFilter") ? sampler["magFilter"].get<int>() : GL_LINEAR;
                 GLint wrapS = sampler.contains("wrapS") ? sampler["wrapS"].get<int>() : GL_REPEAT;
                 GLint wrapT = sampler.contains("wrapT") ? sampler["wrapT"].get<int>() : GL_REPEAT;
@@ -142,18 +143,18 @@ void Model::loadMesh(unsigned int indMesh) {
     // Get all accessor indices
     json primitive = JSON["meshes"][indMesh]["primitives"][0];
     json attributes = primitive["attributes"];
-    
+
     // Check if the truly required attributes exist (position and indices)
     if (!attributes.contains("POSITION") || !primitive.contains("indices")) {
         std::cerr << "Mesh #" << indMesh << " missing position or indices" << std::endl;
-        return;  // Skip this mesh - can't render without vertices or indices
+        return; // Skip this mesh - can't render without vertices or indices
     }
 
     if (!primitive.contains("material")) {
         std::cerr << "Mesh #" << indMesh << " missing material" << std::endl;
-        return;  // Skip this mesh
+        return; // Skip this mesh
     }
-    
+
     unsigned int posAccInd = attributes["POSITION"];
     unsigned int indAccInd = primitive["indices"];
     unsigned int matInd = primitive["material"];
@@ -161,7 +162,7 @@ void Model::loadMesh(unsigned int indMesh) {
     // Load position data (always required)
     std::vector<float> posVec = getFloats(JSON["accessors"][posAccInd]);
     std::vector<glm::vec3> positions = groupFloatsVec3(posVec);
-    
+
     // Load or create normals
     std::vector<glm::vec3> normals;
     if (attributes.contains("NORMAL")) {
@@ -173,7 +174,7 @@ void Model::loadMesh(unsigned int indMesh) {
         normals.resize(positions.size(), glm::vec3(0.0f, 1.0f, 0.0f));
         std::cout << "Mesh #" << indMesh << " using default normals" << std::endl;
     }
-    
+
     // Load or create texture coordinates
     std::vector<glm::vec2> texUVs;
     if (attributes.contains("TEXCOORD_0")) {
@@ -213,7 +214,6 @@ void Model::loadMaterials() {
         mat->useTextureMetallic = false;
         mat->useTextureRoughness = false;
 
-
         // Set alpha mode if available
         if (material.find("alphaMode") != material.end()) {
             std::string alphaMode = material["alphaMode"].get<std::string>();
@@ -223,14 +223,14 @@ void Model::loadMaterials() {
         // Handle PBR Metallic Roughness
         if (material.find("pbrMetallicRoughness") != material.end()) {
             json pbr = material["pbrMetallicRoughness"];
-            
+
             // Base color texture
             if (pbr.find("baseColorTexture") != pbr.end()) {
                 unsigned int texInd = pbr["baseColorTexture"]["index"];
                 mat->textureAlbedo = textures[texInd];
                 mat->useTextureAlbedo = true;
             }
-            
+
             // Metallic roughness texture
             if (pbr.find("metallicRoughnessTexture") != pbr.end()) {
                 unsigned int texInd = pbr["metallicRoughnessTexture"]["index"];
@@ -283,7 +283,7 @@ void Model::loadMaterials() {
             mat->textureEmissive = textures[texInd];
             mat->useTextureEmissive = true;
         }
-        
+
         if (material.find("emissiveFactor") != material.end()) {
             glm::vec3 emissive;
             for (unsigned int j = 0; j < material["emissiveFactor"].size(); j++) {
@@ -293,22 +293,20 @@ void Model::loadMaterials() {
         }
 
         mat->shader = AssetLoader<ShaderProgram>::get("pbr");
-        
 
-        if(material.find("doubleSided") != material.end()) {
+        if (material.find("doubleSided") != material.end()) {
             mat->pipelineState.faceCulling.enabled = !material["doubleSided"];
         } else {
             mat->pipelineState.faceCulling.enabled = true;
         }
-        
 
         mat->pipelineState.depthTesting.enabled = true;
         mat->pipelineState.depthTesting.function = GL_LEQUAL;
 
         // add all the lights in the world
-        std::unordered_map<std::string, Light*>lights = AssetLoader<Light>::getAll();
+        std::unordered_map<std::string, Light *> lights = AssetLoader<Light>::getAll();
 
-        for (auto& [name, light] : lights) {
+        for (auto &[name, light] : lights) {
             mat->lights.push_back(light);
         }
 
@@ -316,8 +314,18 @@ void Model::loadMaterials() {
     }
 }
 
-void Model::loadModel(std::string path) {
+void Model::loadAnimations() {
+    AnimationData *loadedAnimationData = mesh_utils::loadGLTFAnimation(path);
+    if (loadedAnimationData) {
+        animationData = *loadedAnimationData;
+        delete loadedAnimationData;
+        std::cout << "Animations loaded successfully from: " << path << std::endl;
+    } else {
+        std::cerr << "Failed to load animations from: " << path << std::endl;
+    }
+}
 
+void Model::loadModel(std::string path) {
     this->path = path;
 
     std::string text = get_file_contents(this->path);
@@ -335,6 +343,9 @@ void Model::loadModel(std::string path) {
 
     // Load the materials
     loadMaterials();
+
+    // Load the animations
+    loadAnimations();
 
     traverseNode(0, glm::mat4(1.0f));
 }
@@ -379,7 +390,6 @@ void Model::traverseNode(unsigned int nextNode, glm::mat4 matrix) {
         matNode = glm::make_mat4(matValues);
     }
 
-
     // Initialize matrices
     glm::mat4 trans = glm::mat4(1.0f);
     glm::mat4 rot = glm::mat4(1.0f);
@@ -409,44 +419,46 @@ void Model::traverseNode(unsigned int nextNode, glm::mat4 matrix) {
     }
 }
 
-std::vector<float> Model::getFloats(json accessor)
-{
-	std::vector<float> floatVec;
+std::vector<float> Model::getFloats(json accessor) {
+    std::vector<float> floatVec;
 
-	// Get properties from the accessor
-	unsigned int buffViewInd = accessor.value("bufferView", 1);
-	unsigned int count = accessor["count"];
-	unsigned int accByteOffset = accessor.value("byteOffset", 0);
-	std::string type = accessor["type"];
+    // Get properties from the accessor
+    unsigned int buffViewInd = accessor.value("bufferView", 1);
+    unsigned int count = accessor["count"];
+    unsigned int accByteOffset = accessor.value("byteOffset", 0);
+    std::string type = accessor["type"];
 
-	// Get properties from the bufferView
-	json bufferView = JSON["bufferViews"][buffViewInd];
-	unsigned int byteOffset = bufferView["byteOffset"];
+    // Get properties from the bufferView
+    json bufferView = JSON["bufferViews"][buffViewInd];
+    unsigned int byteOffset = bufferView["byteOffset"];
 
-	// Interpret the type and store it into numPerVert
-	unsigned int numPerVert;
-	if (type == "SCALAR") numPerVert = 1;
-	else if (type == "VEC2") numPerVert = 2;
-	else if (type == "VEC3") numPerVert = 3;
-	else if (type == "VEC4") numPerVert = 4;
-	else throw std::invalid_argument("Type is invalid (not SCALAR, VEC2, VEC3, or VEC4)");
+    // Interpret the type and store it into numPerVert
+    unsigned int numPerVert;
+    if (type == "SCALAR")
+        numPerVert = 1;
+    else if (type == "VEC2")
+        numPerVert = 2;
+    else if (type == "VEC3")
+        numPerVert = 3;
+    else if (type == "VEC4")
+        numPerVert = 4;
+    else
+        throw std::invalid_argument("Type is invalid (not SCALAR, VEC2, VEC3, or VEC4)");
 
-	// Go over all the bytes in the data at the correct place using the properties from above
-	unsigned int beginningOfData = byteOffset + accByteOffset;
-	unsigned int lengthOfData = count * 4 * numPerVert;
-	for (unsigned int i = beginningOfData; i < beginningOfData + lengthOfData; i += 4)
-	{
-		unsigned char bytes[] = { data[i], data[i + 1], data[i + 2], data[i + 3] };
-		float value;
-		std::memcpy(&value, bytes, sizeof(float));
-		floatVec.push_back(value);
-	}
+    // Go over all the bytes in the data at the correct place using the properties from above
+    unsigned int beginningOfData = byteOffset + accByteOffset;
+    unsigned int lengthOfData = count * 4 * numPerVert;
+    for (unsigned int i = beginningOfData; i < beginningOfData + lengthOfData; i += 4) {
+        unsigned char bytes[] = {data[i], data[i + 1], data[i + 2], data[i + 3]};
+        float value;
+        std::memcpy(&value, bytes, sizeof(float));
+        floatVec.push_back(value);
+    }
 
-	return floatVec;
+    return floatVec;
 }
 
-std::vector<GLuint> Model::getIndices(json accessor)
-{
+std::vector<GLuint> Model::getIndices(json accessor) {
     std::vector<GLuint> indices;
 
     // Verify accessor has required fields
@@ -487,15 +499,13 @@ std::vector<GLuint> Model::getIndices(json accessor)
             count = (data.size() - beginningOfData) / 4; // Adjust count to prevent overrun
         }
 
-        for (unsigned int i = beginningOfData; i < beginningOfData + count * 4; i += 4)
-        {
-            unsigned char bytes[] = { data[i], data[i + 1], data[i + 2], data[i + 3] };
+        for (unsigned int i = beginningOfData; i < beginningOfData + count * 4; i += 4) {
+            unsigned char bytes[] = {data[i], data[i + 1], data[i + 2], data[i + 3]};
             unsigned int value;
             std::memcpy(&value, bytes, sizeof(unsigned int));
             indices.push_back((GLuint)value);
         }
-    }
-    else if (componentType == 5123) // UNSIGNED_SHORT (2 bytes)
+    } else if (componentType == 5123) // UNSIGNED_SHORT (2 bytes)
     {
         // Check if we have enough data
         if (beginningOfData + count * 2 > data.size()) {
@@ -503,15 +513,13 @@ std::vector<GLuint> Model::getIndices(json accessor)
             count = (data.size() - beginningOfData) / 2; // Adjust count to prevent overrun
         }
 
-        for (unsigned int i = beginningOfData; i < beginningOfData + count * 2; i += 2)
-        {
-            unsigned char bytes[] = { data[i], data[i + 1] };
+        for (unsigned int i = beginningOfData; i < beginningOfData + count * 2; i += 2) {
+            unsigned char bytes[] = {data[i], data[i + 1]};
             unsigned short value;
             std::memcpy(&value, bytes, sizeof(unsigned short));
             indices.push_back((GLuint)value);
         }
-    }
-    else if (componentType == 5122) // SHORT (2 bytes)
+    } else if (componentType == 5122) // SHORT (2 bytes)
     {
         // Check if we have enough data
         if (beginningOfData + count * 2 > data.size()) {
@@ -519,15 +527,13 @@ std::vector<GLuint> Model::getIndices(json accessor)
             count = (data.size() - beginningOfData) / 2; // Adjust count to prevent overrun
         }
 
-        for (unsigned int i = beginningOfData; i < beginningOfData + count * 2; i += 2)
-        {
-            unsigned char bytes[] = { data[i], data[i + 1] };
+        for (unsigned int i = beginningOfData; i < beginningOfData + count * 2; i += 2) {
+            unsigned char bytes[] = {data[i], data[i + 1]};
             short value;
             std::memcpy(&value, bytes, sizeof(short));
             indices.push_back((GLuint)value);
         }
-    }
-    else if (componentType == 5126) // FLOAT (4 bytes)
+    } else if (componentType == 5126) // FLOAT (4 bytes)
     {
         // Check if we have enough data
         if (beginningOfData + count * 4 > data.size()) {
@@ -536,15 +542,13 @@ std::vector<GLuint> Model::getIndices(json accessor)
         }
 
         // Fix: Use beginningOfData + count*4 instead of beginningOfData * 4
-        for (unsigned int i = beginningOfData; i < beginningOfData + count * 4; i += 4)
-        {
-            unsigned char bytes[] = { data[i], data[i + 1], data[i + 2], data[i + 3] };
+        for (unsigned int i = beginningOfData; i < beginningOfData + count * 4; i += 4) {
+            unsigned char bytes[] = {data[i], data[i + 1], data[i + 2], data[i + 3]};
             float value;
             std::memcpy(&value, bytes, sizeof(float));
             indices.push_back((GLuint)value);
         }
-    }
-    else if (componentType == 5121) // UNSIGNED_BYTE (1 byte)
+    } else if (componentType == 5121) // UNSIGNED_BYTE (1 byte)
     {
         // Check if we have enough data
         if (beginningOfData + count > data.size()) {
@@ -553,12 +557,10 @@ std::vector<GLuint> Model::getIndices(json accessor)
         }
 
         // Fix: Use beginningOfData + count instead of just beginningOfData
-        for (unsigned int i = beginningOfData; i < beginningOfData + count; i++)
-        {
+        for (unsigned int i = beginningOfData; i < beginningOfData + count; i++) {
             indices.push_back((GLuint)data[i]);
         }
-    }
-    else if (componentType == 5120) // BYTE (1 byte)
+    } else if (componentType == 5120) // BYTE (1 byte)
     {
         // Check if we have enough data
         if (beginningOfData + count > data.size()) {
@@ -567,37 +569,24 @@ std::vector<GLuint> Model::getIndices(json accessor)
         }
 
         // Fix: Use beginningOfData + count instead of just beginningOfData
-        for (unsigned int i = beginningOfData; i < beginningOfData + count; i++)
-        {
+        for (unsigned int i = beginningOfData; i < beginningOfData + count; i++) {
             indices.push_back((GLuint)(char)data[i]);
         }
-    }
-    else
-    {
+    } else {
         std::cerr << "Unsupported component type: " << componentType << std::endl;
     }
 
     return indices;
 }
 
-std::vector<Vertex> Model::assembleVertices(std::vector<glm::vec3> positions,std::vector<glm::vec3> normals,std::vector<glm::vec2> texUVs)
-{
-	std::vector<Vertex> vertices;
-	for (int i = 0; i < positions.size(); i++)
-	{
+std::vector<Vertex> Model::assembleVertices(std::vector<glm::vec3> positions, std::vector<glm::vec3> normals,
+                                            std::vector<glm::vec2> texUVs) {
+    std::vector<Vertex> vertices;
+    for (int i = 0; i < positions.size(); i++) {
         texUVs[i].y = 1 - texUVs[i].y;
-		vertices.push_back
-		(
-			Vertex
-			{
-				positions[i],
-                glm::vec4(1, 1, 1, 1),
-                texUVs[i],
-                normals[i]
-			}
-		);
-	}
-	return vertices;
+        vertices.push_back(Vertex{positions[i], glm::vec4(1, 1, 1, 1), texUVs[i], normals[i]});
+    }
+    return vertices;
 }
 
 std::vector<glm::vec2> Model::groupFloatsVec2(std::vector<float> floatVec) {
