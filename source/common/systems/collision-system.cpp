@@ -4,6 +4,7 @@
 #include <BulletCollision/CollisionShapes/btShapeHull.h>
 #include <BulletCollision/CollisionDispatch/btGhostObject.h>
 #include <glm/gtx/matrix_decompose.hpp>
+#include <iostream>
 
 namespace our {
 
