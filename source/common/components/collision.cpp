@@ -1,7 +1,8 @@
-#include "collision.hpp"
-#include "../deserialize-utils.hpp"
-#include "../asset-loader.hpp"
+#include <iostream>
+#include <deserialize-utils.hpp>
+#include <asset-loader.hpp>
 #include <mesh/mesh.hpp>
+#include "collision.hpp"
 
 namespace our {
     
@@ -11,15 +12,34 @@ namespace our {
             delete bulletBody->getMotionState();
             delete bulletBody;
         }
+
+        if (triangleMesh) {
+            delete triangleMesh;
+        }
+
+        if (ghostObject) {
+            delete ghostObject->getCollisionShape();
+            delete ghostObject;
+        }
     }
     
     void CollisionComponent::deserialize(const nlohmann::json& data) {
         // Shape parsing
         if(data.contains("shape")) {
             std::string shapeStr = data["shape"];
-            if(shapeStr == "box") shape = CollisionShape::BOX;
-            else if(shapeStr == "sphere") shape = CollisionShape::SPHERE;
-            else if(shapeStr == "capsule") shape = CollisionShape::CAPSULE;
+            if(shapeStr == "box") {
+                shape = CollisionShape::BOX;
+                dragCoefficient = 1.05f;
+                crossSectionArea = halfExtents.x * halfExtents.y * 2.0f + halfExtents.x * halfExtents.z * 2.0f + halfExtents.y * halfExtents.z * 2.0f;
+            } else if(shapeStr == "sphere") {
+                shape = CollisionShape::SPHERE;
+                dragCoefficient = 0.47f;
+                crossSectionArea = glm::pi<float>() * halfExtents.x * halfExtents.x;
+            } else if(shapeStr == "capsule") {
+                shape = CollisionShape::CAPSULE;
+                dragCoefficient = 0.82f;
+                crossSectionArea = glm::pi<float>() * halfExtents.x * halfExtents.x;
+            }
             else if(shapeStr == "mesh") {
                 shape = CollisionShape::MESH;
                 if (data.contains("mesh")) {
@@ -40,6 +60,11 @@ namespace our {
                 if(data.contains("indices")) {
                     indices = data["indices"].get<std::vector<uint32_t>>();
                 }
+            }
+            else if(shapeStr == "ghost") shape = CollisionShape::GHOST;
+            else {
+                std::cerr << "Unknown collision shape: " << shapeStr << std::endl;
+                shape = CollisionShape::BOX; // Default to box if unknown
             }
         }
         

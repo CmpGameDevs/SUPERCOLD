@@ -39,7 +39,8 @@
                 "cube": "assets/models/cube.obj",
                 "monkey": "assets/models/monkey.obj",
                 "plane": "assets/models/plane.obj",
-                "sphere": "assets/models/sphere.obj"
+                "sphere": "assets/models/sphere.obj",
+                "sphere_2": "assets/models/sphere/sphere.gltf"
             },
             "audio": {
                 "background": "assets/audio/music/main_track.wav"
@@ -162,7 +163,7 @@
             {
                 "position": [
                     0,
-                    0,
+                    6,
                     10
                 ],
                 "components": [
@@ -192,6 +193,17 @@
                         "maxStamina": 100.0,
                         "staminaDepletionRate": 20.0,
                         "staminaRecoveryRate": 10.0
+                    },
+                    {
+                        "type": "Collision",
+                        "shape": "ghost",
+                        "mass": 0,
+                        "halfExtents": [
+                            0.2,
+                            0.9,
+                            0
+                        ],
+                        "isKinematic": true
                     }
                 ],
                 "children": [
@@ -227,11 +239,19 @@
                     0,
                     0
                 ],
+                "name": "monkey",
                 "components": [
                     {
                         "type": "Mesh Renderer",
                         "mesh": "monkey",
                         "material": "monkey"
+                    },
+                    {
+                        "type": "Collision",
+                        "shape": "mesh",
+                        "mesh": "monkey",
+                        "mass": 1,
+                        "isKinematic": true
                     },
                     {
                         "type": "Movement",
@@ -264,11 +284,22 @@
                     10,
                     1
                 ],
+                "name": "grass_ground",
                 "components": [
                     {
                         "type": "Mesh Renderer",
                         "mesh": "plane",
                         "material": "grass"
+                    },
+                    {
+                        "type": "Collision",
+                        "shape": "box",
+                        "mass": 0,
+                        "halfExtents": [
+                            20,
+                            0.1,
+                            20
+                        ]
                     }
                 ]
             },

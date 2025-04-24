@@ -2,6 +2,7 @@
 #include <vector>
 #include <functional>
 #include <btBulletDynamicsCommon.h>
+#include <BulletCollision/CollisionDispatch/btCollisionWorld.h>
 #include <LinearMath/btIDebugDraw.h>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/glm.hpp>
@@ -109,6 +110,8 @@ class CollisionSystem {
     btDiscreteDynamicsWorld* physicsWorld = nullptr;
     GLDebugDrawer* debugDrawer = nullptr;
 
+    // Simulate the gravity and drag forces on the physics world
+    static void _simulateDrag(btDynamicsWorld* world, btScalar deltaTime);
     // Step the physics simulation by a given time step
     void _stepSimulation(float deltaTime);
     // Process all entities in the world and update their transforms and physics bodies
@@ -117,8 +120,14 @@ class CollisionSystem {
     void _syncTransforms(Entity* entity, CollisionComponent* collision, Transform* transform);
     // Create a rigid body for the entity based on its collision component and transform
     void _createRigidBody(Entity* entity, CollisionComponent* collision, const Transform* transform);
+    // Create a mesh shape for the entity based on its collision component and transform
+    btCollisionShape* _createMeshShape(CollisionComponent* collision, const Transform* transform);
+    // Create ghost object for the entity based on its collision component and transform
+    void _createGhostObject(Entity* entity, CollisionComponent* collision, const Transform* transform);
     // Clear previous collisions for the entity
     void _clearPreviousCollisions(World* world);
+    // Push overlapping objects away from the ghost object
+    void _pushOverlappingObjects(btPairCachingGhostObject* ghost, const glm::vec3& position, float deltaTime);
     // Detect collisions between entities and update their collision components
     void _detectCollisions();
 
@@ -144,6 +153,9 @@ public:
     
     // Apply torque for rotation (e.g., spinning objects)
     void applyTorque(Entity* entity, const glm::vec3& torque);
+
+    // Move a ghost object to a new position (e.g., for player movement)
+    void moveGhost(Entity* entity, const glm::vec3& movement, float deltaTime);
 
     // Debug draw the world using the debug drawer
     void debugDrawWorld(World* world);

@@ -2,7 +2,6 @@
 
 #include <application.hpp>
 #include <asset-loader.hpp>
-#include <systems/free-camera-controller.hpp>
 #include <systems/forward-renderer.hpp>
 #include <systems/collision-system.hpp>
 #include <systems/fps-controller.hpp>
@@ -49,6 +48,7 @@ class PhysicsTestState : public our::State {
             collisionConfig
         );
         collisionSystem.initialize(size, physicsWorld);
+        fpsController.setCollisionSystem(&collisionSystem);
         timeScale = 1.0f;
     }
 

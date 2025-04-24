@@ -1,12 +1,18 @@
 #pragma once
 
-#include "../ecs/component.hpp"
-
+#include <BulletDynamics/Character/btKinematicCharacterController.h>
 #include <glm/glm.hpp>
+#include "../ecs/component.hpp"
 
 namespace our {
 class FPSControllerComponent : public Component {
   public:
+    btKinematicCharacterController *characterController = nullptr;
+  
+    // Basic parameters
+    float height = 1.8f; // Default height of the player
+    float speed = 5.0f;  // Default speed of the player
+    // Basic movement parameters
     float pitch = 0.0f;
     float yaw = 0.0f;
     // Basic sensitivity settings
@@ -36,13 +42,20 @@ class FPSControllerComponent : public Component {
     float crouchHeightModifier = 0.5f;
     float crouchSpeedModifier = 0.6f;
 
+    float actionSpeedModifier = 3.0f;
     float sprintSpeedModifier = 1.5f;
     float maxStamina = 100.0f;
     float staminaDepletionRate = 25.0f;
     float staminaRecoveryRate = 10.0f;
+    float crouchTransitionTime = 0.2f;
+    float crouchLerpProgress = 0.0f;
+    float initialGhostHeight = 0.0f;
+    float currentGhostHeight = height;
+    float targetGhostHeight = 0.0f;
 
     // Current state variables
     bool isCrouching = false;
+    bool isCrouchTransitioning = false;
     bool isSprinting = false;
     bool isJumping = false;
     float currentStamina = 100.0f;

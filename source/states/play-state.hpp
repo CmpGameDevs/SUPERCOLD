@@ -39,6 +39,22 @@ class Playstate : public our::State {
         renderer.initialize(size, config["renderer"]);
 
         timeScale = 1.0f;
+
+        // Create Bullet components
+        btDefaultCollisionConfiguration* collisionConfig = new btDefaultCollisionConfiguration();
+        btCollisionDispatcher* dispatcher = new btCollisionDispatcher(collisionConfig);
+        btBroadphaseInterface* broadphase = new btDbvtBroadphase();
+        btSequentialImpulseConstraintSolver* solver = new btSequentialImpulseConstraintSolver();
+
+        // Create the dynamics world
+        btDiscreteDynamicsWorld* physicsWorld = new btDiscreteDynamicsWorld(
+            dispatcher,
+            broadphase,
+            solver,
+            collisionConfig
+        );
+        collisionSystem.initialize(size, physicsWorld);
+        fpsController.setCollisionSystem(&collisionSystem);
     }
 
     void onDraw(double deltaTime) override {
@@ -52,8 +68,10 @@ class Playstate : public our::State {
         float scaledDeltaTime = (float)deltaTime * timeScale;
 
         movementSystem.update(&world, scaledDeltaTime);
+        collisionSystem.update(&world, scaledDeltaTime);
         // And finally we use the renderer system to draw the scene
         renderer.render(&world);
+        collisionSystem.debugDrawWorld(&world);
 
         // Get a reference to the keyboard object
         auto &keyboard = getApp()->getKeyboard();
