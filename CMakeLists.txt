@@ -132,6 +132,7 @@ set(COMMON_SOURCES
 
         source/common/model/model.hpp
         source/common/model/model.cpp
+        source/common/model/animation_data.hpp
 
         source/common/systems/audio-system.hpp
         source/common/systems/audio-system.cpp
