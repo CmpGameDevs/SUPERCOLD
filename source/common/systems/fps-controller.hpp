@@ -255,9 +255,12 @@ class FPSControllerSystem {
                     float halfHeight = newHeight * 0.5f;
                     btCapsuleShape* capsule = static_cast<btCapsuleShape*>(collision->ghostObject->getCollisionShape());
                     collision->halfExtents.y = halfHeight;
-                    capsule->setImplicitShapeDimensions(
-                        btVector3(collision->halfExtents.x, collision->halfExtents.y, 0)
-                    );
+                    btVector3 oldScale = capsule->getLocalScaling();
+                    capsule->setLocalScaling(btVector3(
+                        oldScale.x(),
+                        oldScale.y(),
+                        oldScale.z() * (newHeight / controller->currentGhostHeight)
+                    ));
 
                     // reposition so the bottom of the capsule is at the same height as before
                     btTransform t = collision->ghostObject->getWorldTransform();
