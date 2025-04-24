@@ -142,6 +142,42 @@
       },
       "world": [
         {
+          "position": [
+              0,
+              0.8,
+              0
+          ],
+          "components": [
+              {
+                  "type": "Camera"
+              },
+              {
+                  "type": "FPS Controller",
+                  "rotationSensitivityX": 0.005,
+                  "rotationSensitivityY": 0.005,
+                  "invertYAxis": false,
+                  "fovSensitivity": 0.1,
+                  "positionSensitivity": 2.0,
+                  "speedupFactor": 3.0,
+                  "minVerticalRotation": -85.0,
+                  "maxVerticalRotation": 85.0,
+                  "gravity": 9.8,
+                  "jumpHeight": 2,
+                  "jumpCooldown": 0.3,
+                  "movementSmoothing": 0.2,
+                  "rotationSmoothing": 0.1,
+                  "acceleration": 10.0,
+                  "deceleration": 8.0,
+                  "crouchHeightModifier": 0.5,
+                  "crouchSpeedModifier": 0.6,
+                  "sprintSpeedModifier": 2.0,
+                  "maxStamina": 100.0,
+                  "staminaDepletionRate": 20.0,
+                  "staminaRecoveryRate": 10.0
+              }
+          ]
+        },
+        {
           "position": [0, 0, 10],
           "components": [
             {

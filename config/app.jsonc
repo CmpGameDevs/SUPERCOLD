@@ -1,13 +1,13 @@
 {
-    "start-scene": "play",
+    "start-scene": "menu",
     "window":
     {
         "title":"SUPERCOLD",
         "size":{
-            "width":1280,
-            "height":720
+            "width":1920,
+            "height":1080
         },
-        "fullscreen": true
+        "fullscreen": false
     },
     "screenshots":{
         "directory": "screenshots/play-test",
@@ -78,8 +78,15 @@
             "textures":{
                 "green_space": "assets/textures/hdr/green_space.hdr"
             },
-            "samplers":{
-                "default":{}
+            "audio": {
+                "background": "assets/audio/music/main_track.wav",
+                "car": "assets/audio/sfx/car.wav"
+            },
+            "samplers": {
+                "default": {},
+                "pixelated": {
+                    "MAG_FILTER": "GL_NEAREST"
+                }
             },
             "meshes":{
                 "helmet": "assets/models/helmet/DamagedHelmet.gltf",

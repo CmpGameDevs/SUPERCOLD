@@ -6,7 +6,7 @@
 #include <systems/forward-renderer.hpp>
 #include <systems/collision-system.hpp>
 #include <systems/fps-controller.hpp>
-#include <core/time-scale.hpp>
+#include <../game/utils/time-scale.hpp>
 #include <btBulletDynamicsCommon.h>
 
 class PhysicsTestState : public our::State {

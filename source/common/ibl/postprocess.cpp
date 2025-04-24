@@ -117,7 +117,6 @@ namespace our
             delete colorTarget;
             delete depthTarget;
             delete postprocessMaterial->sampler;
-            delete postprocessMaterial->shader;
             delete postprocessMaterial;
         }
 

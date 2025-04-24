@@ -300,27 +300,21 @@ int our::Application::run(int run_for_frames) {
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
-
         if (currentState)
             currentState->onImmediateGui(); // Call to run any required Immediate GUI.
-
         // If ImGui is using the mouse or keyboard, then we don't want the captured events to affect our keyboard and
         // mouse objects. For example, if you're focusing on an input and writing "W", the keyboard object shouldn't
         // record this event.
         keyboard.setEnabled(!io.WantTextInput, window); // Only disable keyboard when ImGui needs text input
         mouse.setEnabled(!io.WantCaptureMouse, window);
-
         // Render the ImGui commands we called (this doesn't actually draw to the screen yet.
         ImGui::Render();
-
         // Just in case ImGui changed the OpenGL viewport (the portion of the window to which we render the geometry),
         // we set it back to cover the whole window
         auto frame_buffer_size = getFrameBufferSize();
         glViewport(0, 0, frame_buffer_size.x, frame_buffer_size.y);
-
         // Get the current time (the time at which we are starting the current frame).
         double current_frame_time = glfwGetTime();
-
         // Call onDraw, in which we will draw the current frame, and send to it the time difference between the last and
         // current frame
         if (currentState)
@@ -363,7 +357,6 @@ int our::Application::run(int run_for_frames) {
             } else
                 break;
         }
-
         // Swap the frame buffers
         glfwSwapBuffers(window);
 
@@ -376,6 +369,7 @@ int our::Application::run(int run_for_frames) {
             // If a scene was already running, destroy it (not delete since we can go back to it later)
             if (currentState)
                 currentState->onDestroy();
+            
             // Switch scenes
             currentState = nextState;
             nextState = nullptr;

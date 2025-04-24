@@ -8,7 +8,7 @@
 #include <systems/collision-system.hpp>
 #include <systems/fps-controller.hpp>
 #include <systems/movement.hpp>
-#include <core/time-scale.hpp>
+#include <../game/utils/time-scale.hpp>
 
 // This state shows how to use the ECS framework and deserialization.
 class Playstate : public our::State {
