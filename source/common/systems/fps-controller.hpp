@@ -40,6 +40,7 @@ class FPSControllerSystem {
     bool mouseLocked = true;
     float jumpTimer = 0.0f;
     glm::vec3 currentVelocity = glm::vec3(0.0f);
+    glm::vec3 timeScaleVelocity = glm::vec3(0.0f);
     float verticalVelocity = 0.0f;
     bool isGrounded = true;
 
@@ -151,17 +152,19 @@ class FPSControllerSystem {
 
     // Handles jumping mechanics
     void handleJump(FPSControllerComponent *controller, float deltaTime) {
-        if (!controller->isCrouchTransitioning && isGrounded && jumpTimer <= 0.0f && app->getKeyboard().justPressed(GLFW_KEY_SPACE)) {
-            verticalVelocity = sqrt(2.0f * controller->gravity * controller->jumpHeight);
+        btKinematicCharacterController* characterController = controller->characterController;
+        if (app->getKeyboard().justPressed(GLFW_KEY_SPACE) && isGrounded) {
+            float jumpHeight = controller->currentGhostHeight + controller->jumpHeight;
+            verticalVelocity = sqrt(2.0f * controller->gravity * jumpHeight);
+            characterController->setMaxJumpHeight(jumpHeight);
+            characterController->setJumpSpeed(verticalVelocity);
+            characterController->jump();
             controller->isJumping = true;
-            jumpTimer = controller->jumpCooldown;
+        } else if (isGrounded) {
+            controller->isJumping = false;
+            verticalVelocity = 0.0f;
         } else {
-            jumpTimer -= deltaTime;
-            if (!isGrounded) {
-                verticalVelocity -= controller->gravity * deltaTime;
-            } else {
-                verticalVelocity = 0.0f;
-            }
+            verticalVelocity -= controller->gravity * deltaTime;
         }
     }
 
@@ -252,9 +255,12 @@ class FPSControllerSystem {
                     float halfHeight = newHeight * 0.5f;
                     btCapsuleShape* capsule = static_cast<btCapsuleShape*>(collision->ghostObject->getCollisionShape());
                     collision->halfExtents.y = halfHeight;
-                    capsule->setImplicitShapeDimensions(
-                        btVector3(collision->halfExtents.x, collision->halfExtents.y, 0)
-                    );
+                    btVector3 oldScale = capsule->getLocalScaling();
+                    capsule->setLocalScaling(btVector3(
+                        oldScale.x(),
+                        oldScale.y(),
+                        oldScale.z() * (newHeight / controller->currentGhostHeight)
+                    ));
 
                     // reposition so the bottom of the capsule is at the same height as before
                     btTransform t = collision->ghostObject->getWorldTransform();
@@ -275,6 +281,14 @@ class FPSControllerSystem {
         }
     }
 
+    void updateTimeScaleVelocity(FPSControllerComponent *controller) {
+        timeScaleVelocity = glm::vec3(currentVelocity.x, verticalVelocity, currentVelocity.z);
+        const float EPSILON = 0.2f;
+        bool isMoving = glm::length(timeScaleVelocity) > EPSILON;
+        if (controller->isSprinting || controller->isJumping) timeScaleVelocity = (isMoving ? timeScaleVelocity : glm::vec3(1,1,1)) * controller->actionSpeedModifier;
+        if (controller->isCrouching) timeScaleVelocity *= controller->crouchSpeedModifier;
+    }
+
   public:
     // Enters the state and locks the mouse
     void enter(Application *app) {
@@ -287,19 +301,19 @@ class FPSControllerSystem {
     }
 
     float getSpeedMagnitude() {
-        return glm::length(currentVelocity);
+        return glm::length(timeScaleVelocity);
     }
     
     // Updates the FPS controller every frame
     void update(World *world, float deltaTime) {
         auto [camera, controller] = findControlledEntity(world);
-
-        if (!(camera && controller))
-            return;
+        if (!(camera && controller)) return;
+        auto characterController = controller->characterController;
+        if (!characterController) return;
 
         Entity *entity = camera->getOwner();
         glm::vec3 &position = entity->localTransform.position;
-        isGrounded = checkGrounded(controller, entity);
+        isGrounded = characterController->onGround();
 
         // Handle crouch toggling with C key
         handleCrouching(controller, entity, deltaTime);
@@ -312,15 +326,12 @@ class FPSControllerSystem {
         applyMovementSmoothing(controller, movementDirection, deltaTime);
         handleJump(controller, deltaTime);
 
-        // Combine horizontal and vertical movement
         glm::vec3 horizontalVelocity = glm::vec3(currentVelocity.x, 0.0f, currentVelocity.z);
-        glm::vec3 totalMovement = (horizontalVelocity + glm::vec3(0, verticalVelocity, 0)) * deltaTime;
-        if (isGrounded && totalMovement.y < 0.0f) totalMovement.y = 0.0f;
+        glm::vec3 totalMovement = horizontalVelocity * deltaTime;
 
-        auto collision = entity->getComponent<CollisionComponent>();
-        if (collision && collision->ghostObject) collisionSystem->moveGhost(entity, totalMovement);
-        else position += totalMovement;
+        collisionSystem->moveGhost(entity, totalMovement, deltaTime);
 
+        updateTimeScaleVelocity(controller);
         handleRotation(controller);
     }
 

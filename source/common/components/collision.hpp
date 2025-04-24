@@ -40,6 +40,10 @@ namespace our {
         // For collision detection, we need to store the collided entities
         std::unordered_set<Entity*> collidedEntities;
 
+        // For realism add drag and cross-section
+        float dragCoefficient = 1.0f;
+        float crossSectionArea = 1.0f;
+
         virtual ~CollisionComponent();
 
         // The ID of this component type is "Collision"
