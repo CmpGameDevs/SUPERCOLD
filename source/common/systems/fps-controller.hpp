@@ -9,6 +9,7 @@
 #include <glm/trigonometric.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/euler_angles.hpp>
+#include "collision-system.hpp"
 
 namespace our {
 
@@ -22,8 +23,6 @@ namespace our {
 //   - Left Shift: Sprint (Consumes Stamina)
 //   - Space:     Jump
 //   - C:         Crouch (No functionality implemented in this version)
-//   NOTE: Q/E are left for debugging but will be removed.
-//   - Q/E:       Vertical Movement (Up/Down) - only when not jumping and mouse locked
 // =========================================================================
 
 template <typename T> T clamp(T value, T min, T max) {
@@ -33,9 +32,11 @@ template <typename T> T clamp(T value, T min, T max) {
 class FPSControllerSystem {
   public:
     static constexpr float NEAR_ZERO = 0.001f;
+    static constexpr float GROUND_EPSILON = 0.3f;
 
   private:
     Application *app = nullptr;
+    CollisionSystem *collisionSystem = nullptr;
     bool mouseLocked = true;
     float jumpTimer = 0.0f;
     glm::vec3 currentVelocity = glm::vec3(0.0f);
@@ -113,37 +114,69 @@ class FPSControllerSystem {
         }
     }
 
+    bool checkGrounded(FPSControllerComponent *controller, Entity* entity) {
+        bool isGrounded = false;
+        if (collisionSystem != nullptr) {
+            CollisionComponent* collision = entity->getComponent<CollisionComponent>();
+            if (collision) {
+                btTransform transform;
+                if (collision->bulletBody) transform = collision->bulletBody->getWorldTransform();
+                else if (collision->ghostObject) transform = collision->ghostObject->getWorldTransform();
+                else return false;
+
+                glm::vec3 ghostPosition(
+                    transform.getOrigin().x(),
+                    transform.getOrigin().y(),
+                    transform.getOrigin().z()
+                );
+
+                float height = controller->currentGhostHeight * 0.5f;
+                glm::vec3 rayStart = ghostPosition;
+                glm::vec3 rayEnd = ghostPosition - glm::vec3(0, height + GROUND_EPSILON, 0);
+                CollisionComponent* hitComponent = nullptr;
+                glm::vec3 hitPoint, hitNormal;
+
+                glm::vec3 color(0.0f, 1.0f, 1.0f); // Cyan color
+                if (collisionSystem->raycast(rayStart, rayEnd, hitComponent, hitPoint, hitNormal)) {
+                    isGrounded = true;
+                    verticalVelocity = 0.0f;
+                    controller->isJumping = false;
+                    color = glm::vec3(1.0f, 0.5f, 0.0f); // Orange color
+                }
+                collisionSystem->debugDrawRay(rayStart, rayEnd, color);
+            }
+        }
+        return isGrounded;
+    }
+
     // Handles jumping mechanics
-    void handleJump(FPSControllerComponent *controller, float deltaTime, glm::vec3 &position) {
-        if (isGrounded && jumpTimer <= 0.0f && app->getKeyboard().justPressed(GLFW_KEY_SPACE)) {
+    void handleJump(FPSControllerComponent *controller, float deltaTime) {
+        if (!controller->isCrouchTransitioning && isGrounded && jumpTimer <= 0.0f && app->getKeyboard().justPressed(GLFW_KEY_SPACE)) {
             verticalVelocity = sqrt(2.0f * controller->gravity * controller->jumpHeight);
-            isGrounded = false;
             controller->isJumping = true;
             jumpTimer = controller->jumpCooldown;
         } else {
             jumpTimer -= deltaTime;
-
             if (!isGrounded) {
                 verticalVelocity -= controller->gravity * deltaTime;
-                position.y += verticalVelocity * deltaTime;
-
-                if (position.y <= 0.0f) {
-                    position.y = 0.0f;
-                    verticalVelocity = 0.0f;
-                    isGrounded = true;
-                    controller->isJumping = false;
-                }
+            } else {
+                verticalVelocity = 0.0f;
             }
         }
     }
 
     // Handles movement based on input
-    glm::vec3 handleMovement(FPSControllerComponent *controller, float deltaTime) {
+    glm::vec3 handleMovement(const FPSControllerComponent *controller, const float deltaTime) const {
         glm::vec3 movementDirection(0.0f);
 
         glm::mat4 matrix = controller->getOwner()->localTransform.toMat4();
         glm::vec3 front = glm::vec3(matrix * glm::vec4(0, 0, -1, 0));
+        front.y = 0.0f;
+        front = glm::normalize(front);
+
         glm::vec3 right = glm::vec3(matrix * glm::vec4(1, 0, 0, 0));
+        right.y = 0.0f;
+        right = glm::normalize(right);
 
         if (app->getKeyboard().isPressed(GLFW_KEY_W))
             movementDirection += front;
@@ -162,8 +195,8 @@ class FPSControllerSystem {
     }
 
     // Applies movement smoothing
-    void applyMovementSmoothing(FPSControllerComponent *controller, const glm::vec3 &movementDirection,
-                                float deltaTime) {
+    void applyMovementSmoothing(const FPSControllerComponent *controller, const glm::vec3 &movementDirection,
+                                const float deltaTime) {
         // Calculate movement speed based on current state
         glm::vec3 currentSensitivity = glm::vec3(controller->positionSensitivity);
 
@@ -188,11 +221,69 @@ class FPSControllerSystem {
         }
     }
 
+    void handleCrouching(FPSControllerComponent *controller, Entity *entity, float deltaTime) {
+        if (isGrounded && app->getKeyboard().justPressed(GLFW_KEY_C)) {
+            controller->isCrouching = !controller->isCrouching;
+            controller->isCrouchTransitioning = true;
+            controller->crouchLerpProgress = 0.0f;
+        
+            controller->initialGhostHeight = controller->currentGhostHeight;
+            controller->targetGhostHeight = controller->isCrouching 
+                ? controller->height * controller->crouchHeightModifier 
+                : controller->height;
+        }
+
+        if (controller->isCrouchTransitioning) {
+            controller->crouchLerpProgress += deltaTime / controller->crouchTransitionTime;
+            if (controller->crouchLerpProgress >= 1.0f) {
+                controller->crouchLerpProgress = 1.0f;
+                controller->isCrouchTransitioning = false;
+            }
+        
+            if (auto collision = entity->getComponent<CollisionComponent>()) {
+                if (collision->ghostObject) {
+                    float newHeight = glm::mix(
+                        controller->initialGhostHeight,
+                        controller->targetGhostHeight,
+                        controller->crouchLerpProgress
+                    );
+        
+                    // resize the shape
+                    float halfHeight = newHeight * 0.5f;
+                    btCapsuleShape* capsule = static_cast<btCapsuleShape*>(collision->ghostObject->getCollisionShape());
+                    collision->halfExtents.y = halfHeight;
+                    capsule->setImplicitShapeDimensions(
+                        btVector3(collision->halfExtents.x, collision->halfExtents.y, 0)
+                    );
+
+                    // reposition so the bottom of the capsule is at the same height as before
+                    btTransform t = collision->ghostObject->getWorldTransform();
+                    float oldHalfHeight = controller->currentGhostHeight * 0.5f;
+                    float bottomY = t.getOrigin().y() - oldHalfHeight;
+                    t.getOrigin().setY(bottomY + halfHeight);
+                    collision->ghostObject->setWorldTransform(t);
+
+                    auto* world = collisionSystem->getPhysicsWorld();
+                    world->getBroadphase()->getOverlappingPairCache()->cleanProxyFromPairs(
+                    collision->ghostObject->getBroadphaseHandle(),
+                    world->getDispatcher()
+                    );
+                    world->updateSingleAabb(collision->ghostObject);
+                    controller->currentGhostHeight = newHeight;
+                }
+            }
+        }
+    }
+
   public:
     // Enters the state and locks the mouse
     void enter(Application *app) {
         this->app = app;
         app->getMouse().lockMouse(app->getWindow());
+    }
+
+    void setCollisionSystem(CollisionSystem *collisionSystem) {
+        this->collisionSystem = collisionSystem;
     }
 
     float getSpeedMagnitude() {
@@ -208,37 +299,29 @@ class FPSControllerSystem {
 
         Entity *entity = camera->getOwner();
         glm::vec3 &position = entity->localTransform.position;
+        isGrounded = checkGrounded(controller, entity);
+
+        // Handle crouch toggling with C key
+        handleCrouching(controller, entity, deltaTime);
 
         handleMouseLockToggle();
         handleFov(camera, controller);
         handleStamina(controller, deltaTime);
-        handleJump(controller, deltaTime, position);
-
-        // Handle crouch toggling with C key
-        if (app->getKeyboard().justPressed(GLFW_KEY_C)) {
-            controller->isCrouching = !controller->isCrouching;
-        }
 
         glm::vec3 movementDirection = handleMovement(controller, deltaTime);
         applyMovementSmoothing(controller, movementDirection, deltaTime);
+        handleJump(controller, deltaTime);
 
-        // Apply horizontal movement
-        position += glm::vec3(currentVelocity.x, 0, currentVelocity.z) * deltaTime;
+        // Combine horizontal and vertical movement
+        glm::vec3 horizontalVelocity = glm::vec3(currentVelocity.x, 0.0f, currentVelocity.z);
+        glm::vec3 totalMovement = (horizontalVelocity + glm::vec3(0, verticalVelocity, 0)) * deltaTime;
+        if (isGrounded && totalMovement.y < 0.0f) totalMovement.y = 0.0f;
+
+        auto collision = entity->getComponent<CollisionComponent>();
+        if (collision && collision->ghostObject) collisionSystem->moveGhost(entity, totalMovement);
+        else position += totalMovement;
 
         handleRotation(controller);
-
-        // Handle vertical movement based on Q & E keys (only when not jumping and
-        // mouse is locked)
-        if (isGrounded && mouseLocked) {
-            glm::mat4 matrix = controller->getOwner()->localTransform.toMat4();
-            glm::vec3 up = glm::vec3(matrix * glm::vec4(0, 1, 0, 0));
-            glm::vec3 currentSensitivity = glm::vec3(controller->positionSensitivity);
-
-            if (app->getKeyboard().isPressed(GLFW_KEY_Q))
-                position += up * (deltaTime * currentSensitivity.y);
-            if (app->getKeyboard().isPressed(GLFW_KEY_E))
-                position -= up * (deltaTime * currentSensitivity.y);
-        }
     }
 
     // Unlocks the mouse when the state exits

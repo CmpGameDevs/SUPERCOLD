@@ -1,7 +1,8 @@
-#include "collision.hpp"
-#include "../deserialize-utils.hpp"
-#include "../asset-loader.hpp"
+#include <iostream>
+#include <deserialize-utils.hpp>
+#include <asset-loader.hpp>
 #include <mesh/mesh.hpp>
+#include "collision.hpp"
 
 namespace our {
     
@@ -10,6 +11,15 @@ namespace our {
             delete bulletBody->getCollisionShape();
             delete bulletBody->getMotionState();
             delete bulletBody;
+        }
+
+        if (triangleMesh) {
+            delete triangleMesh;
+        }
+
+        if (ghostObject) {
+            delete ghostObject->getCollisionShape();
+            delete ghostObject;
         }
     }
     
@@ -40,6 +50,11 @@ namespace our {
                 if(data.contains("indices")) {
                     indices = data["indices"].get<std::vector<uint32_t>>();
                 }
+            }
+            else if(shapeStr == "ghost") shape = CollisionShape::GHOST;
+            else {
+                std::cerr << "Unknown collision shape: " << shapeStr << std::endl;
+                shape = CollisionShape::BOX; // Default to box if unknown
             }
         }
         

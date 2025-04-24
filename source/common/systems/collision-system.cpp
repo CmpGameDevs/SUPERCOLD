@@ -1,6 +1,8 @@
 #include "collision-system.hpp"
 #include "../ecs/transform.hpp"
+#include <btBulletDynamicsCommon.h>
 #include <BulletCollision/CollisionShapes/btShapeHull.h>
+#include <BulletCollision/CollisionDispatch/btGhostObject.h>
 #include <glm/gtx/matrix_decompose.hpp>
 
 namespace our {
@@ -12,6 +14,9 @@ namespace our {
         if (this->physicsWorld->getDebugDrawer())
             this->physicsWorld->getDebugDrawer()->setDebugMode(btIDebugDraw::DBG_DrawWireframe);
         this->physicsWorld->setGravity(btVector3(0, -9.81f, 0));
+        this->physicsWorld->getBroadphase()->getOverlappingPairCache()->setInternalGhostPairCallback(
+            new btGhostPairCallback()
+        );
     }
 
     void CollisionSystem::_stepSimulation(float deltaTime) {
@@ -34,7 +39,7 @@ namespace our {
             transform.rotation = entity->localTransform.rotation;
             transform.scale = glm::vec3(glm::length(worldMatrix[0]), glm::length(worldMatrix[1]), glm::length(worldMatrix[2]));
             
-            if(!collision->bulletBody) {
+            if(!collision->bulletBody && !collision->ghostObject) {
                 _createRigidBody(entity, collision, &transform);
             }
             _syncTransforms(entity, collision, &transform);
@@ -47,8 +52,87 @@ namespace our {
         }
     }
 
+    btCollisionShape* CollisionSystem::_createMeshShape(CollisionComponent* collision, const Transform* transform) {
+        if (!collision->triangleMesh && collision->mass <= 0.0f && !collision->isKinematic) {
+            // Build triangle mesh from vertices/indices
+            collision->triangleMesh = new btTriangleMesh();
+            for (size_t i = 0; i < collision->indices.size(); i += 3) {
+                auto& v0 = collision->vertices[collision->indices[i]].position;
+                auto& v1 = collision->vertices[collision->indices[i+1]].position;
+                auto& v2 = collision->vertices[collision->indices[i+2]].position;
+                
+                collision->triangleMesh->addTriangle(
+                    btVector3(v0.x, v0.y, v0.z),
+                    btVector3(v1.x, v1.y, v1.z),
+                    btVector3(v2.x, v2.y, v2.z)
+                );
+            }
+            btCollisionShape* shape = new btBvhTriangleMeshShape(collision->triangleMesh, true, true);
+            shape->setLocalScaling(btVector3(
+                transform->scale.x,
+                transform->scale.y,
+                transform->scale.z
+            ));
+            return shape;
+        } else {
+            // For dynamic objects, create convex hull
+            auto* convexRaw = new btConvexHullShape(
+                (btScalar*)&collision->vertices[0].position,
+                (int)collision->vertices.size(),
+                sizeof(our::Vertex)
+            );
+            convexRaw->setMargin(0.01f);
+            
+            // Simplify using btShapeHull
+            btShapeHull* hull = new btShapeHull(convexRaw);
+            hull->buildHull(convexRaw->getMargin());
+            
+            btConvexHullShape* simplified = new btConvexHullShape();
+            for (int i = 0; i < hull->numVertices(); ++i) {
+                simplified->addPoint(hull->getVertexPointer()[i]);
+            }
+            
+            delete convexRaw;
+            delete hull;
+            return simplified;
+        }
+    }
+
+    void CollisionSystem::_createGhostObject(Entity* entity, CollisionComponent* collision, const Transform* transform) {
+        if (collision->ghostObject) return;
+        btCollisionShape* shape = new btCapsuleShape(
+            collision->halfExtents.x,
+            collision->halfExtents.y * 2.0f
+        );
+        btPairCachingGhostObject* ghost = new btPairCachingGhostObject();
+        ghost->setCollisionShape(shape);
+        ghost->setUserPointer(entity);
+        btTransform btTrans;
+        btTrans.setIdentity();
+        btTrans.setOrigin(btVector3(
+            transform->position.x,
+            transform->position.y,
+            transform->position.z
+        ));
+        ghost->setWorldTransform(btTrans);
+        ghost->setCollisionFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
+        physicsWorld->addCollisionObject(
+            ghost,
+            btBroadphaseProxy::KinematicFilter,  // Group: treat player as kinematic
+            btBroadphaseProxy::StaticFilter |    // Mask: collide with static
+            btBroadphaseProxy::KinematicFilter | // and kinematic objects
+            btBroadphaseProxy::DefaultFilter     // and default objects
+        );
+        physicsWorld->getBroadphase()->getOverlappingPairCache()->setInternalGhostPairCallback(
+            new btGhostPairCallback()
+        );
+        physicsWorld->updateSingleAabb(ghost);
+        collision->ghostObject = ghost;
+    }
+
     void CollisionSystem::_createRigidBody(Entity* entity, CollisionComponent* collision, const Transform* transform) {
         btCollisionShape* shape = nullptr;
+        if (collision->isKinematic) collision->mass = 0.0f;
                     
         // Create shape based on component data
         switch(collision->shape) {
@@ -68,52 +152,13 @@ namespace our {
                     collision->halfExtents.y    // height
                 );
                 break;
-            case CollisionShape::MESH: {
-                if (!collision->triangleMesh) {
-                    // Build triangle mesh from vertices/indices
-                    collision->triangleMesh = new btTriangleMesh();
-                    for (size_t i = 0; i < collision->indices.size(); i += 3) {
-                        auto& v0 = collision->vertices[collision->indices[i]].position;
-                        auto& v1 = collision->vertices[collision->indices[i+1]].position;
-                        auto& v2 = collision->vertices[collision->indices[i+2]].position;
-                        
-                        collision->triangleMesh->addTriangle(
-                            btVector3(v0.x, v0.y, v0.z),
-                            btVector3(v1.x, v1.y, v1.z),
-                            btVector3(v2.x, v2.y, v2.z)
-                        );
-                    }
-                }
-        
-                if (collision->mass <= 0.0f && !collision->isKinematic) {
-                    shape = new btBvhTriangleMeshShape(collision->triangleMesh, true, true);
-                } else {
-                    // For dynamic objects, create convex hull
-                    auto* convexRaw = new btConvexHullShape(
-                        (btScalar*)&collision->vertices[0].position,
-                        (int)collision->vertices.size(),
-                        sizeof(our::Vertex)
-                    );
-                    convexRaw->setMargin(0.01f);
-                    
-                    // Simplify using btShapeHull
-                    btShapeHull* hull = new btShapeHull(convexRaw);
-                    hull->buildHull(convexRaw->getMargin());
-                    
-                    btConvexHullShape* simplified = new btConvexHullShape();
-                    for (int i = 0; i < hull->numVertices(); ++i) {
-                        simplified->addPoint(hull->getVertexPointer()[i]);
-                    }
-                    
-                    delete convexRaw;
-                    delete hull;
-                    shape = simplified;
-                }
+            case CollisionShape::MESH:
+                shape = _createMeshShape(collision, transform);
                 break;
-            }
+            case CollisionShape::GHOST:
+                _createGhostObject(entity, collision, transform);
+                return; // No need to create a rigid body for ghost objects
         }
-    
-        if (collision->isKinematic) collision->mass = 0.0f;
 
         btTransform btTrans;
         btTrans.setIdentity();
@@ -123,8 +168,7 @@ namespace our {
             transform->position.z
         ));
         btVector3 inertia(0, 0, 0);
-        if(collision->mass > 0 && !collision->isKinematic)
-            shape->calculateLocalInertia(collision->mass, inertia);
+        if(collision->mass > 0) shape->calculateLocalInertia(collision->mass, inertia);
         
         btMotionState* motionState = new btDefaultMotionState(btTrans);
         btRigidBody::btRigidBodyConstructionInfo rbInfo(
@@ -158,6 +202,13 @@ namespace our {
     void CollisionSystem::_syncTransforms(Entity* entity, CollisionComponent* collision, Transform* transform) {
         // Skip static objects
         if (collision->mass == 0.0f && !collision->isKinematic) return;
+
+        if (collision->shape == CollisionShape::GHOST) {
+            if (!collision->ghostObject) return;
+            btTransform t = collision->ghostObject->getWorldTransform();
+            transform->position = glm::vec3(t.getOrigin().x(), t.getOrigin().y(), t.getOrigin().z());
+            return;
+        }
 
         if(collision->isKinematic) {
             // Update physics from ECS
@@ -304,6 +355,152 @@ namespace our {
         }
     }
 
+    glm::vec3 CollisionSystem::_sweepTestGhostObject(btPairCachingGhostObject* ghost, const glm::vec3& movement) {
+        const float MIN_MOVEMENT = 0.01f;
+        const int MAX_ITERATIONS = 3;
+        const float COLLISION_MARGIN = 0.0f;
+        
+        glm::vec3 remainingMovement = movement;
+        glm::vec3 totalMovement(0.0f);
+        int iterations = 0;
+
+        btConvexShape* ghostShape = static_cast<btConvexShape*>(ghost->getCollisionShape());
+        ghostShape->setMargin(COLLISION_MARGIN);
+    
+        while (iterations++ < MAX_ITERATIONS && glm::length(remainingMovement) > MIN_MOVEMENT) {
+            btTransform start = ghost->getWorldTransform();
+            btTransform end = start;
+            end.setOrigin(start.getOrigin() + btVector3(remainingMovement.x, remainingMovement.y, remainingMovement.z));
+    
+            AllHitsConvexResultCallback allCb(
+                start.getOrigin(), end.getOrigin()
+            );
+            allCb.m_collisionFilterGroup = btBroadphaseProxy::KinematicFilter;
+            allCb.m_collisionFilterMask  = btBroadphaseProxy::StaticFilter | btBroadphaseProxy::KinematicFilter;
+            
+    
+            btConvexShape* ghostShape = static_cast<btConvexShape*>(ghost->getCollisionShape());
+            if (!ghostShape) {
+                throw std::runtime_error("Ghost object has no collision shape!");
+            }
+    
+            physicsWorld->convexSweepTest(ghostShape, start, end, allCb);
+    
+            bool collisionDetected = false;
+            if (allCb.hasHit()) {
+                const float EPS = 1e-3f;
+                float bestFrac = 1.0f;
+                int   bestIdx  = -1;
+
+                for (int i = 0; i < allCb.hitFractions.size(); ++i) {
+                    float f = allCb.hitFractions[i];
+                    if (f > EPS && f < bestFrac) {
+                        bestFrac = f;
+                        bestIdx  = i;
+                    }
+                }
+                if (bestIdx >= 0) {
+                    // Use the best hit fraction to update the ghost position
+                    btVector3 hitPointBt  = allCb.hitPointsWorld[bestIdx];
+                    btVector3 hitNormalBt = allCb.hitNormalsWorld[bestIdx];
+
+                    glm::vec3 hitNormal( hitNormalBt.x(), hitNormalBt.y(), hitNormalBt.z());
+                    hitNormal = glm::normalize(hitNormal);
+
+                    float bestFrac = allCb.hitFractions[bestIdx];
+                    glm::vec3 allowedMovement = remainingMovement * bestFrac;
+                    totalMovement += allowedMovement;
+
+                    glm::vec3 remaining = remainingMovement - allowedMovement;
+                    remainingMovement = remaining - hitNormal * glm::dot(remaining, hitNormal);
+                    
+                        // Update ghost position incrementally
+                    btTransform newTransform = start;
+                    newTransform.setOrigin(start.getOrigin() + btVector3(allowedMovement.x, allowedMovement.y, allowedMovement.z));
+                    ghost->setWorldTransform(newTransform);
+                    physicsWorld->updateSingleAabb(ghost);
+                    collisionDetected = true;
+                }
+            } 
+            if (!collisionDetected) {
+                // No collision - apply full remaining movement
+                totalMovement += remainingMovement;
+                ghost->setWorldTransform(end);
+                physicsWorld->updateSingleAabb(ghost);
+                break;
+            }
+        }
+    
+        return totalMovement;
+    }
+
+    void CollisionSystem::_pushOverlappingObjects(btPairCachingGhostObject* ghost, const glm::vec3& movement) {
+        ghost->getOverlappingPairCache()->cleanProxyFromPairs(
+            ghost->getBroadphaseHandle(), physicsWorld->getDispatcher()
+        );
+        physicsWorld->performDiscreteCollisionDetection();
+        const btBroadphasePairArray& pairs = ghost->getOverlappingPairCache()->getOverlappingPairArray();
+        for (int i = 0; i < pairs.size(); ++i) {
+            const btBroadphasePair& pair = pairs[i];
+            btBroadphasePair* collisionPair = physicsWorld->getPairCache()->findPair(pair.m_pProxy0, pair.m_pProxy1);
+            if (!collisionPair || !collisionPair->m_algorithm) continue;
+    
+            btManifoldArray manifolds;
+            collisionPair->m_algorithm->getAllContactManifolds(manifolds);
+    
+            for (int j = 0; j < manifolds.size(); ++j) {
+                btPersistentManifold* manifold = manifolds[j];
+                const btCollisionObject* objA = static_cast<const btCollisionObject*>(manifold->getBody0());
+                const btCollisionObject* objB = static_cast<const btCollisionObject*>(manifold->getBody1());
+    
+                const btCollisionObject* otherObj = (objA == ghost) ? objB : objA;
+    
+                if (btRigidBody* rb = btRigidBody::upcast(const_cast<btCollisionObject*>(otherObj))) {
+                    // Get the name of the entity associated with the collision object
+                    Entity* entity = static_cast<Entity*>(rb->getUserPointer());
+                    // printf("Pushing entity: %s\n", entity->name.c_str());
+
+                    if (rb->getInvMass() > 0.0f) {
+                        btTransform dynTrans;
+                        rb->getMotionState()->getWorldTransform(dynTrans);
+
+                        btVector3 shift(movement.x, movement.y, movement.z);
+                        dynTrans.setOrigin(dynTrans.getOrigin() + shift);
+
+                        // Commit the new position
+                        rb->getMotionState()->setWorldTransform(dynTrans);
+                        rb->setWorldTransform(dynTrans);
+                        rb->activate();
+                    }
+                }
+            }
+        }
+    }
+
+    void CollisionSystem::moveGhost(Entity* entity, const glm::vec3& movement) {
+        CollisionComponent *collision = entity->getComponent<CollisionComponent>();
+        if (!collision || !collision->ghostObject) return;
+        btPairCachingGhostObject* ghost = collision->ghostObject;
+
+        glm::vec3 actualMovement = _sweepTestGhostObject(ghost, movement);
+        // glm::vec3 actualMovement = movement;
+        const btTransform initialTransform = collision->ghostObject->getWorldTransform();
+    
+        try {
+            glm::vec3 actualMovement = _sweepTestGhostObject(collision->ghostObject, movement);  // Currently useless
+            _pushOverlappingObjects(collision->ghostObject, actualMovement);    // Currently buggy
+        } catch (const std::exception& e) {
+            // Reset to safe state on error
+            collision->ghostObject->setWorldTransform(initialTransform);
+            physicsWorld->updateSingleAabb(collision->ghostObject);
+            std::cerr << "Ghost movement failed: " << e.what() << std::endl;
+        }
+
+        Transform transform;
+        _syncTransforms(entity, collision, &transform);
+        entity->localTransform.position = transform.position;
+    }
+
     void CollisionSystem::debugDrawRay(const glm::vec3& start, const glm::vec3& end, const glm::vec3& color) {
         if (debugDrawer) {
             debugDrawer->drawLine(
@@ -324,16 +521,23 @@ namespace our {
 
             // Set color based on collision flags
             btVector3 color(1, 1, 1);
-            if (obj->getCollisionFlags() & btCollisionObject::CF_STATIC_OBJECT) {
-                color = btVector3(0, 1, 0);
-            } else if (obj->getCollisionFlags() & btCollisionObject::CF_KINEMATIC_OBJECT) {
+            if (obj->getCollisionFlags() & btCollisionObject::CF_KINEMATIC_OBJECT) {
                 color = btVector3(1, 1, 0);
+            } else if (obj->getCollisionFlags() & btCollisionObject::CF_STATIC_OBJECT) {
+                color = btVector3(0, 1, 0);
             } else if (obj->getCollisionFlags() & btCollisionObject::CF_DYNAMIC_OBJECT) {
                 color = btVector3(0, 0, 1);
             } else if (auto entity = static_cast<Entity*>(obj->getUserPointer())) {
                 auto collision = entity->getComponent<CollisionComponent>();
                 if (collision && !collision->collidedEntities.empty()) {
                     color = btVector3(1, 0, 0);
+                }
+                if (collision->ghostObject) {
+                    physicsWorld->debugDrawObject(
+                        collision->ghostObject->getWorldTransform(),
+                        collision->ghostObject->getCollisionShape(),
+                        btVector3(1, 0.5, 0) // Orange color for ghost
+                    );
                 }
             }
 
