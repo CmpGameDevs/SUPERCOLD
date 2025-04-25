@@ -54,11 +54,14 @@ class Model {
 
     // Interprets the binary data into floats, indices, and textures
     std::vector<float> getFloats(json accessor);
+    std::vector<short> getShorts(json accessor);
     std::vector<GLuint> getIndices(json accessor);
 
     // Assembles all the floats into vertices
     std::vector<Vertex> assembleVertices(std::vector<glm::vec3> positions, std::vector<glm::vec3> normals,
-                                         std::vector<glm::vec2> texUVs);
+                                    std::vector<glm::vec2> texUVs, 
+                                    std::vector<glm::ivec4> boneIndices = std::vector<glm::ivec4>(), 
+                                    std::vector<glm::vec4> boneWeights = std::vector<glm::vec4>());
 
     // Helps with the assembly from above by grouping floats
     std::vector<glm::vec2> groupFloatsVec2(std::vector<float> floatVec);

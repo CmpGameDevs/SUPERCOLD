@@ -186,10 +186,49 @@ void Model::loadMesh(unsigned int indMesh) {
         texUVs.resize(positions.size(), glm::vec2(0.0f, 0.0f));
         std::cout << "Mesh #" << indMesh << " using default texture coordinates (0,0)" << std::endl;
     }
+    
+    // Load bone indices and weights if they exist
+    std::vector<glm::ivec4> boneIndices;
+    std::vector<glm::vec4> boneWeights;
+    
+    if (attributes.contains("JOINTS_0") && attributes.contains("WEIGHTS_0")) {
+        // Load indices - these are typically stored as unsigned shorts (componentType 5123)
+        unsigned int jointsAccInd = attributes["JOINTS_0"];
+        json jointsAccessor = JSON["accessors"][jointsAccInd];
+        
+        if (jointsAccessor["componentType"] == 5123) { // UNSIGNED_SHORT
+            std::vector<short> jointsVec = getShorts(jointsAccessor);
+            
+            // Group the shorts into ivec4
+            for (unsigned int i = 0; i < jointsVec.size(); i += 4) {
+                glm::ivec4 joints = glm::ivec4(0);
+                for (unsigned int j = 0; j < 4 && (i + j) < jointsVec.size(); j++) {
+                    joints[j] = static_cast<int>(jointsVec[i + j]);
+                }
+                boneIndices.push_back(joints);
+            }
+        } else if (jointsAccessor["componentType"] == 5121) { // UNSIGNED_BYTE
+            // For completeness, handle byte indices if needed
+            // Implementation would be similar but with 1-byte reads
+            std::cout << "Mesh #" << indMesh << " using UNSIGNED_BYTE for joint indices" << std::endl;
+        }
+        
+        // Load weights - these are typically stored as floats
+        unsigned int weightsAccInd = attributes["WEIGHTS_0"];
+        std::vector<float> weightsVec = getFloats(JSON["accessors"][weightsAccInd]);
+        boneWeights = groupFloatsVec4(weightsVec);
+        
+        std::cout << "Mesh #" << indMesh << " loaded " << boneIndices.size() << " bone mappings" << std::endl;
+    } else {
+        // If no skinning data, we still need to provide default values
+        std::cout << "Mesh #" << indMesh << " has no skinning data" << std::endl;
+    }
 
     // Combine all the vertex components and also get the indices and textures
-    std::vector<Vertex> vertices = assembleVertices(positions, normals, texUVs);
+    std::vector<Vertex> vertices = assembleVertices(positions, normals, texUVs, boneIndices, boneWeights);
     std::vector<GLuint> indices = getIndices(JSON["accessors"][indAccInd]);
+
+    
 
     // Combine the vertices, indices, and textures into a mesh
     MeshRendererComponent *meshRenderer = new MeshRendererComponent();
@@ -430,7 +469,8 @@ std::vector<float> Model::getFloats(json accessor) {
 
     // Get properties from the bufferView
     json bufferView = JSON["bufferViews"][buffViewInd];
-    unsigned int byteOffset = bufferView["byteOffset"];
+    unsigned int byteOffset = bufferView.value("byteOffset", 0);
+    unsigned int byteStride = bufferView.value("byteStride", 0);
 
     // Interpret the type and store it into numPerVert
     unsigned int numPerVert;
@@ -456,6 +496,46 @@ std::vector<float> Model::getFloats(json accessor) {
     }
 
     return floatVec;
+}
+
+std::vector<short> Model::getShorts(json accessor) {
+    std::vector<short> shortVec;
+
+    // Get properties from the accessor
+    unsigned int buffViewInd = accessor.value("bufferView", 1);
+    unsigned int count = accessor["count"];
+    unsigned int accByteOffset = accessor.value("byteOffset", 0);
+    std::string type = accessor["type"];
+
+    // Get properties from the bufferView
+    json bufferView = JSON["bufferViews"][buffViewInd];
+    unsigned int byteOffset = bufferView.value("byteOffset", 0);
+    unsigned int byteStride = bufferView.value("byteStride", 0);
+
+    // Interpret the type and store it into numPerVert
+    unsigned int numPerVert;
+    if (type == "SCALAR")
+        numPerVert = 1;
+    else if (type == "VEC2")
+        numPerVert = 2;
+    else if (type == "VEC3")
+        numPerVert = 3;
+    else if (type == "VEC4")
+        numPerVert = 4;
+    else
+        throw std::invalid_argument("Type is invalid (not SCALAR, VEC2, VEC3, or VEC4)");
+
+    // Go over all the bytes in the data at the correct place using the properties from above
+    unsigned int beginningOfData = byteOffset + accByteOffset;
+    unsigned int lengthOfData = count * 2 * numPerVert; // 2 bytes per short
+    for (unsigned int i = beginningOfData; i < beginningOfData + lengthOfData; i += 2) {
+        unsigned char bytes[] = {data[i], data[i + 1]};
+        short value;
+        std::memcpy(&value, bytes, sizeof(short));
+        shortVec.push_back(value);
+    }
+
+    return shortVec;
 }
 
 std::vector<GLuint> Model::getIndices(json accessor) {
@@ -580,11 +660,33 @@ std::vector<GLuint> Model::getIndices(json accessor) {
 }
 
 std::vector<Vertex> Model::assembleVertices(std::vector<glm::vec3> positions, std::vector<glm::vec3> normals,
-                                            std::vector<glm::vec2> texUVs) {
+                                          std::vector<glm::vec2> texUVs, 
+                                          std::vector<glm::ivec4> boneIndices, 
+                                          std::vector<glm::vec4> boneWeights) {
     std::vector<Vertex> vertices;
     for (int i = 0; i < positions.size(); i++) {
         texUVs[i].y = 1 - texUVs[i].y;
-        vertices.push_back(Vertex{positions[i], glm::vec4(1, 1, 1, 1), texUVs[i], normals[i]});
+        
+        // Default bone data if none provided
+        glm::ivec4 indices = (i < boneIndices.size()) ? boneIndices[i] : glm::ivec4(0, 0, 0, 0);
+        glm::vec4 weights = (i < boneWeights.size()) ? boneWeights[i] : glm::vec4(1, 0, 0, 0);
+        
+        // Normalize weights to ensure they sum to 1
+        float sum = weights.x + weights.y + weights.z + weights.w;
+        if (sum > 0) {
+            weights /= sum;
+        } else {
+            weights = glm::vec4(1, 0, 0, 0); // Default weight to first bone if sum is zero
+        }
+        
+        vertices.push_back(Vertex{
+            positions[i], 
+            glm::vec4(1, 1, 1, 1), 
+            texUVs[i], 
+            normals[i], 
+            indices, 
+            weights
+        });
     }
     return vertices;
 }

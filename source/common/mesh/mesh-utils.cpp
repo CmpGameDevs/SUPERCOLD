@@ -12,7 +12,13 @@
 #include <mesh/mesh.hpp>
 #include <model/animation-data.hpp>
 #include <unordered_map>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/matrix_inverse.hpp>
+#include <glm/gtx/string_cast.hpp>
 #include <vector>
+#include <map>
+#include <set>
 
 our::Mesh *our::mesh_utils::loadOBJ(const std::string &filename) {
 
@@ -107,6 +113,8 @@ our::Mesh *our::mesh_utils::loadGLTF(const std::string &filename) {
     if (!ret) {
         std::cerr << "Failed to load gltf file \"" << filename << "\"" << std::endl;
         return nullptr;
+    } else {
+        std::cout << "Loadeing gltf file \"" << filename << "\"" << std::endl;
     }
 
     // Process all meshes in the GLTF file (assuming we want to combine all meshes)
@@ -130,6 +138,77 @@ our::Mesh *our::mesh_utils::loadGLTF(const std::string &filename) {
             int colorAccessorIndex = primitive.attributes.find("COLOR_0") != primitive.attributes.end()
                                          ? primitive.attributes.at("COLOR_0")
                                          : -1;
+
+            // Get view for bone indices and weights if they exist
+            int boneIndexAccessorIndex = primitive.attributes.find("JOINTS_0") != primitive.attributes.end()
+                                             ? primitive.attributes.at("JOINTS_0")
+                                             : -1;
+            int boneWeightAccessorIndex = primitive.attributes.find("WEIGHTS_0") != primitive.attributes.end()
+                                              ? primitive.attributes.at("WEIGHTS_0")
+                                              : -1;
+
+            // Validate bone data for skinned meshes
+            bool hasBoneIndices = boneIndexAccessorIndex != -1;
+            bool hasBoneWeights = boneWeightAccessorIndex != -1;
+            
+            // If one exists but not the other, this is an error
+            if (hasBoneIndices != hasBoneWeights) {
+                std::cerr << "Error: Mesh has mismatched bone data. Both JOINTS_0 and WEIGHTS_0 must be present for skinned meshes." << std::endl;
+                return nullptr;
+            }
+
+            if (!hasBoneIndices || !hasBoneWeights ) {
+                std::cerr << "Error: Mesh has no bone data. Both JOINTS_0 and WEIGHTS_0 must be present for skinned meshes." << std::endl;
+            }
+
+            // If this is a skinned mesh (has bone data)
+            bool isSkinnedMesh = hasBoneIndices && hasBoneWeights;
+            if (isSkinnedMesh) {
+                const tinygltf::Accessor& jointAccessor = model.accessors[boneIndexAccessorIndex];
+                const tinygltf::Accessor& weightAccessor = model.accessors[boneWeightAccessorIndex];
+
+                // Validate accessor types
+                if (jointAccessor.type != TINYGLTF_TYPE_VEC4 || weightAccessor.type != TINYGLTF_TYPE_VEC4) {
+                    std::cerr << "Error: Bone joints and weights must be VEC4" << std::endl;
+                    return nullptr;
+                }
+
+                // Validate component types
+                if (jointAccessor.componentType != TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT && 
+                    jointAccessor.componentType != TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE) {
+                    std::cerr << "Error: Bone joints must be UNSIGNED_SHORT or UNSIGNED_BYTE" << std::endl;
+                    return nullptr;
+                }
+
+                if (weightAccessor.componentType != TINYGLTF_COMPONENT_TYPE_FLOAT) {
+                    std::cerr << "Error: Bone weights must be FLOAT" << std::endl;
+                    return nullptr;
+                }
+
+                // Validate counts match
+                if (jointAccessor.count != weightAccessor.count) {
+                    std::cerr << "Error: Number of bone joints does not match number of weights" << std::endl;
+                    return nullptr;
+                }
+            }
+
+            const tinygltf::Accessor *boneIndexAccessor = nullptr;
+            const tinygltf::BufferView *boneIndexBufferView = nullptr;
+            const tinygltf::Buffer *boneIndexBuffer = nullptr;
+            if (boneIndexAccessorIndex != -1) {
+                boneIndexAccessor = &model.accessors[boneIndexAccessorIndex];
+                boneIndexBufferView = &model.bufferViews[boneIndexAccessor->bufferView];
+                boneIndexBuffer = &model.buffers[boneIndexBufferView->buffer];
+            }
+
+            const tinygltf::Accessor *boneWeightAccessor = nullptr;
+            const tinygltf::BufferView *boneWeightBufferView = nullptr;
+            const tinygltf::Buffer *boneWeightBuffer = nullptr;
+            if (boneWeightAccessorIndex != -1) {
+                boneWeightAccessor = &model.accessors[boneWeightAccessorIndex];
+                boneWeightBufferView = &model.bufferViews[boneWeightAccessor->bufferView];
+                boneWeightBuffer = &model.buffers[boneWeightBufferView->buffer];
+            }
 
             // Get the indices accessor
             int indicesAccessorIndex = primitive.indices;
@@ -262,6 +341,26 @@ our::Mesh *our::mesh_utils::loadGLTF(const std::string &filename) {
                     vertex.color = {255, 255, 255, 255}; // Default color
                 }
 
+                // Bone indices (optional)
+                if (boneIndexAccessor) {
+                    const uint16_t *boneIndices = reinterpret_cast<const uint16_t *>(
+                        &boneIndexBuffer->data[boneIndexBufferView->byteOffset + boneIndexAccessor->byteOffset +
+                                               vertexIndex * 4 * sizeof(uint16_t)]);
+                    vertex.boneIndices = glm::ivec4(boneIndices[0], boneIndices[1], boneIndices[2], boneIndices[3]);
+                } else {
+                    vertex.boneIndices = glm::ivec4(0); // Default to no bones
+                }
+
+                // Bone weights (optional)
+                if (boneWeightAccessor) {
+                    const float *boneWeights = reinterpret_cast<const float *>(
+                        &boneWeightBuffer->data[boneWeightBufferView->byteOffset + boneWeightAccessor->byteOffset +
+                                                vertexIndex * 4 * sizeof(float)]);
+                    vertex.boneWeights = glm::vec4(boneWeights[0], boneWeights[1], boneWeights[2], boneWeights[3]);
+                } else {
+                    vertex.boneWeights = glm::vec4(0.0f); // Default to no influence
+                }
+
                 // Add vertex to the primitive vertices
                 primitiveVertices.push_back(vertex);
             }
@@ -291,6 +390,10 @@ our::Mesh *our::mesh_utils::loadGLTF(const std::string &filename) {
 
                 // Get the Vertex from our primitive vertices
                 const our::Vertex &primitiveVertex = primitiveVertices[vertexIndex];
+                // std::cout << "Vertex " << vertexIndex <<
+                //     primitiveVertex.position.x << " " << primitiveVertex.position.y << " " << primitiveVertex.position.z << 
+                //     " Bone Indices: " << primitiveVertex.boneIndices.x << " " << primitiveVertex.boneIndices.y << " " << primitiveVertex.boneIndices.z << " " << primitiveVertex.boneIndices.w <<
+                //     " Bone Weights: " << primitiveVertex.boneWeights.x << " " << primitiveVertex.boneWeights.y << " " << primitiveVertex.boneWeights.z << " " << primitiveVertex.boneWeights.w << std::endl;    
 
                 // Check if we've already added this vertex
                 auto it = vertex_map.find(primitiveVertex);
@@ -325,6 +428,102 @@ our::AnimationData *our::mesh_utils::loadGLTFAnimation(const std::string &filena
     std::string warn;
 
     bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, filename);
+
+    // load skin
+    if (model.skins.size() > 0) {
+        auto skeleton = model.skins[0].joints;
+        
+        // Create a map to store node indices to BoneNode pointers for easy lookup
+        std::map<int, BoneNode*> nodeToBone;
+        
+        // First pass: Create all bone nodes
+        for (const auto& joint : skeleton) {
+            const auto& node = model.nodes[joint];
+            
+            BoneNode* boneNode = new BoneNode();
+            boneNode->name = node.name;
+            boneNode->index = joint;
+            
+            // Calculate local transform from node's transform data
+            glm::mat4 localTransform(1.0f);
+            
+            if (node.translation.size() == 3) {
+                glm::mat4 translation = glm::translate(glm::mat4(1.0f), 
+                    glm::vec3(node.translation[0], node.translation[1], node.translation[2]));
+                localTransform = translation * localTransform;
+            }
+            
+            if (node.rotation.size() == 4) {
+                glm::quat rotation(node.rotation[3], node.rotation[0], node.rotation[1], node.rotation[2]);
+                glm::mat4 rotationMatrix = glm::mat4_cast(rotation);
+                localTransform = rotationMatrix * localTransform;
+            }
+            
+            if (node.scale.size() == 3) {
+                glm::mat4 scale = glm::scale(glm::mat4(1.0f), 
+                    glm::vec3(node.scale[0], node.scale[1], node.scale[2]));
+                localTransform = scale * localTransform;
+            }
+            
+            if (node.matrix.size() == 16) {
+                localTransform = glm::make_mat4(node.matrix.data());
+            }
+            
+            boneNode->localTransform = localTransform;
+            nodeToBone[joint] = boneNode;
+            
+            // Add bone info to the map
+            BoneInfo boneInfo;
+            boneInfo.id = animationData->boneCounter++;
+            
+            // Get inverse bind matrix from skin
+            if (model.skins[0].inverseBindMatrices != -1) {
+                const auto& accessor = model.accessors[model.skins[0].inverseBindMatrices];
+                const auto& bufferView = model.bufferViews[accessor.bufferView];
+                const auto& buffer = model.buffers[bufferView.buffer];
+                
+                // Find the index of this joint in the skeleton array
+                auto jointIndex = std::find(skeleton.begin(), skeleton.end(), joint) - skeleton.begin();
+                
+                // Read the inverse bind matrix
+                const float* matrixData = reinterpret_cast<const float*>(
+                    &buffer.data[bufferView.byteOffset + accessor.byteOffset + jointIndex * sizeof(float) * 16]);
+                boneInfo.offsetMatrix = glm::make_mat4(matrixData);
+            } else {
+                boneInfo.offsetMatrix = glm::mat4(1.0f);
+            }
+            
+            animationData->boneInfoMap[joint] = boneInfo;
+        }
+        
+        // Second pass: Build the hierarchy
+        for (const auto& joint : skeleton) {
+            const auto& node = model.nodes[joint];
+            BoneNode* boneNode = nodeToBone[joint];
+            
+            // Add children
+            for (int childIndex : node.children) {
+                // Only add children that are bones
+                if (nodeToBone.find(childIndex) != nodeToBone.end()) {
+                    boneNode->children.push_back(nodeToBone[childIndex]);
+                }
+            }
+        }
+        
+        // Find the root bone (the one that isn't a child of any other bone)
+        std::set<int> childIndices;
+        for (const auto& joint : skeleton) {
+            const auto& node = model.nodes[joint];
+            childIndices.insert(node.children.begin(), node.children.end());
+        }
+        
+        for (const auto& joint : skeleton) {
+            if (childIndices.find(joint) == childIndices.end()) {
+                animationData->rootBone = nodeToBone[joint];
+                break;
+            }
+        }
+    }
 
     if (!warn.empty()) {
         std::cout << "WARN while loading gltf file \"" << filename << "\": " << warn << std::endl;
@@ -508,13 +707,24 @@ void our::mesh_utils::renderCube() {
         glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
         // link vertex attributes
         glBindVertexArray(cubeVAO);
+
         glEnableVertexAttribArray(ATTRIB_LOC_POSITION);
         glVertexAttribPointer(ATTRIB_LOC_POSITION, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)0);
+
         glEnableVertexAttribArray(ATTRIB_LOC_NORMAL);
         glVertexAttribPointer(ATTRIB_LOC_NORMAL, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)(3 * sizeof(float)));
+
         glEnableVertexAttribArray(ATTRIB_LOC_TEXCOORD);
         glVertexAttribPointer(ATTRIB_LOC_TEXCOORD, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
                               (void *)(6 * sizeof(float)));
+
+        glEnableVertexAttribArray(ATTRIB_LOC_BONEWEIGHTS);
+        glVertexAttribPointer(ATTRIB_LOC_BONEWEIGHTS, 4, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
+                              (void *)(7 * sizeof(float)));
+
+        glEnableVertexAttribArray(ATTRIB_LOC_BONEINDICES);
+        glVertexAttribIPointer(ATTRIB_LOC_BONEINDICES, 4, GL_INT, 8 * sizeof(float), (void *)(6 * sizeof(float)));
+
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindVertexArray(0);
     }
