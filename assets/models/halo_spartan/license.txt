@@ -1,0 +1,11 @@
+Model Information:
+* title:	Spartan Armour MKV - Halo Reach
+* source:	https://sketchfab.com/3d-models/spartan-armour-mkv-halo-reach-57070b2fd9ff472c8988e76d8c5cbe66
+* author:	McCarthy3D (https://sketchfab.com/joshuawatt811)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Spartan Armour MKV - Halo Reach" (https://sketchfab.com/3d-models/spartan-armour-mkv-halo-reach-57070b2fd9ff472c8988e76d8c5cbe66) by McCarthy3D (https://sketchfab.com/joshuawatt811) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
