@@ -9,21 +9,14 @@ namespace our
     {
         // First, we store the window size for later use
         this->windowSize = windowSize;
-
-        // Check if the configuration contains a HDR system
-        this->hdrSystem = new HDRSystem();
-
+        
         if (config.contains("hdr"))
         {
             // Create the HDR system and deserialize it using the configuration
+            this->hdrSystem = new HDRSystem();
             this->hdrSystem->deserialize(config["hdr"]);
             this->hdrSystem->initialize();
             this->hdrSystem->setup(windowSize);
-        }
-        else
-        {
-            // If there is no HDR system, we set it to nullptr
-            hdrSystem->enable = false;
         }
 
         // Then we check if there is a sky texture in the configuration
@@ -98,8 +91,10 @@ namespace our
             postprocess->destroy();
             delete postprocess;
         }
-
-        delete hdrSystem;
+        
+        if(hdrSystem){
+            delete hdrSystem;
+        }
     }
 
     void ForwardRenderer::render(World *world)
