@@ -212,7 +212,8 @@ void Model::loadMaterials() {
         mat->useTextureEmissive = false;
         mat->useTextureMetallic = false;
         mat->useTextureRoughness = false;
-
+        mat->metallic = 0.95f;
+        mat->roughness = 0.85f;
 
         // Set alpha mode if available
         if (material.find("alphaMode") != material.end()) {
