@@ -17,6 +17,15 @@ namespace our::mesh_utils {
     
     void renderCube();
     void renderQuad();
+
+   // New utility functions for bone visualization
+    Mesh* createBoneVisualizationMesh();
+    Mesh* createJointVisualizationMesh(float radius = 0.1f, int segments = 8);
+
+
+    
+    // Helper function to create transformation matrices for bone visualization
+    glm::mat4 calculateBoneTransform(const glm::vec3& start, const glm::vec3& end);
 }
 
 

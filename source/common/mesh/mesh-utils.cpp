@@ -8,17 +8,236 @@
 #define TINYGLTF_NO_STB_IMAGE_WRITE
 #include <tinygltf/tiny_gltf.h>
 
+#include <glm/gtc/matrix_inverse.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/string_cast.hpp>
 #include <iostream>
+#include <map>
 #include <mesh/mesh.hpp>
 #include <model/animation-data.hpp>
-#include <unordered_map>
-#include <glm/gtc/type_ptr.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/matrix_inverse.hpp>
-#include <glm/gtx/string_cast.hpp>
-#include <vector>
-#include <map>
 #include <set>
+#include <unordered_map>
+#include <vector>
+
+// Ensure proper namespace usage for BoneNode and BoneInfo
+using our::BoneInfo;
+using our::BoneNode;
+using our::TranslationKeyframe;
+using our::RotationKeyframe;
+using our::ScaleKeyframe;
+using our::InterpolationType;
+using our::Channel;
+
+
+// Helper function to print matrices for debugging
+void printMatrix(const glm::mat4 &matrix, const std::string &name) {
+    std::cout << name << ":\n";
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            std::cout << matrix[i][j] << " ";
+        }
+        std::cout << "\n";
+    }
+    std::cout << std::endl;
+}
+
+// Helper function to print bone hierarchy
+void printBoneHierarchy(BoneNode *node, int depth = 0) {
+    if (!node)
+        return;
+
+    std::string indent(depth * 2, ' ');
+    std::cout << indent << "- " << node->name << " (index: " << node->index << ")" << std::endl;
+
+    for (auto child : node->children) {
+        printBoneHierarchy(child, depth + 1);
+    }
+}
+
+// Helper function to verify transform components
+void printNodeTransform(const tinygltf::Node &node, const std::string &prefix) {
+    if (!node.translation.empty()) {
+        std::cout << prefix << "Translation: " << node.translation[0] << ", " << node.translation[1] << ", "
+                  << node.translation[2] << "\n";
+    }
+
+    if (!node.rotation.empty()) {
+        std::cout << prefix << "Rotation (quaternion): " << node.rotation[0] << ", " << node.rotation[1] << ", "
+                  << node.rotation[2] << ", " << node.rotation[3] << "\n";
+    }
+
+    if (!node.scale.empty()) {
+        std::cout << prefix << "Scale: " << node.scale[0] << ", " << node.scale[1] << ", " << node.scale[2] << "\n";
+    }
+
+    if (!node.matrix.empty()) {
+        std::cout << prefix << "Matrix: \n";
+        for (int i = 0; i < 4; i++) {
+            std::cout << prefix << "  ";
+            for (int j = 0; j < 4; j++) {
+                std::cout << node.matrix[i * 4 + j] << " ";
+            }
+            std::cout << "\n";
+        }
+    }
+}
+
+// Helper function to validate skin data
+bool validateSkinData(const tinygltf::Model &model, const tinygltf::Skin &skin) {
+    if (skin.joints.empty()) {
+        std::cerr << "Error: No joints found in skin" << std::endl;
+        return false;
+    }
+
+    if (skin.inverseBindMatrices != -1) {
+        const auto &accessor = model.accessors[skin.inverseBindMatrices];
+        if (accessor.componentType != TINYGLTF_COMPONENT_TYPE_FLOAT) {
+            std::cerr << "Error: Inverse bind matrices must be float type" << std::endl;
+            return false;
+        }
+        if (accessor.type != TINYGLTF_TYPE_MAT4) {
+            std::cerr << "Error: Inverse bind matrices must be mat4 type" << std::endl;
+            return false;
+        }
+        if (accessor.count != skin.joints.size()) {
+            std::cerr << "Error: Number of inverse bind matrices does not match number of joints" << std::endl;
+            return false;
+        }
+    }
+
+    return true;
+}
+
+// Helper function to build node hierarchy
+void buildNodeHierarchy(const tinygltf::Model &model, const std::vector<int> &joints,
+                        std::map<int, BoneNode *> &nodeToBone) {
+    // First pass: Create all bone nodes
+    for (int jointIndex : joints) {
+        const auto &node = model.nodes[jointIndex];
+
+        BoneNode *boneNode = new BoneNode();
+        boneNode->name = node.name;
+        boneNode->index = jointIndex;
+
+        // Calculate local transform
+        glm::mat4 localTransform(1.0f);
+
+        if (!node.matrix.empty()) {
+            localTransform = glm::make_mat4(node.matrix.data());
+        } else {
+            if (!node.translation.empty()) {
+                localTransform = glm::translate(
+                    localTransform, glm::vec3(node.translation[0], node.translation[1], node.translation[2]));
+            }
+
+            if (!node.rotation.empty()) {
+                glm::quat rotation(node.rotation[3], node.rotation[0], node.rotation[1], node.rotation[2]);
+                localTransform = localTransform * glm::mat4_cast(rotation);
+            }
+
+            if (!node.scale.empty()) {
+                localTransform = glm::scale(localTransform, glm::vec3(node.scale[0], node.scale[1], node.scale[2]));
+            }
+        }
+
+        boneNode->localTransform = localTransform;
+        nodeToBone[jointIndex] = boneNode;
+    }
+
+    // Second pass: Build hierarchy
+    for (int jointIndex : joints) {
+        const auto &node = model.nodes[jointIndex];
+        BoneNode *boneNode = nodeToBone[jointIndex];
+
+        for (int childIndex : node.children) {
+            auto it = nodeToBone.find(childIndex);
+            if (it != nodeToBone.end()) {
+                boneNode->children.push_back(it->second);
+            }
+        }
+    }
+}
+
+void loadKeyframeData(const tinygltf::Model &model, const tinygltf::AnimationChannel &channel,
+                      const tinygltf::AnimationSampler &sampler, our::Channel &animChannel) {
+
+    const auto &timeAccessor = model.accessors[sampler.input];
+    const auto &valueAccessor = model.accessors[sampler.output];
+    const auto &timeBufferView = model.bufferViews[timeAccessor.bufferView];
+    const auto &valueBufferView = model.bufferViews[valueAccessor.bufferView];
+    const auto &timeBuffer = model.buffers[timeBufferView.buffer];
+    const auto &valueBuffer = model.buffers[valueBufferView.buffer];
+
+    const float *times =
+        reinterpret_cast<const float *>(&timeBuffer.data[timeBufferView.byteOffset + timeAccessor.byteOffset]);
+    const float *values =
+        reinterpret_cast<const float *>(&valueBuffer.data[valueBufferView.byteOffset + valueAccessor.byteOffset]);
+
+    size_t timeStride = timeBufferView.byteStride ? timeBufferView.byteStride : sizeof(float);
+    size_t valueStride = valueBufferView.byteStride
+                             ? valueBufferView.byteStride
+                             : (channel.target_path == "rotation" ? sizeof(float) * 4 : sizeof(float) * 3);
+
+    for (size_t i = 0; i < timeAccessor.count; i++) {
+        float time = times[i];
+
+        if (channel.target_path == "translation") {
+            TranslationKeyframe keyframe;
+            keyframe.time = time;
+            keyframe.value = glm::vec3(values[i * 3], values[i * 3 + 1], values[i * 3 + 2]);
+            keyframe.interpolationType = animChannel.interpolationType;
+            animChannel.translationKeys.push_back(keyframe);
+        } else if (channel.target_path == "rotation") {
+            RotationKeyframe keyframe;
+            keyframe.time = time;
+            keyframe.value = glm::quat(values[i * 4 + 3], // w
+                                       values[i * 4],     // x
+                                       values[i * 4 + 1], // y
+                                       values[i * 4 + 2]  // z
+            );
+            keyframe.interpolationType = animChannel.interpolationType;
+            animChannel.rotationKeys.push_back(keyframe);
+        } else if (channel.target_path == "scale") {
+            ScaleKeyframe keyframe;
+            keyframe.time = time;
+            keyframe.value = glm::vec3(values[i * 3], values[i * 3 + 1], values[i * 3 + 2]);
+            keyframe.interpolationType = animChannel.interpolationType;
+            animChannel.scaleKeys.push_back(keyframe);
+        }
+    }
+}
+
+
+// Helper function to load inverse bind matrices
+void loadInverseBindMatrices(const tinygltf::Model &model, const tinygltf::Skin &skin,
+                             std::map<int, BoneInfo> &boneInfoMap) {
+    if (skin.inverseBindMatrices != -1) {
+        const auto &accessor = model.accessors[skin.inverseBindMatrices];
+        const auto &bufferView = model.bufferViews[accessor.bufferView];
+        const auto &buffer = model.buffers[bufferView.buffer];
+
+        size_t stride = bufferView.byteStride ? bufferView.byteStride : sizeof(float) * 16;
+
+        for (size_t i = 0; i < skin.joints.size(); i++) {
+            const float *matrixData =
+                reinterpret_cast<const float *>(&buffer.data[bufferView.byteOffset + accessor.byteOffset + i * stride]);
+
+            BoneInfo boneInfo;
+            boneInfo.id = skin.joints[i];
+            boneInfo.offsetMatrix = glm::make_mat4(matrixData);
+            boneInfoMap[skin.joints[i]] = boneInfo;
+        }
+    } else {
+        // If no inverse bind matrices are provided, use identity matrices
+        for (size_t i = 0; i < skin.joints.size(); i++) {
+            BoneInfo boneInfo;
+            boneInfo.id = skin.joints[i];
+            boneInfo.offsetMatrix = glm::mat4(1.0f);
+            boneInfoMap[skin.joints[i]] = boneInfo;
+        }
+    }
+}
 
 our::Mesh *our::mesh_utils::loadOBJ(const std::string &filename) {
 
@@ -113,11 +332,11 @@ our::Mesh *our::mesh_utils::loadGLTF(const std::string &filename) {
     if (!ret) {
         std::cerr << "Failed to load gltf file \"" << filename << "\"" << std::endl;
         return nullptr;
-    } else {
-        std::cout << "Loadeing gltf file \"" << filename << "\"" << std::endl;
     }
 
-    // Process all meshes in the GLTF file (assuming we want to combine all meshes)
+    std::cout << "Loading GLTF file \"" << filename << "\"" << std::endl;
+
+    // Process all meshes in the GLTF file
     for (size_t meshIndex = 0; meshIndex < model.meshes.size(); ++meshIndex) {
         const tinygltf::Mesh &mesh = model.meshes[meshIndex];
 
@@ -125,7 +344,7 @@ our::Mesh *our::mesh_utils::loadGLTF(const std::string &filename) {
         for (size_t primitiveIndex = 0; primitiveIndex < mesh.primitives.size(); ++primitiveIndex) {
             const tinygltf::Primitive &primitive = mesh.primitives[primitiveIndex];
 
-            // Get the accessor indices for the attributes we need
+            // Get accessor indices for attributes
             int positionAccessorIndex = primitive.attributes.find("POSITION") != primitive.attributes.end()
                                             ? primitive.attributes.at("POSITION")
                                             : -1;
@@ -138,8 +357,6 @@ our::Mesh *our::mesh_utils::loadGLTF(const std::string &filename) {
             int colorAccessorIndex = primitive.attributes.find("COLOR_0") != primitive.attributes.end()
                                          ? primitive.attributes.at("COLOR_0")
                                          : -1;
-
-            // Get view for bone indices and weights if they exist
             int boneIndexAccessorIndex = primitive.attributes.find("JOINTS_0") != primitive.attributes.end()
                                              ? primitive.attributes.at("JOINTS_0")
                                              : -1;
@@ -147,273 +364,182 @@ our::Mesh *our::mesh_utils::loadGLTF(const std::string &filename) {
                                               ? primitive.attributes.at("WEIGHTS_0")
                                               : -1;
 
-            // Validate bone data for skinned meshes
+            // Validate bone data
             bool hasBoneIndices = boneIndexAccessorIndex != -1;
             bool hasBoneWeights = boneWeightAccessorIndex != -1;
-            
-            // If one exists but not the other, this is an error
+
             if (hasBoneIndices != hasBoneWeights) {
-                std::cerr << "Error: Mesh has mismatched bone data. Both JOINTS_0 and WEIGHTS_0 must be present for skinned meshes." << std::endl;
+                std::cerr << "Error: Mesh has mismatched bone data" << std::endl;
                 return nullptr;
             }
 
-            if (!hasBoneIndices || !hasBoneWeights ) {
-                std::cerr << "Error: Mesh has no bone data. Both JOINTS_0 and WEIGHTS_0 must be present for skinned meshes." << std::endl;
-            }
+            // Get accessors and buffer views for all attributes
+            const tinygltf::Accessor *positionAccessor =
+                positionAccessorIndex != -1 ? &model.accessors[positionAccessorIndex] : nullptr;
+            const tinygltf::BufferView *positionBufferView =
+                positionAccessor ? &model.bufferViews[positionAccessor->bufferView] : nullptr;
+            const tinygltf::Buffer *positionBuffer =
+                positionBufferView ? &model.buffers[positionBufferView->buffer] : nullptr;
 
-            // If this is a skinned mesh (has bone data)
-            bool isSkinnedMesh = hasBoneIndices && hasBoneWeights;
-            if (isSkinnedMesh) {
-                const tinygltf::Accessor& jointAccessor = model.accessors[boneIndexAccessorIndex];
-                const tinygltf::Accessor& weightAccessor = model.accessors[boneWeightAccessorIndex];
+            const tinygltf::Accessor *normalAccessor =
+                normalAccessorIndex != -1 ? &model.accessors[normalAccessorIndex] : nullptr;
+            const tinygltf::BufferView *normalBufferView =
+                normalAccessor ? &model.bufferViews[normalAccessor->bufferView] : nullptr;
+            const tinygltf::Buffer *normalBuffer =
+                normalBufferView ? &model.buffers[normalBufferView->buffer] : nullptr;
 
-                // Validate accessor types
-                if (jointAccessor.type != TINYGLTF_TYPE_VEC4 || weightAccessor.type != TINYGLTF_TYPE_VEC4) {
-                    std::cerr << "Error: Bone joints and weights must be VEC4" << std::endl;
-                    return nullptr;
-                }
+            const tinygltf::Accessor *texcoordAccessor =
+                texcoordAccessorIndex != -1 ? &model.accessors[texcoordAccessorIndex] : nullptr;
+            const tinygltf::BufferView *texcoordBufferView =
+                texcoordAccessor ? &model.bufferViews[texcoordAccessor->bufferView] : nullptr;
+            const tinygltf::Buffer *texcoordBuffer =
+                texcoordBufferView ? &model.buffers[texcoordBufferView->buffer] : nullptr;
 
-                // Validate component types
-                if (jointAccessor.componentType != TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT && 
-                    jointAccessor.componentType != TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE) {
-                    std::cerr << "Error: Bone joints must be UNSIGNED_SHORT or UNSIGNED_BYTE" << std::endl;
-                    return nullptr;
-                }
+            const tinygltf::Accessor *boneIndexAccessor =
+                boneIndexAccessorIndex != -1 ? &model.accessors[boneIndexAccessorIndex] : nullptr;
+            const tinygltf::BufferView *boneIndexBufferView =
+                boneIndexAccessor ? &model.bufferViews[boneIndexAccessor->bufferView] : nullptr;
+            const tinygltf::Buffer *boneIndexBuffer =
+                boneIndexBufferView ? &model.buffers[boneIndexBufferView->buffer] : nullptr;
 
-                if (weightAccessor.componentType != TINYGLTF_COMPONENT_TYPE_FLOAT) {
-                    std::cerr << "Error: Bone weights must be FLOAT" << std::endl;
-                    return nullptr;
-                }
+            const tinygltf::Accessor *boneWeightAccessor =
+                boneWeightAccessorIndex != -1 ? &model.accessors[boneWeightAccessorIndex] : nullptr;
+            const tinygltf::BufferView *boneWeightBufferView =
+                boneWeightAccessor ? &model.bufferViews[boneWeightAccessor->bufferView] : nullptr;
+            const tinygltf::Buffer *boneWeightBuffer =
+                boneWeightBufferView ? &model.buffers[boneWeightBufferView->buffer] : nullptr;
 
-                // Validate counts match
-                if (jointAccessor.count != weightAccessor.count) {
-                    std::cerr << "Error: Number of bone joints does not match number of weights" << std::endl;
-                    return nullptr;
-                }
-            }
+            // Calculate strides
+            size_t positionStride = positionBufferView->byteStride ? positionBufferView->byteStride : sizeof(float) * 3;
+            size_t normalStride =
+                normalBufferView ? (normalBufferView->byteStride ? normalBufferView->byteStride : sizeof(float) * 3)
+                                 : 0;
+            size_t texcoordStride =
+                texcoordBufferView
+                    ? (texcoordBufferView->byteStride ? texcoordBufferView->byteStride : sizeof(float) * 2)
+                    : 0;
+            size_t boneIndexStride =
+                boneIndexBufferView
+                    ? (boneIndexBufferView->byteStride ? boneIndexBufferView->byteStride : sizeof(uint16_t) * 4)
+                    : 0;
+            size_t boneWeightStride =
+                boneWeightBufferView
+                    ? (boneWeightBufferView->byteStride ? boneWeightBufferView->byteStride : sizeof(float) * 4)
+                    : 0;
 
-            const tinygltf::Accessor *boneIndexAccessor = nullptr;
-            const tinygltf::BufferView *boneIndexBufferView = nullptr;
-            const tinygltf::Buffer *boneIndexBuffer = nullptr;
-            if (boneIndexAccessorIndex != -1) {
-                boneIndexAccessor = &model.accessors[boneIndexAccessorIndex];
-                boneIndexBufferView = &model.bufferViews[boneIndexAccessor->bufferView];
-                boneIndexBuffer = &model.buffers[boneIndexBufferView->buffer];
-            }
-
-            const tinygltf::Accessor *boneWeightAccessor = nullptr;
-            const tinygltf::BufferView *boneWeightBufferView = nullptr;
-            const tinygltf::Buffer *boneWeightBuffer = nullptr;
-            if (boneWeightAccessorIndex != -1) {
-                boneWeightAccessor = &model.accessors[boneWeightAccessorIndex];
-                boneWeightBufferView = &model.bufferViews[boneWeightAccessor->bufferView];
-                boneWeightBuffer = &model.buffers[boneWeightBufferView->buffer];
-            }
-
-            // Get the indices accessor
-            int indicesAccessorIndex = primitive.indices;
-
-            // Skip primitives with no positions
-            if (positionAccessorIndex == -1)
-                continue;
-
-            // Get accessors
-            const tinygltf::Accessor &positionAccessor = model.accessors[positionAccessorIndex];
-            const tinygltf::BufferView &positionBufferView = model.bufferViews[positionAccessor.bufferView];
-            const tinygltf::Buffer &positionBuffer = model.buffers[positionBufferView.buffer];
-
-            // Calculate position stride - use the bufferView stride if specified, otherwise calculate it
-            int positionStride = positionBufferView.byteStride
-                                     ? positionBufferView.byteStride
-                                     : (positionAccessor.type == TINYGLTF_TYPE_VEC3 ? 3 * sizeof(float) : 0);
-
-            // Get view for normal if it exists
-            const tinygltf::Accessor *normalAccessor = nullptr;
-            const tinygltf::BufferView *normalBufferView = nullptr;
-            const tinygltf::Buffer *normalBuffer = nullptr;
-            int normalStride = 0;
-            if (normalAccessorIndex != -1) {
-                normalAccessor = &model.accessors[normalAccessorIndex];
-                normalBufferView = &model.bufferViews[normalAccessor->bufferView];
-                normalBuffer = &model.buffers[normalBufferView->buffer];
-                normalStride = normalBufferView->byteStride
-                                   ? normalBufferView->byteStride
-                                   : (normalAccessor->type == TINYGLTF_TYPE_VEC3 ? 3 * sizeof(float) : 0);
-            }
-
-            // Get view for texcoord if it exists
-            const tinygltf::Accessor *texcoordAccessor = nullptr;
-            const tinygltf::BufferView *texcoordBufferView = nullptr;
-            const tinygltf::Buffer *texcoordBuffer = nullptr;
-            int texcoordStride = 0;
-            if (texcoordAccessorIndex != -1) {
-                texcoordAccessor = &model.accessors[texcoordAccessorIndex];
-                texcoordBufferView = &model.bufferViews[texcoordAccessor->bufferView];
-                texcoordBuffer = &model.buffers[texcoordBufferView->buffer];
-                texcoordStride = texcoordBufferView->byteStride
-                                     ? texcoordBufferView->byteStride
-                                     : (texcoordAccessor->type == TINYGLTF_TYPE_VEC2 ? 2 * sizeof(float) : 0);
-            }
-
-            // Get view for color if it exists
-            const tinygltf::Accessor *colorAccessor = nullptr;
-            const tinygltf::BufferView *colorBufferView = nullptr;
-            const tinygltf::Buffer *colorBuffer = nullptr;
-            int colorStride = 0;
-            if (colorAccessorIndex != -1) {
-                colorAccessor = &model.accessors[colorAccessorIndex];
-                colorBufferView = &model.bufferViews[colorAccessor->bufferView];
-                colorBuffer = &model.buffers[colorBufferView->buffer];
-                colorStride = colorBufferView->byteStride
-                                  ? colorBufferView->byteStride
-                                  : (colorAccessor->type == TINYGLTF_TYPE_VEC3
-                                         ? 3 * sizeof(float)
-                                         : (colorAccessor->type == TINYGLTF_TYPE_VEC4 ? 4 * sizeof(float) : 0));
-            }
-
-            // Get indices
-            const tinygltf::Accessor &indicesAccessor = model.accessors[indicesAccessorIndex];
-            const tinygltf::BufferView &indicesBufferView = model.bufferViews[indicesAccessor.bufferView];
-            const tinygltf::Buffer &indicesBuffer = model.buffers[indicesBufferView.buffer];
-
-            // Calculate vertex count
-            size_t vertexCount = positionAccessor.count;
-
-            // Create vertices
-            std::vector<our::Vertex> primitiveVertices;
-            primitiveVertices.reserve(vertexCount);
-
+            // Process vertices
+            size_t vertexCount = positionAccessor->count;
             for (size_t vertexIndex = 0; vertexIndex < vertexCount; ++vertexIndex) {
-                our::Vertex vertex = {};
+                our::Vertex vertex;
 
                 // Position (required)
                 const float *positions = reinterpret_cast<const float *>(
-                    &positionBuffer
-                         .data[positionBufferView.byteOffset + positionAccessor.byteOffset +
-                               (positionStride ? vertexIndex * positionStride : vertexIndex * 3 * sizeof(float))]);
-                vertex.position = {positions[0], positions[1], positions[2]};
+                    &positionBuffer->data[positionBufferView->byteOffset + positionAccessor->byteOffset +
+                                          vertexIndex * positionStride]);
+                vertex.position = glm::vec3(positions[0], positions[1], positions[2]);
 
                 // Normal (optional)
                 if (normalAccessor) {
                     const float *normals = reinterpret_cast<const float *>(
-                        &normalBuffer
-                             ->data[normalBufferView->byteOffset + normalAccessor->byteOffset +
-                                    (normalStride ? vertexIndex * normalStride : vertexIndex * 3 * sizeof(float))]);
-                    vertex.normal = {normals[0], normals[1], normals[2]};
+                        &normalBuffer->data[normalBufferView->byteOffset + normalAccessor->byteOffset +
+                                            vertexIndex * normalStride]);
+                    vertex.normal = glm::vec3(normals[0], normals[1], normals[2]);
                 } else {
-                    vertex.normal = {0.0f, 0.0f, 1.0f}; // Default normal
+                    vertex.normal = glm::vec3(0.0f, 0.0f, 1.0f);
                 }
 
                 // Texture coordinates (optional)
                 if (texcoordAccessor) {
                     const float *texcoords = reinterpret_cast<const float *>(
-                        &texcoordBuffer
-                             ->data[texcoordBufferView->byteOffset + texcoordAccessor->byteOffset +
-                                    (texcoordStride ? vertexIndex * texcoordStride : vertexIndex * 2 * sizeof(float))]);
-
-                    // OpenGL expects texture coordinates with origin at bottom-left
-                    // GLTF has origin at top-left, so we flip Y coordinate
-                    vertex.tex_coord = {texcoords[0], 1.0f - texcoords[1]};
+                        &texcoordBuffer->data[texcoordBufferView->byteOffset + texcoordAccessor->byteOffset +
+                                              vertexIndex * texcoordStride]);
+                    vertex.tex_coord = glm::vec2(texcoords[0], 1.0f - texcoords[1]);
                 } else {
-                    vertex.tex_coord = {0.0f, 0.0f}; // Default UV
+                    vertex.tex_coord = glm::vec2(0.0f);
                 }
 
-                // Color (optional)
-                if (colorAccessor) {
-                    if (colorAccessor->type == TINYGLTF_TYPE_VEC3) {
-                        // RGB color
-                        const float *colors = reinterpret_cast<const float *>(
-                            &colorBuffer
-                                 ->data[colorBufferView->byteOffset + colorAccessor->byteOffset +
-                                        (colorStride ? vertexIndex * colorStride : vertexIndex * 3 * sizeof(float))]);
-                        vertex.color = {static_cast<uint8_t>(colors[0] * 255), static_cast<uint8_t>(colors[1] * 255),
-                                        static_cast<uint8_t>(colors[2] * 255), 255};
-                    } else if (colorAccessor->type == TINYGLTF_TYPE_VEC4) {
-                        // RGBA color
-                        const float *colors = reinterpret_cast<const float *>(
-                            &colorBuffer
-                                 ->data[colorBufferView->byteOffset + colorAccessor->byteOffset +
-                                        (colorStride ? vertexIndex * colorStride : vertexIndex * 4 * sizeof(float))]);
-                        vertex.color = {static_cast<uint8_t>(colors[0] * 255), static_cast<uint8_t>(colors[1] * 255),
-                                        static_cast<uint8_t>(colors[2] * 255), static_cast<uint8_t>(colors[3] * 255)};
-                    }
-                } else {
-                    vertex.color = {255, 255, 255, 255}; // Default color
-                }
-
-                // Bone indices (optional)
-                if (boneIndexAccessor) {
+                // Bone indices and weights (optional)
+                if (hasBoneIndices && hasBoneWeights) {
                     const uint16_t *boneIndices = reinterpret_cast<const uint16_t *>(
                         &boneIndexBuffer->data[boneIndexBufferView->byteOffset + boneIndexAccessor->byteOffset +
-                                               vertexIndex * 4 * sizeof(uint16_t)]);
-                    vertex.boneIndices = glm::ivec4(boneIndices[0], boneIndices[1], boneIndices[2], boneIndices[3]);
-                } else {
-                    vertex.boneIndices = glm::ivec4(0); // Default to no bones
-                }
-
-                // Bone weights (optional)
-                if (boneWeightAccessor) {
+                                               vertexIndex * boneIndexStride]);
                     const float *boneWeights = reinterpret_cast<const float *>(
                         &boneWeightBuffer->data[boneWeightBufferView->byteOffset + boneWeightAccessor->byteOffset +
-                                                vertexIndex * 4 * sizeof(float)]);
+                                                vertexIndex * boneWeightStride]);
+
+                    vertex.boneIndices = glm::ivec4(boneIndices[0], boneIndices[1], boneIndices[2], boneIndices[3]);
                     vertex.boneWeights = glm::vec4(boneWeights[0], boneWeights[1], boneWeights[2], boneWeights[3]);
+
+                    // Debug output for first few vertices
+                    if (vertexIndex < 5) {
+                        std::cout << "Vertex " << vertexIndex << " bone data:" << std::endl;
+                        std::cout << "  Indices: " << vertex.boneIndices.x << ", " << vertex.boneIndices.y << ", "
+                                  << vertex.boneIndices.z << ", " << vertex.boneIndices.w << std::endl;
+                        std::cout << "  Weights: " << vertex.boneWeights.x << ", " << vertex.boneWeights.y << ", "
+                                  << vertex.boneWeights.z << ", " << vertex.boneWeights.w << std::endl;
+                    }
                 } else {
-                    vertex.boneWeights = glm::vec4(0.0f); // Default to no influence
+                    vertex.boneIndices = glm::ivec4(0);
+                    vertex.boneWeights = glm::vec4(0.0f);
                 }
 
-                // Add vertex to the primitive vertices
-                primitiveVertices.push_back(vertex);
+                // Add vertex to the mesh
+                auto it = vertex_map.find(vertex);
+                if (it == vertex_map.end()) {
+                    GLuint index = static_cast<GLuint>(vertices.size());
+                    vertex_map[vertex] = index;
+                    vertices.push_back(vertex);
+                }
             }
 
-            // Process indices and add to our elements list
-            size_t indexCount = indicesAccessor.count;
-            size_t baseVertex = vertices.size(); // Offset for the current primitive
+            // Process indices
+            if (primitive.indices >= 0) {
+                const tinygltf::Accessor &indexAccessor = model.accessors[primitive.indices];
+                const tinygltf::BufferView &indexBufferView = model.bufferViews[indexAccessor.bufferView];
+                const tinygltf::Buffer &indexBuffer = model.buffers[indexBufferView.buffer];
 
-            for (size_t indexIndex = 0; indexIndex < indexCount; ++indexIndex) {
-                uint32_t vertexIndex = 0;
+                size_t indexCount = indexAccessor.count;
+                for (size_t i = 0; i < indexCount; ++i) {
+                    uint32_t index = 0;
+                    switch (indexAccessor.componentType) {
+                    case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT: {
+                        const uint16_t *indices = reinterpret_cast<const uint16_t *>(
+                            &indexBuffer
+                                 .data[indexBufferView.byteOffset + indexAccessor.byteOffset + i * sizeof(uint16_t)]);
+                        index = *indices;
+                        break;
+                    }
+                    case TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT: {
+                        const uint32_t *indices = reinterpret_cast<const uint32_t *>(
+                            &indexBuffer
+                                 .data[indexBufferView.byteOffset + indexAccessor.byteOffset + i * sizeof(uint32_t)]);
+                        index = *indices;
+                        break;
+                    }
+                    case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE: {
+                        const uint8_t *indices = reinterpret_cast<const uint8_t *>(
+                            &indexBuffer
+                                 .data[indexBufferView.byteOffset + indexAccessor.byteOffset + i * sizeof(uint8_t)]);
+                        index = *indices;
+                        break;
+                    }
+                    default:
+                        std::cerr << "Unsupported index component type" << std::endl;
+                        return nullptr;
+                    }
 
-                if (indicesAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
-                    vertexIndex = *reinterpret_cast<const uint16_t *>(
-                        &indicesBuffer.data[indicesBufferView.byteOffset + indicesAccessor.byteOffset +
-                                            indexIndex * sizeof(uint16_t)]);
-                } else if (indicesAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT) {
-                    vertexIndex = *reinterpret_cast<const uint32_t *>(
-                        &indicesBuffer.data[indicesBufferView.byteOffset + indicesAccessor.byteOffset +
-                                            indexIndex * sizeof(uint32_t)]);
-                } else if (indicesAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE) {
-                    vertexIndex = *reinterpret_cast<const uint8_t *>(
-                        &indicesBuffer.data[indicesBufferView.byteOffset + indicesAccessor.byteOffset +
-                                            indexIndex * sizeof(uint8_t)]);
-                } else {
-                    continue; // Unsupported component type
-                }
-
-                // Get the Vertex from our primitive vertices
-                const our::Vertex &primitiveVertex = primitiveVertices[vertexIndex];
-                // std::cout << "Vertex " << vertexIndex <<
-                //     primitiveVertex.position.x << " " << primitiveVertex.position.y << " " << primitiveVertex.position.z << 
-                //     " Bone Indices: " << primitiveVertex.boneIndices.x << " " << primitiveVertex.boneIndices.y << " " << primitiveVertex.boneIndices.z << " " << primitiveVertex.boneIndices.w <<
-                //     " Bone Weights: " << primitiveVertex.boneWeights.x << " " << primitiveVertex.boneWeights.y << " " << primitiveVertex.boneWeights.z << " " << primitiveVertex.boneWeights.w << std::endl;    
-
-                // Check if we've already added this vertex
-                auto it = vertex_map.find(primitiveVertex);
-                if (it == vertex_map.end()) {
-                    // If not, add it to our global vertex list
-                    GLuint newIndex = static_cast<GLuint>(vertices.size());
-                    vertex_map[primitiveVertex] = newIndex;
-                    vertices.push_back(primitiveVertex);
-                    elements.push_back(newIndex);
-                } else {
-                    // If yes, just use its index
-                    elements.push_back(it->second);
+                    const our::Vertex &vertex = vertices[index];
+                    auto it = vertex_map.find(vertex);
+                    if (it != vertex_map.end()) {
+                        elements.push_back(it->second);
+                    }
                 }
             }
         }
     }
 
-    // Create and return the mesh
     if (vertices.empty() || elements.empty()) {
-        std::cerr << "No valid mesh data found in GLTF file \"" << filename << "\"" << std::endl;
+        std::cerr << "No valid mesh data found in GLTF file" << std::endl;
         return nullptr;
     }
 
@@ -429,177 +555,116 @@ our::AnimationData *our::mesh_utils::loadGLTFAnimation(const std::string &filena
 
     bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, filename);
 
-    // load skin
-    if (model.skins.size() > 0) {
-        auto skeleton = model.skins[0].joints;
-        
-        // Create a map to store node indices to BoneNode pointers for easy lookup
-        std::map<int, BoneNode*> nodeToBone;
-        
-        // First pass: Create all bone nodes
-        for (const auto& joint : skeleton) {
-            const auto& node = model.nodes[joint];
-            
-            BoneNode* boneNode = new BoneNode();
-            boneNode->name = node.name;
-            boneNode->index = joint;
-            
-            // Calculate local transform from node's transform data
-            glm::mat4 localTransform(1.0f);
-            
-            if (node.translation.size() == 3) {
-                glm::mat4 translation = glm::translate(glm::mat4(1.0f), 
-                    glm::vec3(node.translation[0], node.translation[1], node.translation[2]));
-                localTransform = translation * localTransform;
-            }
-            
-            if (node.rotation.size() == 4) {
-                glm::quat rotation(node.rotation[3], node.rotation[0], node.rotation[1], node.rotation[2]);
-                glm::mat4 rotationMatrix = glm::mat4_cast(rotation);
-                localTransform = rotationMatrix * localTransform;
-            }
-            
-            if (node.scale.size() == 3) {
-                glm::mat4 scale = glm::scale(glm::mat4(1.0f), 
-                    glm::vec3(node.scale[0], node.scale[1], node.scale[2]));
-                localTransform = scale * localTransform;
-            }
-            
-            if (node.matrix.size() == 16) {
-                localTransform = glm::make_mat4(node.matrix.data());
-            }
-            
-            boneNode->localTransform = localTransform;
-            nodeToBone[joint] = boneNode;
-            
-            // Add bone info to the map
-            BoneInfo boneInfo;
-            boneInfo.id = animationData->boneCounter++;
-            
-            // Get inverse bind matrix from skin
-            if (model.skins[0].inverseBindMatrices != -1) {
-                const auto& accessor = model.accessors[model.skins[0].inverseBindMatrices];
-                const auto& bufferView = model.bufferViews[accessor.bufferView];
-                const auto& buffer = model.buffers[bufferView.buffer];
-                
-                // Find the index of this joint in the skeleton array
-                auto jointIndex = std::find(skeleton.begin(), skeleton.end(), joint) - skeleton.begin();
-                
-                // Read the inverse bind matrix
-                const float* matrixData = reinterpret_cast<const float*>(
-                    &buffer.data[bufferView.byteOffset + accessor.byteOffset + jointIndex * sizeof(float) * 16]);
-                boneInfo.offsetMatrix = glm::make_mat4(matrixData);
-            } else {
-                boneInfo.offsetMatrix = glm::mat4(1.0f);
-            }
-            
-            animationData->boneInfoMap[joint] = boneInfo;
-        }
-        
-        // Second pass: Build the hierarchy
-        for (const auto& joint : skeleton) {
-            const auto& node = model.nodes[joint];
-            BoneNode* boneNode = nodeToBone[joint];
-            
-            // Add children
-            for (int childIndex : node.children) {
-                // Only add children that are bones
-                if (nodeToBone.find(childIndex) != nodeToBone.end()) {
-                    boneNode->children.push_back(nodeToBone[childIndex]);
-                }
-            }
-        }
-        
-        // Find the root bone (the one that isn't a child of any other bone)
-        std::set<int> childIndices;
-        for (const auto& joint : skeleton) {
-            const auto& node = model.nodes[joint];
-            childIndices.insert(node.children.begin(), node.children.end());
-        }
-        
-        for (const auto& joint : skeleton) {
-            if (childIndices.find(joint) == childIndices.end()) {
-                animationData->rootBone = nodeToBone[joint];
-                break;
-            }
-        }
-    }
-
     if (!warn.empty()) {
-        std::cout << "WARN while loading gltf file \"" << filename << "\": " << warn << std::endl;
+        std::cout << "WARN while loading gltf file: " << warn << std::endl;
     }
 
-    if (!err.empty()) {
-        std::cerr << "ERROR loading gltf file \"" << filename << "\": " << err << std::endl;
+    if (!err.empty() || !ret) {
+        std::cerr << "Failed to load gltf file: " << err << std::endl;
         return nullptr;
     }
 
-    if (!ret) {
-        std::cerr << "Failed to load gltf file \"" << filename << "\"" << std::endl;
+    // Verify model has skins
+    if (model.skins.empty()) {
+        std::cerr << "No skins found in the model" << std::endl;
         return nullptr;
     }
 
-    // Iterate through animations in the GLTF file
+    const auto &skin = model.skins[0];
+    std::cout << "\n=== Skin Data Verification ===" << std::endl;
+    std::cout << "Number of joints: " << skin.joints.size() << std::endl;
+    std::cout << "Inverse bind matrices accessor index: " << skin.inverseBindMatrices << std::endl;
+
+    // Validate skin data
+    if (!validateSkinData(model, skin)) {
+        return nullptr;
+    }
+
+    // Create bone hierarchy
+    std::map<int, BoneNode *> nodeToBone;
+    buildNodeHierarchy(model, skin.joints, nodeToBone);
+
+    // Load inverse bind matrices
+    loadInverseBindMatrices(model, skin, animationData->boneInfoMap);
+
+    // Find root bone
+    std::set<int> childIndices;
+    for (const auto &joint : skin.joints) {
+        const auto &node = model.nodes[joint];
+        for (int child : node.children) {
+            childIndices.insert(child);
+        }
+    }
+
+    for (const auto &joint : skin.joints) {
+        if (childIndices.find(joint) == childIndices.end()) {
+            animationData->rootBone = nodeToBone[joint];
+            break;
+        }
+    }
+
+    // Print verification info
+    std::cout << "\n=== Bone Hierarchy Verification ===" << std::endl;
+    printBoneHierarchy(animationData->rootBone);
+
+    // Load animations
     for (const auto &animation : model.animations) {
         AnimationClip clip;
         clip.name = animation.name;
+        clip.duration = 0.0f;
+        clip.speed = 1.0f;
+        clip.isLooping = true;
 
         for (const auto &channel : animation.channels) {
             Channel animChannel;
             animChannel.nodeIndex = channel.target_node;
+            animChannel.name = model.nodes[channel.target_node].name;
 
-            if (channel.target_path == "translation") {
+            const auto &sampler = animation.samplers[channel.sampler];
+
+            // Set interpolation type
+            if (sampler.interpolation == "LINEAR")
+                animChannel.interpolationType = InterpolationType::LINEAR;
+            else if (sampler.interpolation == "STEP")
+                animChannel.interpolationType = InterpolationType::STEP;
+            else if (sampler.interpolation == "CUBICSPLINE")
+                animChannel.interpolationType = InterpolationType::CUBICSPLINE;
+
+            // Set path type
+            if (channel.target_path == "translation")
                 animChannel.path = Channel::PathType::Translation;
-            } else if (channel.target_path == "rotation") {
+            else if (channel.target_path == "rotation")
                 animChannel.path = Channel::PathType::Rotation;
-            } else if (channel.target_path == "scale") {
+            else if (channel.target_path == "scale")
                 animChannel.path = Channel::PathType::Scale;
-            } else {
-                continue; // Unsupported path type
-            }
+            else
+                continue;
 
-            animChannel.interpolationType = animation.samplers[channel.sampler].interpolation;
+            // Load keyframe data
+            loadKeyframeData(model, channel, sampler, animChannel);
 
-            const auto &inputAccessor = model.accessors[animation.samplers[channel.sampler].input];
-            const auto &outputAccessor = model.accessors[animation.samplers[channel.sampler].output];
-
-            const auto &inputBufferView = model.bufferViews[inputAccessor.bufferView];
-            const auto &outputBufferView = model.bufferViews[outputAccessor.bufferView];
-
-            const auto &inputBuffer = model.buffers[inputBufferView.buffer];
-            const auto &outputBuffer = model.buffers[outputBufferView.buffer];
-
-            const float *inputData = reinterpret_cast<const float *>(
-                &inputBuffer.data[inputBufferView.byteOffset + inputAccessor.byteOffset]);
-            const float *outputData = reinterpret_cast<const float *>(
-                &outputBuffer.data[outputBufferView.byteOffset + outputAccessor.byteOffset]);
-
-            for (size_t i = 0; i < inputAccessor.count; ++i) {
-                animChannel.keyframeTimes.push_back(inputData[i]);
-
-                if (animChannel.path == Channel::PathType::Translation ||
-                    animChannel.path == Channel::PathType::Scale) {
-                    glm::vec3 value(outputData[i * 3], outputData[i * 3 + 1], outputData[i * 3 + 2]);
-                    animChannel.keyframeValues.push_back(value);
-                } else if (animChannel.path == Channel::PathType::Rotation) {
-                    glm::quat value(outputData[i * 4 + 3], outputData[i * 4], outputData[i * 4 + 1],
-                                    outputData[i * 4 + 2]);
-                    animChannel.keyframeValues.push_back(value);
-                }
+            // Update timing info
+            if (!animChannel.translationKeys.empty()) {
+                animChannel.startTime = animChannel.translationKeys.front().time;
+                animChannel.endTime = animChannel.translationKeys.back().time;
+            } else if (!animChannel.rotationKeys.empty()) {
+                animChannel.startTime = animChannel.rotationKeys.front().time;
+                animChannel.endTime = animChannel.rotationKeys.back().time;
+            } else if (!animChannel.scaleKeys.empty()) {
+                animChannel.startTime = animChannel.scaleKeys.front().time;
+                animChannel.endTime = animChannel.scaleKeys.back().time;
             }
 
             clip.channels.push_back(animChannel);
         }
+    }
 
-        for (const auto &channel : clip.channels) {
-            for (const auto &time : channel.keyframeTimes) {
-                if (time > clip.duration) {
-                    clip.duration = time;
-                }
-            }
-        }
-
-        animationData->animationClips[clip.name] = clip;
+    // Print animation verification info
+    std::cout << "\n=== Animation Data Verification ===" << std::endl;
+    for (const auto &[name, clip] : animationData->animationClips) {
+        std::cout << "Animation: " << name << std::endl;
+        std::cout << "Duration: " << clip.duration << std::endl;
+        std::cout << "Channels: " << clip.channels.size() << std::endl;
     }
 
     return animationData;
@@ -759,3 +824,130 @@ void our::mesh_utils::renderQuad() {
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     glBindVertexArray(0);
 }
+
+our::Mesh *our::mesh_utils::createJointVisualizationMesh(float radius, int segments) {
+    std::vector<our::Vertex> vertices;
+    std::vector<GLuint> elements;
+
+    // Create sphere vertices
+    for (int lat = 0; lat <= segments; lat++) {
+        float theta = lat * glm::pi<float>() / segments;
+        float sinTheta = sin(theta);
+        float cosTheta = cos(theta);
+
+        for (int lon = 0; lon <= segments; lon++) {
+            float phi = lon * 2 * glm::pi<float>() / segments;
+            float sinPhi = sin(phi);
+            float cosPhi = cos(phi);
+
+            float x = cosPhi * sinTheta;
+            float y = cosTheta;
+            float z = sinPhi * sinTheta;
+
+            our::Vertex vertex;
+            vertex.position = glm::vec3(x, y, z) * radius;
+            vertex.normal = glm::vec3(x, y, z);
+            vertex.color = {255, 0, 0, 255}; // Red color
+            vertex.tex_coord = glm::vec2((float)lon / segments, (float)lat / segments);
+
+            vertices.push_back(vertex);
+        }
+    }
+
+    // Create indices
+    for (int lat = 0; lat < segments; lat++) {
+        for (int lon = 0; lon < segments; lon++) {
+            int current = lat * (segments + 1) + lon;
+            int next = current + segments + 1;
+
+            elements.push_back(current);
+            elements.push_back(next);
+            elements.push_back(current + 1);
+
+            elements.push_back(next);
+            elements.push_back(next + 1);
+            elements.push_back(current + 1);
+        }
+    }
+
+    return new our::Mesh(vertices, elements);
+}
+
+our::Mesh *our::mesh_utils::createBoneVisualizationMesh() {
+    std::vector<our::Vertex> vertices;
+    std::vector<GLuint> elements;
+
+    const int segments = 8;
+    const float baseRadius = 0.025f;
+    const float tipRadius = 0.0f;
+    const float height = 1.0f;
+
+    // Create vertices for the cone
+    // Base vertices
+    for (int i = 0; i <= segments; i++) {
+        float angle = (float)i / segments * 2.0f * glm::pi<float>();
+        float x = cos(angle) * baseRadius;
+        float z = sin(angle) * baseRadius;
+
+        our::Vertex vertex;
+        vertex.position = glm::vec3(x, 0.0f, z);
+        vertex.normal = glm::normalize(glm::vec3(x, 0.0f, z));
+        vertex.color = {0, 255, 255, 255}; // Cyan color
+        vertex.tex_coord = glm::vec2((float)i / segments, 0.0f);
+
+        vertices.push_back(vertex);
+    }
+
+    // Tip vertices
+    for (int i = 0; i <= segments; i++) {
+        float angle = (float)i / segments * 2.0f * glm::pi<float>();
+        float x = cos(angle) * tipRadius;
+        float z = sin(angle) * tipRadius;
+
+        our::Vertex vertex;
+        vertex.position = glm::vec3(x, height, z);
+        vertex.normal = glm::normalize(glm::vec3(x, height, z));
+        vertex.color = {0, 255, 255, 255}; // Cyan color
+        vertex.tex_coord = glm::vec2((float)i / segments, 1.0f);
+
+        vertices.push_back(vertex);
+    }
+
+    // Create indices
+    for (int i = 0; i < segments; i++) {
+        // Bottom face triangles
+        elements.push_back(i);
+        elements.push_back(i + 1);
+        elements.push_back(i + segments + 1);
+
+        elements.push_back(i + segments + 1);
+        elements.push_back(i + 1);
+        elements.push_back(i + segments + 2);
+    }
+
+    return new our::Mesh(vertices, elements);
+}
+
+// Add the bone transform calculation helper
+glm::mat4 our::mesh_utils::calculateBoneTransform(const glm::vec3 &start, const glm::vec3 &end) {
+    glm::vec3 direction = end - start;
+    float length = glm::length(direction);
+    direction = glm::normalize(direction);
+
+    // Create rotation matrix that aligns the bone with the direction
+    glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
+    glm::vec3 right = glm::normalize(glm::cross(direction, up));
+    up = glm::normalize(glm::cross(right, direction));
+
+    glm::mat4 rotation(glm::vec4(right, 0.0f), glm::vec4(direction, 0.0f), glm::vec4(up, 0.0f),
+                       glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+
+    // Create scale matrix for bone length
+    glm::mat4 scale = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, length, 1.0f));
+
+    // Create translation matrix to position bone
+    glm::mat4 translation = glm::translate(glm::mat4(1.0f), start);
+
+    return translation * rotation * scale;
+}
+
