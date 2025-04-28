@@ -1,0 +1,170 @@
+{
+  "start-scene": "load-skeletons-test",
+  "window": {
+    "title": "Load Skeleton Test Window",
+    "size": {
+      "width": 1280,
+      "height": 720
+    },
+    "fullscreen": false
+  },
+  "screenshots": {
+    "directory": "screenshots/animation-test",
+    "requests": [{ "file": "test-load-skeletons.png", "frame": 5 }]
+  },
+  "scene": {
+    "renderer": {
+      "hdr": {
+        "enable": false,
+        "hdr_texture": "newport_loft",
+        "maxMipLevels": 5
+      },
+      "postprocess": {
+        "bloomEnabled": true,
+        "bloomIntensity": 2,
+        "bloomIterations": 50,
+        "bloomDirection": 0,
+        "tonemappingEnabled": false,
+        "gammaCorrectionFactor": 1,
+        "bloomBrightnessCutoff": 0.4
+      }
+    },
+    "assets": {
+      "shaders": {
+        "pbr": {
+          "vs": "assets/shaders/light/pbr.vert",
+          "fs": "assets/shaders/light/pbr-weights.frag"
+        },
+        "debug": {
+          "vs": "assets/shaders/debug.vert",
+          "fs": "assets/shaders/debug.frag"
+        },
+        "equirectangular": {
+          "vs": "assets/shaders/light/ibl/cubemap.vert",
+          "fs": "assets/shaders/light/ibl/equirectangular.frag"
+        },
+        "background": {
+          "vs": "assets/shaders/light/ibl/background.vert",
+          "fs": "assets/shaders/light/ibl/background.frag"
+        },
+        "irradiance": {
+          "vs": "assets/shaders/light/ibl/cubemap.vert",
+          "fs": "assets/shaders/light/ibl/irradiance.frag"
+        },
+        "prefilter": {
+          "vs": "assets/shaders/light/ibl/cubemap.vert",
+          "fs": "assets/shaders/light/ibl/prefilter.frag"
+        },
+        "brdf": {
+          "vs": "assets/shaders/light/ibl/brdf.vert",
+          "fs": "assets/shaders/light/ibl/brdf.frag"
+        },
+        "bloom": {
+          "vs": "assets/shaders/postprocess/bloom.vert",
+          "fs": "assets/shaders/postprocess/bloom.frag"
+        },
+        "postprocess": {
+          "vs": "assets/shaders/postprocess/post.vert",
+          "fs": "assets/shaders/postprocess/post.frag"
+        }
+      },
+      "textures": {
+        "newport_loft": "assets/textures/hdr/newport_loft.hdr"
+      },
+      "samplers": {
+        "default": {}
+      },
+      "meshes": {
+        "sphere": "assets/models/sphere/sphere.gltf"
+      },
+      "models": {
+        "simple": "assets/models/simple/RiggedSimple.gltf"
+      },
+      "materials": {
+        "sun": {
+          "type": "lit",
+          "shader": "pbr",
+          "pipelineState": {
+            "faceCulling": {
+              "enabled": false
+            },
+            "depthTesting": {
+              "enabled": true,
+              "function": "GL_LEQUAL"
+            }
+          },
+          "lights": [],
+          "tint": [1, 1, 1, 1],
+          "useTextureAlbedo": false,
+          "useTextureNormal": false,
+          "useTextureMetallic": false,
+          "useTextureRoughness": false,
+          "useTextureAmbientOcclusion": false,
+          "useTextureEmissive": false,
+          "albedo": [1, 1, 1],
+          "roughness": 0.99,
+          "metallic": 0.1,
+          "emission": [1.5, 1.5, 1.5],
+          "ambientOcclusion": 1,
+          "textureAlbedo": "grass_albedo",
+          "textureNormal": "grass_normal",
+          "textureMetallic": "grass_metallic",
+          "textureRoughness": "grass_roughness",
+          "textureAmbientOcclusion": "grass_ambientOcclusion",
+          "textureEmissive": "grass_metal"
+        }
+      },
+      "lights": {
+        "sun1": {
+          "type": "point",
+          "enabled": true,
+          "color": [100, 100, 100],
+          "position": [-10.0, 10.0, 10.0],
+          "attenuation": {
+            "constant": 0,
+            "linear": 0,
+            "quadratic": 1
+          }
+        }
+      }
+    },
+    "world": [
+      {
+        "position": [0, 7, 25],
+        "components": [
+          {
+            "type": "Camera",
+            "fovY": 60.0
+          },
+          {
+            "type": "Free Camera Controller",
+            "speedupFactors": 2.5,
+            "positionSensitivity": [2.0, 2.0, 2.0],
+            "rotationSensitivity": 0.001
+          }
+        ]
+      },
+      {
+        "position": [0.0, 0.0, 0.0],
+        "scale": [3, 3, 3],
+        "components": [
+          {
+            "type": "Model Renderer",
+            "model": "simple"
+          }
+        ]
+      },
+
+      {
+        "position": [-10.0, 10.0, 10.0],
+        "components": [
+          {
+            "type": "Mesh Renderer",
+            "mesh": "sphere",
+            "material": "sun"
+          }
+        ]
+      }
+    ]
+  }
+}

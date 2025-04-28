@@ -18,6 +18,7 @@
 #include "states/renderer-test-state.hpp"
 #include "states/light-test-state.hpp"
 #include "states/physics-test-state.hpp"
+#include "states/load-skeleton-state.hpp"
 
 int main(int argc, char** argv) {
     
@@ -57,6 +58,7 @@ int main(int argc, char** argv) {
     app.registerState<RendererTestState>("renderer-test");
     app.registerState<LightTestState>("light-test");
     app.registerState<PhysicsTestState>("physics-test");
+    app.registerState<LoadSkeletonState>("load-skeletons-test");
 
     // Then choose the state to run based on the option "start-scene" in the config
     if(app_config.contains(std::string{"start-scene"})){
