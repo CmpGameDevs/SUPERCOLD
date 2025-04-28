@@ -5,6 +5,12 @@
 namespace our {
 
 void Model::draw(CameraComponent *camera, glm::mat4 localToWorld, glm::ivec2 windowSize, float bloomBrightnessCutoff) {
+    if (visualizeJoints) {
+        updateBoneVisuals();
+        drawBoneVisuals(camera, localToWorld, windowSize);
+        return;
+    }
+
     // Go over all meshes and draw each one
     glm::mat4 view = camera->getViewMatrix();
     glm::mat4 projection = camera->getProjectionMatrix(windowSize);
@@ -22,6 +28,13 @@ void Model::draw(CameraComponent *camera, glm::mat4 localToWorld, glm::ivec2 win
         material->shader->set("projection", projection);
         material->shader->set("model", meshWorldMatrix);
         material->shader->set("bloomBrightnessCutoff", bloomBrightnessCutoff);
+
+        // Pass bone transforms to the shader
+        for (size_t j = 0; j < boneTransforms.size(); j++) {
+            std::string uniformName = "boneTransforms[" + std::to_string(j) + "]";
+            material->shader->set(uniformName, boneTransforms[j]);
+        }
+
         mesh->draw();
     }
 }
@@ -186,19 +199,19 @@ void Model::loadMesh(unsigned int indMesh) {
         texUVs.resize(positions.size(), glm::vec2(0.0f, 0.0f));
         std::cout << "Mesh #" << indMesh << " using default texture coordinates (0,0)" << std::endl;
     }
-    
+
     // Load bone indices and weights if they exist
     std::vector<glm::ivec4> boneIndices;
     std::vector<glm::vec4> boneWeights;
-    
+
     if (attributes.contains("JOINTS_0") && attributes.contains("WEIGHTS_0")) {
         // Load indices - these are typically stored as unsigned shorts (componentType 5123)
         unsigned int jointsAccInd = attributes["JOINTS_0"];
         json jointsAccessor = JSON["accessors"][jointsAccInd];
-        
+
         if (jointsAccessor["componentType"] == 5123) { // UNSIGNED_SHORT
             std::vector<short> jointsVec = getShorts(jointsAccessor);
-            
+
             // Group the shorts into ivec4
             for (unsigned int i = 0; i < jointsVec.size(); i += 4) {
                 glm::ivec4 joints = glm::ivec4(0);
@@ -212,23 +225,21 @@ void Model::loadMesh(unsigned int indMesh) {
             // Implementation would be similar but with 1-byte reads
             std::cout << "Mesh #" << indMesh << " using UNSIGNED_BYTE for joint indices" << std::endl;
         }
-        
+
         // Load weights - these are typically stored as floats
         unsigned int weightsAccInd = attributes["WEIGHTS_0"];
         std::vector<float> weightsVec = getFloats(JSON["accessors"][weightsAccInd]);
         boneWeights = groupFloatsVec4(weightsVec);
-        
+
         std::cout << "Mesh #" << indMesh << " loaded " << boneIndices.size() << " bone mappings" << std::endl;
     } else {
         // If no skinning data, we still need to provide default values
-        std::cout << "Mesh #" << indMesh << " has no skinning data" << std::endl;
+        std::cout << "Mesh #" << indMesh << " has no skinning data" << "\n";
     }
 
     // Combine all the vertex components and also get the indices and textures
     std::vector<Vertex> vertices = assembleVertices(positions, normals, texUVs, boneIndices, boneWeights);
     std::vector<GLuint> indices = getIndices(JSON["accessors"][indAccInd]);
-
-    
 
     // Combine the vertices, indices, and textures into a mesh
     MeshRendererComponent *meshRenderer = new MeshRendererComponent();
@@ -357,7 +368,6 @@ void Model::loadAnimations() {
     AnimationData *loadedAnimationData = mesh_utils::loadGLTFAnimation(path);
     if (loadedAnimationData) {
         animationData = *loadedAnimationData;
-        delete loadedAnimationData;
         std::cout << "Animations loaded successfully from: " << path << std::endl;
     } else {
         std::cerr << "Failed to load animations from: " << path << std::endl;
@@ -385,7 +395,6 @@ void Model::loadModel(std::string path) {
 
     // Load the animations
     loadAnimations();
-
     traverseNode(0, glm::mat4(1.0f));
 }
 
@@ -660,17 +669,16 @@ std::vector<GLuint> Model::getIndices(json accessor) {
 }
 
 std::vector<Vertex> Model::assembleVertices(std::vector<glm::vec3> positions, std::vector<glm::vec3> normals,
-                                          std::vector<glm::vec2> texUVs, 
-                                          std::vector<glm::ivec4> boneIndices, 
-                                          std::vector<glm::vec4> boneWeights) {
+                                            std::vector<glm::vec2> texUVs, std::vector<glm::ivec4> boneIndices,
+                                            std::vector<glm::vec4> boneWeights) {
     std::vector<Vertex> vertices;
     for (int i = 0; i < positions.size(); i++) {
         texUVs[i].y = 1 - texUVs[i].y;
-        
+
         // Default bone data if none provided
         glm::ivec4 indices = (i < boneIndices.size()) ? boneIndices[i] : glm::ivec4(0, 0, 0, 0);
         glm::vec4 weights = (i < boneWeights.size()) ? boneWeights[i] : glm::vec4(1, 0, 0, 0);
-        
+
         // Normalize weights to ensure they sum to 1
         float sum = weights.x + weights.y + weights.z + weights.w;
         if (sum > 0) {
@@ -678,15 +686,8 @@ std::vector<Vertex> Model::assembleVertices(std::vector<glm::vec3> positions, st
         } else {
             weights = glm::vec4(1, 0, 0, 0); // Default weight to first bone if sum is zero
         }
-        
-        vertices.push_back(Vertex{
-            positions[i], 
-            glm::vec4(1, 1, 1, 1), 
-            texUVs[i], 
-            normals[i], 
-            indices, 
-            weights
-        });
+
+        vertices.push_back(Vertex{positions[i], glm::vec4(1, 1, 1, 1), texUVs[i], normals[i], indices, weights});
     }
     return vertices;
 }
@@ -731,6 +732,109 @@ std::vector<glm::vec4> Model::groupFloatsVec4(std::vector<float> floatVec) {
         }
     }
     return vectors;
+}
+
+void Model::initializeVisualization() {
+    // Create sphere mesh for joints
+    jointMesh = mesh_utils::createJointVisualizationMesh(0.05f, 8);
+
+    // Create cone mesh for bones
+    boneMesh = mesh_utils::createBoneVisualizationMesh();
+
+    // Create materials
+    jointMaterial = new TintedMaterial();
+    jointMaterial->shader = new ShaderProgram();
+    jointMaterial->shader->attach("assets/shaders/tinted.vert", GL_VERTEX_SHADER);
+    jointMaterial->shader->attach("assets/shaders/tinted.frag", GL_FRAGMENT_SHADER);
+    jointMaterial->shader->link();
+    jointMaterial->tint = glm::vec4(1.0f, 0.0f, 0.0f, 1.0f); // Red
+
+    boneMaterial = new TintedMaterial();
+    boneMaterial->shader = new ShaderProgram();
+    boneMaterial->shader->attach("assets/shaders/tinted.vert", GL_VERTEX_SHADER);
+    boneMaterial->shader->attach("assets/shaders/tinted.frag", GL_FRAGMENT_SHADER);
+    boneMaterial->shader->link();
+    boneMaterial->tint = glm::vec4(0.0f, 1.0f, 1.0f, 1.0f); // Cyan
+}
+
+void Model::updateBoneVisuals() {
+    boneVisuals.clear();
+
+    std::function<void(BoneNode *, const glm::mat4 &)> processNode = [&](BoneNode *node,
+                                                                         const glm::mat4 &parentTransform) {
+        if (!node)
+            return;
+
+        // Calculate global transform
+        glm::mat4 globalTransform = parentTransform * node->localTransform;
+        glm::vec3 nodePos = glm::vec3(globalTransform[3]);
+
+        // Process each child bone
+        for (auto *child : node->children) {
+            glm::mat4 childGlobal = parentTransform * child->localTransform;
+            glm::vec3 childPos = glm::vec3(childGlobal[3]);
+
+            float length = glm::distance(nodePos, childPos);
+            if (length > 0.0001f) { // Avoid zero-length bones
+                BoneVisual visual;
+                visual.startPos = nodePos;
+                visual.endPos = childPos;
+                visual.length = length;
+                visual.transform = mesh_utils::calculateBoneTransform(nodePos, childPos);
+                boneVisuals.push_back(visual);
+            }
+
+            // std::cout << "  Added bone visual from " << nodePos.x << "," << nodePos.y << "," << nodePos.z << " to "
+            //   << childPos.x << "," << childPos.y << "," << childPos.z << std::endl;
+
+            // Recurse for children
+            processNode(child, globalTransform);
+        }
+    };
+
+    if (animationData.rootBone) {
+        processNode(animationData.rootBone, glm::mat4(1.0f));
+    }
+}
+
+void Model::drawBoneVisuals(CameraComponent *camera, const glm::mat4 &localToWorld, const glm::ivec2 &windowSize) {
+    if (!visualizeJoints)
+        return;
+
+    glm::mat4 view = camera->getViewMatrix();
+    glm::mat4 proj = camera->getProjectionMatrix(windowSize);
+    glm::mat4 viewProj = proj * view;
+
+    // Enable depth testing and write
+    glEnable(GL_DEPTH_TEST);
+    glDepthMask(GL_TRUE);
+
+    // Draw bones
+    boneMaterial->setup();
+    for (const auto &bone : boneVisuals) {
+        glm::mat4 modelMatrix = localToWorld * bone.transform;
+        boneMaterial->shader->set("transform", viewProj * modelMatrix);
+        boneMesh->draw();
+    }
+
+    // Draw joints
+    jointMaterial->setup();
+    float jointScale = 0.1f;
+    glm::mat4 jointScaleMatrix = glm::scale(glm::mat4(1.0f), glm::vec3(jointScale));
+
+    for (const auto &bone : boneVisuals) {
+        // Start joint
+        glm::mat4 startTransform =
+            viewProj * localToWorld * glm::translate(glm::mat4(1.0f), bone.startPos) * jointScaleMatrix;
+        jointMaterial->shader->set("transform", startTransform);
+        jointMesh->draw();
+
+        // End joint
+        glm::mat4 endTransform =
+            viewProj * localToWorld * glm::translate(glm::mat4(1.0f), bone.endPos) * jointScaleMatrix;
+        jointMaterial->shader->set("transform", endTransform);
+        jointMesh->draw();
+    }
 }
 
 } // namespace our

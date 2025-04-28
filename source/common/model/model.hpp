@@ -1,4 +1,3 @@
-#include <model/animation-data.hpp>
 #include <components/camera.hpp>
 #include <components/mesh-renderer.hpp>
 #include <ecs/entity.hpp>
@@ -7,6 +6,7 @@
 #include <json/json.hpp>
 #include <material/material.hpp>
 #include <mesh/mesh.hpp>
+#include <model/animation-data.hpp>
 #include <string>
 #include <texture/texture-utils.hpp>
 #include <texture/texture2d.hpp>
@@ -29,7 +29,32 @@ class Model {
     std::string path;
     AnimationData animationData;
 
+    std::vector<glm::mat4> boneTransforms; // Bone transforms
+
+    struct BoneVisual {
+        glm::vec3 startPos;
+        glm::vec3 endPos;
+        glm::mat4 transform;
+        float length;
+    };
+
+    std::vector<BoneVisual> boneVisuals;
+    Mesh *jointMesh;         // Sphere mesh for joints
+    Mesh *boneMesh;          // Cone mesh for bones
+    TintedMaterial *jointMaterial; // Red material for joints
+    TintedMaterial *boneMaterial;  // Cyan material for bones
+    bool visualizeJoints = false; // Flag to control joint visualization
+
+
   public:
+    Model() {
+        boneTransforms.resize(400, glm::mat4(1.0f)); // Maximum of 200 bones
+        initializeVisualization();
+    }
+
+    void setVisualizeJoints(bool enable) { visualizeJoints = enable; }
+    bool isVisualizingJoints() const { return visualizeJoints; }
+
     ~Model() {
         for (auto &texture : textures)
             delete texture;
@@ -37,6 +62,15 @@ class Model {
             delete material;
         for (auto &mesh : meshRenderers)
             delete mesh;
+
+        if (jointMesh)
+            delete jointMesh;
+        if (boneMesh)
+            delete boneMesh;
+        if (jointMaterial)
+            delete jointMaterial;
+        if (boneMaterial)
+            delete boneMaterial;
     }
 
     void draw(CameraComponent *camera, glm::mat4 localToWorld, glm::ivec2 windowSize, float bloomBrightnessCutoff);
@@ -45,7 +79,13 @@ class Model {
     void loadMaterials();
     void traverseNode(unsigned int nextNode, glm::mat4 matrix = glm::mat4(1.0f));
     void loadModel(std::string path);
-    void loadAnimations(); 
+    void loadAnimations();
+
+    void initializeVisualization();
+    void updateBoneVisuals();
+    void drawBoneVisuals(CameraComponent *camera, const glm::mat4 &localToWorld, const glm::ivec2 &windowSize);
+
+    AnimationData *getAnimationData() { return &animationData; }
 
     // Reads a text file and outputs a string with everything in the text file
     std::string get_file_contents(std::string path);
@@ -59,9 +99,9 @@ class Model {
 
     // Assembles all the floats into vertices
     std::vector<Vertex> assembleVertices(std::vector<glm::vec3> positions, std::vector<glm::vec3> normals,
-                                    std::vector<glm::vec2> texUVs, 
-                                    std::vector<glm::ivec4> boneIndices = std::vector<glm::ivec4>(), 
-                                    std::vector<glm::vec4> boneWeights = std::vector<glm::vec4>());
+                                         std::vector<glm::vec2> texUVs,
+                                         std::vector<glm::ivec4> boneIndices = std::vector<glm::ivec4>(),
+                                         std::vector<glm::vec4> boneWeights = std::vector<glm::vec4>());
 
     // Helps with the assembly from above by grouping floats
     std::vector<glm::vec2> groupFloatsVec2(std::vector<float> floatVec);
