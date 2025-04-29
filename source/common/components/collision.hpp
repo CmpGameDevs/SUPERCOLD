@@ -46,6 +46,8 @@ namespace our {
 
         virtual ~CollisionComponent();
 
+        void freeBulletBody();
+
         // The ID of this component type is "Collision"
         static std::string getID() { return "Collision"; }
 

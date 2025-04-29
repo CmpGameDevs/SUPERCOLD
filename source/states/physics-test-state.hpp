@@ -13,7 +13,7 @@ class PhysicsTestState : public our::State {
     our::World world;
     our::ForwardRenderer renderer;
     our::FPSControllerSystem fpsController;
-    our::CollisionSystem collisionSystem;
+    our::CollisionSystem &collisionSystem = our::CollisionSystem::getInstance();
     game::TimeScaler timeScaler;
     float timeScale;
 

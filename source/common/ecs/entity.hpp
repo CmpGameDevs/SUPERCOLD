@@ -44,6 +44,15 @@ namespace our
             return component;
         }
 
+        template <typename T>
+        T *addComponent(T *component)
+        {
+            static_assert(std::is_base_of<Component, T>::value, "T must inherit from Component");
+            component->owner = this;
+            components.push_back(component);
+            return component;
+        }
+
         // This template method searches for a component of type T and returns a pointer to it
         // If no component of type T was found, it returns a nullptr
         template <typename T>
@@ -110,6 +119,20 @@ namespace our
             //  If found, delete the found component and remove it from the components list
             components.remove(component);
             delete component;
+        }
+
+        template <typename T>
+        void removeComponent()
+        {
+            components.remove_if([](Component *component) {
+                return dynamic_cast<T *>(component) != nullptr;
+            });
+        }
+
+        template <typename T>
+        void removeComponent(T *component)
+        {
+            components.remove(component);
         }
 
         // Since the entity owns its components, they should be deleted alongside the entity

@@ -12,6 +12,8 @@
 namespace our {
 
     void CollisionSystem::initialize(glm::ivec2 windowSize, btDynamicsWorld* physicsWorld) {
+        if (this->physicsWorld) _freePhysicsWorld();
+        
         this->physicsWorld = static_cast<btDiscreteDynamicsWorld*>(physicsWorld);
         this->debugDrawer = new GLDebugDrawer(windowSize);
         this->physicsWorld->setDebugDrawer(debugDrawer);
@@ -83,7 +85,7 @@ namespace our {
             transform.scale = glm::vec3(glm::length(worldMatrix[0]), glm::length(worldMatrix[1]), glm::length(worldMatrix[2]));
             
             if(!collision->bulletBody && !collision->ghostObject) {
-                _createRigidBody(entity, collision, &transform);
+                createRigidBody(entity, collision, &transform);
             }
             _syncTransforms(entity, collision, &transform);
             if (!collision->isKinematic) {
@@ -180,9 +182,10 @@ namespace our {
         controller->characterController = characterController;
     }
 
-    void CollisionSystem::_createRigidBody(Entity* entity, CollisionComponent* collision, const Transform* transform) {
+    void CollisionSystem::createRigidBody(Entity* entity, CollisionComponent* collision, const Transform* transform) {
         btCollisionShape* shape = nullptr;
         if (collision->isKinematic) collision->mass = 0.0f;
+        printf("[CollisionSystem] Creating rigid body with kinematic: %s\n", collision->isKinematic ? "true" : "false");
                     
         // Create shape based on component data
         switch(collision->shape) {
@@ -376,6 +379,16 @@ namespace our {
         return false;
     }
 
+    void CollisionSystem::applyVelocity(Entity* entity, const glm::vec3& velocity) {
+        if (auto collision = entity->getComponent<CollisionComponent>()) {
+            if (collision->bulletBody && collision->mass > 0.0f) {
+                btVector3 btVelocity(velocity.x, velocity.y, velocity.z);
+                collision->bulletBody->setLinearVelocity(btVelocity);
+                collision->bulletBody->activate();
+            }
+        }
+    }
+
     void CollisionSystem::applyImpulse(Entity* entity, const glm::vec3& force, const glm::vec3& position) {
         if (auto collision = entity->getComponent<CollisionComponent>()) {
             if (collision->bulletBody && collision->mass > 0.0f) {
@@ -531,16 +544,23 @@ namespace our {
         debugDrawer->flushLines(world);
     }
 
+    void CollisionSystem::_freePhysicsWorld() {
+        if (physicsWorld) {
+            delete physicsWorld->getBroadphase();
+            delete physicsWorld->getDispatcher();
+            delete physicsWorld->getConstraintSolver();
+            delete physicsWorld;
+            physicsWorld = nullptr;
+        }
+    }
+
     void CollisionSystem::destroy() {
         if (debugDrawer) {
             delete debugDrawer;
             debugDrawer = nullptr;
         }
 
-        if (physicsWorld) {
-            delete physicsWorld;
-            physicsWorld = nullptr;
-        }
+        _freePhysicsWorld();
     }
 
 }
