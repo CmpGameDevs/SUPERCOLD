@@ -183,6 +183,52 @@ namespace our {
         controller->characterController = characterController;
     }
 
+    btCollisionShape* CollisionSystem::_createCompoundShape(CollisionComponent* collision, const Transform* transform) {
+        btCompoundShape* compoundShape = new btCompoundShape();
+        for (const auto& child : collision->childShapes) {
+            btCollisionShape* shape = nullptr;
+            switch (child.shape) {
+                case CollisionShape::BOX:
+                    shape = new btBoxShape(btVector3(
+                        child.halfExtents.x,
+                        child.halfExtents.y,
+                        child.halfExtents.z
+                    ));
+                    break;
+                case CollisionShape::SPHERE:
+                    shape = new btSphereShape(child.halfExtents.x);
+                    break;
+                case CollisionShape::CAPSULE:
+                    shape = new btCapsuleShape(
+                        child.halfExtents.x,  // radius
+                        child.halfExtents.y    // height
+                    );
+                    break;
+                case CollisionShape::MESH: {
+                    // Create a temporary collision component with the child's data
+                    CollisionComponent tempCollision;
+                    tempCollision.vertices = child.vertices;
+                    tempCollision.indices = child.indices;
+                    tempCollision.mass = collision->mass;
+                    tempCollision.isKinematic = collision->isKinematic;
+                    
+                    // Use existing mesh creation function
+                    shape = _createMeshShape(&tempCollision, transform);
+                    
+                    break;
+                }
+                default:
+                    break;
+            }
+            if (shape) {
+                btTransform childTrans;
+                childTrans.setIdentity();
+                compoundShape->addChildShape(childTrans, shape);
+            }
+        }
+        return compoundShape;
+    }
+        
     void CollisionSystem::createRigidBody(Entity* entity, CollisionComponent* collision, const Transform* transform) {
         btCollisionShape* shape = nullptr;
         if (collision->isKinematic) collision->mass = 0.0f;
@@ -209,6 +255,9 @@ namespace our {
             case CollisionShape::MESH:
                 shape = _createMeshShape(collision, transform);
                 break;
+            case CollisionShape::COMPOUND:
+                shape = _createCompoundShape(collision, transform);
+                break;    
             case CollisionShape::GHOST:
                 _createGhostObject(entity, collision, transform);
                 return; // No need to create a rigid body for ghost objects
