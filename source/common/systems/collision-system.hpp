@@ -122,6 +122,8 @@ class CollisionSystem {
     void _createRigidBody(Entity* entity, CollisionComponent* collision, const Transform* transform);
     // Create a mesh shape for the entity based on its collision component and transform
     btCollisionShape* _createMeshShape(CollisionComponent* collision, const Transform* transform);
+    // Create a compound shape for the entity based on its collision component and transform
+    btCollisionShape* _createCompoundShape(CollisionComponent* collision, const Transform* transform);
     // Create ghost object for the entity based on its collision component and transform
     void _createGhostObject(Entity* entity, CollisionComponent* collision, const Transform* transform);
     // Clear previous collisions for the entity

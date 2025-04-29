@@ -15,7 +15,8 @@ namespace our {
         SPHERE,
         CAPSULE,
         MESH,
-        GHOST
+        GHOST,
+        COMPOUND
     };
 
     // This component denotes that the CollisionSystem will check for collisions with this entity.
@@ -23,6 +24,15 @@ namespace our {
     // For more information, see "common/systems/collision.hpp"
     class CollisionComponent : public Component {
     public:
+        struct ChildShape {
+            CollisionShape shape = CollisionShape::BOX;
+            glm::vec3 halfExtents{0.5f};
+            std::vector<our::Vertex> vertices;
+            std::vector<uint32_t> indices;
+        };
+    
+        std::vector<ChildShape> childShapes;
+
         float mass = 0.0f;
         CollisionShape shape = CollisionShape::BOX;
         glm::vec3 halfExtents {0.5f};
