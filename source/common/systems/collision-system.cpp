@@ -214,7 +214,12 @@ namespace our {
                     
                     // Use existing mesh creation function
                     shape = _createMeshShape(&tempCollision, transform);
-                    
+
+                    shape->setLocalScaling(btVector3(
+                        transform->scale.x,
+                        transform->scale.y,
+                        transform->scale.z
+                    ));
                     break;
                 }
                 default:
@@ -263,11 +268,12 @@ namespace our {
                 return; // No need to create a rigid body for ghost objects
         }
 
-        shape->setLocalScaling(btVector3(
-            transform->scale.x,
-            transform->scale.y,
-            transform->scale.z
-        ));
+
+        // shape->setLocalScaling(btVector3(
+        //     transform->scale.x,
+        //     transform->scale.y,
+        //     transform->scale.z
+        // ));
 
         btTransform btTrans;
         btTrans.setIdentity();
