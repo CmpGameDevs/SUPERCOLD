@@ -322,28 +322,14 @@
                     {
                         "type": "Collision",
                         "shape": "model",
-                        "mass": 500,
-                        "model": "gun"
+                        "mass": 0,
+                        "model": "gun",
+                        "isKinematic": false
+
                     },
                     {
                         "type": "Model Renderer",
                         "model": "gun"
-                    }
-                ]
-            },
-            {
-                "position": [5, 1, -6],
-                "scale": [3, 3, 3],
-                "components": [
-                    {
-                        "type": "Collision",
-                        "shape": "model",
-                        "mass": 100,
-                        "model": "master_chief"
-                    },
-                    {
-                        "type": "Model Renderer",
-                        "model": "master_chief"
                     }
                 ]
             },
