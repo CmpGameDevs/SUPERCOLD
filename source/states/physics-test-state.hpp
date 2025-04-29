@@ -159,7 +159,7 @@ class PhysicsTestState : public our::State {
         collisionSystem.update(&world, scaledDeltaTime);
         raycast();
         renderer.render(&world);
-        collisionSystem.debugDrawWorld(&world);
+        // collisionSystem.debugDrawWorld(&world);
     }
 
     void onDestroy() override {
