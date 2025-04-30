@@ -3,6 +3,7 @@
 #include <asset-loader.hpp>
 #include <mesh/mesh.hpp>
 #include <model/model.hpp>
+#include <systems/collision-system.hpp>
 #include "collision.hpp"
 
 namespace our {

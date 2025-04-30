@@ -262,7 +262,7 @@ namespace our {
                 break;
             case CollisionShape::COMPOUND:
                 shape = _createCompoundShape(collision, transform);
-                break;
+                break;    
             case CollisionShape::GHOST:
                 _createGhostObject(entity, collision, transform);
                 return; // No need to create a rigid body for ghost objects
@@ -446,9 +446,9 @@ namespace our {
                 for(auto other : collision->currentCollisions) {
                     if(collision->previousCollisions.count(other)) {
                         collision->callbacks.onStay(other);
-                    }
                 }
             }
+        }
     
             if(collision->wantsExit()) {
                 for(auto other : collision->exits) {
@@ -682,7 +682,6 @@ namespace our {
             delete debugDrawer;
             debugDrawer = nullptr;
         }
-
         _freePhysicsWorld();
     }
 
