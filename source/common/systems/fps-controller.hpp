@@ -1,8 +1,10 @@
 #pragma once
-#include "../application.hpp"
-#include "../components/camera.hpp"
-#include "../components/fps-controller.hpp"
-#include "../ecs/world.hpp"
+#include <application.hpp>
+#include <components/camera.hpp>
+#include <components/fps-controller.hpp>
+#include <components/collision.hpp>
+#include <components/weapon.hpp>
+#include <ecs/world.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/constants.hpp>
 #include <glm/gtx/fast_trigonometry.hpp>
@@ -332,6 +334,29 @@ class FPSControllerSystem {
         }
     }
 
+    void handleShooting(FPSControllerComponent *controller, Entity *entity, float deltaTime) {
+        if (!controller->pickedEntity) return;
+        auto weapon = controller->pickedEntity->getComponent<WeaponComponent>();
+        if (!weapon) return;
+        weapon->fireCooldown -= deltaTime;
+        bool isShooting = app->getMouse().justPressed(GLFW_MOUSE_BUTTON_LEFT) || (
+            app->getMouse().isPressed(GLFW_MOUSE_BUTTON_LEFT) && weapon->automatic
+        );
+        if (isShooting) {
+            printf("Attempting to fire weapon with current cooldown: %f\n", weapon->fireCooldown);
+            auto cameraMatrix = entity->getLocalToWorldMatrix();
+            glm::vec3 cameraForward = -glm::normalize(glm::vec3(cameraMatrix[2]));
+            if (weapon->fireCooldown <= 0.0f) {
+                printf("Firing weapon! Remaining ammo: %d\n", weapon->currentAmmo);
+                WeaponsSystem::getInstance().fireWeapon(entity->getWorld(), controller->pickedEntity, cameraForward);
+                weapon->fireCooldown = weapon->fireRate;
+            }
+        }
+        else if (app->getKeyboard().justPressed(GLFW_KEY_R)) {
+            WeaponsSystem::getInstance().reloadWeapon(entity->getWorld(), controller->pickedEntity);
+        }
+    }
+
 public:
     // Enters the state and locks the mouse
     void enter(Application *app) {
@@ -361,6 +386,7 @@ public:
         // Handle crouch toggling with C key
         handleCrouching(controller, entity, deltaTime);
         handlePickup(controller, entity);
+        handleShooting(controller, entity, deltaTime);
 
         handleMouseLockToggle();
         handleFov(camera, controller);

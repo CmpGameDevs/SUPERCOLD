@@ -6,6 +6,29 @@
 
 namespace our {
     void WeaponsSystem::update(World* world, float deltaTime) {
+        std::vector<Projectile*> toRemove;
+        toRemove.reserve(projectiles.size());
+
+        for(auto* proj : projectiles) {
+            if(!proj->entity) {
+                toRemove.push_back(proj);
+                continue;
+            }
+            proj->entity->localTransform.position += proj->direction * proj->speed * deltaTime;
+            proj->timeAlive += deltaTime;
+
+            if(proj->lifetime > 0.0f && proj->timeAlive >= proj->lifetime) {
+                printf("Projectile lifetime expired.\n");
+                world->markForRemoval(proj->entity);
+                toRemove.push_back(proj);
+            }
+        }
+        world->deleteMarkedEntities();
+
+        for(auto* deadProj : toRemove) {
+            projectiles.erase(deadProj);
+            delete deadProj;
+        }
     }
     
     void WeaponsSystem::throwWeapon(World* world, Entity* entity, glm::vec3 forward) {
@@ -34,9 +57,31 @@ namespace our {
     }
     
     void WeaponsSystem::reloadWeapon(World* world, Entity* entity) {
+        if (!entity) return;
+        WeaponComponent* weapon = entity->getComponent<WeaponComponent>();
+        if (!weapon) return;
+        // Reload the weapon's ammo
+        weapon->currentAmmo = weapon->ammoCapacity;
+        // TODO: Add a reload animation or sound
+        // Add a cooldown to prevent spamming the reload action
+        weapon->fireCooldown = 0.3f;
+        printf("Reloaded weapon! Current ammo: %d\n", weapon->currentAmmo);
     }
     
     void WeaponsSystem::fireWeapon(World* world, Entity* entity, glm::vec3 direction) {
+        if (!entity) return;
+        WeaponComponent* weapon = entity->getComponent<WeaponComponent>();
+        if (!weapon) return;
+        // Check if the weapon has ammo and if the fire cooldown is active
+        if (weapon->currentAmmo <= 0 || weapon->fireCooldown > 0.0f) return;
+        float speed = 5.0f;
+        float lifetime = 5.0f;
+        // Create a projectile entity
+        Entity* projectileEntity = _createProjectile(world, entity, direction, speed);
+        Projectile *projectile = new Projectile(projectileEntity, entity, direction, speed, weapon->range, lifetime);
+        projectiles.insert(projectile);
+        weapon->currentAmmo--;
+        printf("Fired weapon! Remaining ammo: %d\n", weapon->currentAmmo);
     }
     
     void WeaponsSystem::pickupWeapon(World* world, Entity* entity, Entity* weaponEntity) {
@@ -78,5 +123,32 @@ namespace our {
 
         entity->addComponent(collision);
         return collision;
+    }
+
+    Entity *WeaponsSystem::_createProjectile(World* world, Entity* owner, glm::vec3 direction, float speed) {
+        Entity* projectileEntity = world->add();
+        projectileEntity->name = "Projectile";
+        // Set Transform
+        glm::mat4 worldMatrix = owner->getLocalToWorldMatrix();
+        projectileEntity->localTransform.position = glm::vec3(worldMatrix[3]);
+        projectileEntity->localTransform.scale = glm::vec3(glm::length(worldMatrix[0]), glm::length(worldMatrix[1]), glm::length(worldMatrix[2]));
+        // Set Projectile Properties
+        CollisionComponent* collision = projectileEntity->addComponent<CollisionComponent>();
+        collision->shape = CollisionShape::SPHERE;
+        collision->halfExtents = glm::vec3(0.2f);
+        collision->mass = 0;
+        collision->isKinematic = true;
+        collision->callbacks.onEnter = [this, projectileEntity, world](Entity* other) {
+            if (other->name == "Projectile") return;
+            world->markForRemoval(projectileEntity);
+        };
+        return projectileEntity;
+    }
+
+    void WeaponsSystem::onDestroy() {
+        for (auto* proj : projectiles) {
+            delete proj;
+        }
+        projectiles.clear();
     }
 }

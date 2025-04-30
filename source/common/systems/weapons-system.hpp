@@ -3,6 +3,7 @@
 #include <ecs/entity.hpp>
 #include <ecs/world.hpp>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace our {
 
@@ -15,9 +16,34 @@ class WeaponsSystem {
 
     std::unordered_map<Entity*, Component*> weaponsMap;
 
+    struct Projectile {
+        Entity* entity;
+        Entity* owner;
+        glm::vec3 direction;
+        float speed;
+        float range;
+        float lifetime;
+        float timeAlive = 0.0f;
+
+        Projectile(Entity* entity, Entity* owner, glm::vec3 direction, float speed, float range, float lifetime)
+            : entity(entity), owner(owner), direction(direction), speed(speed), range(range), lifetime(lifetime) {}
+
+        ~Projectile() {
+            owner = nullptr;
+        }
+
+        bool operator==(const Projectile& other) const {
+            return entity == other.entity;
+        }
+    };
+
+    std::unordered_set<Projectile*> projectiles;
+
     void _removeCollisionComponent(Entity* entity);
 
     Component *_addCollisionComponent(Entity* entity);
+
+    Entity *_createProjectile(World* world, Entity* owner, glm::vec3 direction, float speed);
 
 public:
     static WeaponsSystem& getInstance() {
@@ -36,6 +62,8 @@ public:
     void fireWeapon(World* world, Entity* entity, glm::vec3 direction);
 
     void pickupWeapon(World* world, Entity* entity, Entity* weaponEntity);
+
+    void onDestroy();
 };
 
 }

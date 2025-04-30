@@ -10,6 +10,7 @@ namespace our {
         float damage = 0.0f;
         float range = 0.0f;
         float fireRate = 0.0f;
+        float fireCooldown = 0.0f;
         float reloadTime = 0.0f;
         int ammoCapacity = 0;
         int currentAmmo = 0;

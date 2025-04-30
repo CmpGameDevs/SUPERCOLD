@@ -135,6 +135,8 @@ class CollisionSystem {
     void _pushOverlappingObjects(btPairCachingGhostObject* ghost, const glm::vec3& position, float deltaTime);
     // Detect collisions between entities and update their collision components
     void _detectCollisions();
+    // Process the detected collisions and call the appropriate callbacks
+    void _processCollisions(World* world);
     // Free the Bullet physics world and its components
     void _freePhysicsWorld();
 
