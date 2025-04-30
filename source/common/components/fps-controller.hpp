@@ -60,6 +60,13 @@ class FPSControllerComponent : public Component {
     bool isJumping = false;
     float currentStamina = 100.0f;
 
+    // Raycasting parameters
+    float pickupDistance = 2.0f;
+    float throwDistance = 5.0f;
+
+    // Inventory parameters
+    Entity *pickedEntity = nullptr;
+
     // Deserialize from JSON
     void deserialize(const nlohmann::json &data);
 

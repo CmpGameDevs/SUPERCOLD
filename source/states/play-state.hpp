@@ -15,7 +15,7 @@ class Playstate : public our::State {
 
     our::World world;
     our::ForwardRenderer renderer;
-    our::CollisionSystem collisionSystem;
+    our::CollisionSystem &collisionSystem = our::CollisionSystem::getInstance();
     our::FPSControllerSystem fpsController;
     our::MovementSystem movementSystem;
     game::TimeScaler timeScaler;

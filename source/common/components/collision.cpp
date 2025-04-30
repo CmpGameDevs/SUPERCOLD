@@ -2,16 +2,13 @@
 #include <deserialize-utils.hpp>
 #include <asset-loader.hpp>
 #include <mesh/mesh.hpp>
+#include <systems/collision-system.hpp>
 #include "collision.hpp"
 
 namespace our {
     
     CollisionComponent::~CollisionComponent() {
-        if(bulletBody) {
-            delete bulletBody->getCollisionShape();
-            delete bulletBody->getMotionState();
-            delete bulletBody;
-        }
+        freeBulletBody();
 
         if (triangleMesh) {
             delete triangleMesh;
@@ -23,6 +20,19 @@ namespace our {
         }
     }
     
+    void CollisionComponent::freeBulletBody() {
+        if (bulletBody) {
+            // Remove the body from the physics world if it exists
+            CollisionSystem::getInstance().getPhysicsWorld()->removeCollisionObject(bulletBody);
+
+            // Delete the motion state and collision shape
+            delete bulletBody->getCollisionShape();
+            delete bulletBody->getMotionState();
+            delete bulletBody;
+            bulletBody = nullptr;
+        }
+    }
+
     void CollisionComponent::deserialize(const nlohmann::json& data) {
         // Shape parsing
         if(data.contains("shape")) {

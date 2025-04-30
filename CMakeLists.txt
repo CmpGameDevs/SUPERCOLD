@@ -129,6 +129,8 @@ set(COMMON_SOURCES
         source/common/components/model-renderer.cpp
         source/common/components/audio.hpp
         source/common/components/audio.cpp
+        source/common/components/weapon.hpp
+        source/common/components/weapon.cpp
 
         source/common/model/model.hpp
         source/common/model/model.cpp
@@ -137,6 +139,8 @@ set(COMMON_SOURCES
         source/common/systems/audio-system.cpp
         source/common/systems/collision-system.hpp
         source/common/systems/collision-system.cpp
+        source/common/systems/weapons-system.hpp
+        source/common/systems/weapons-system.cpp
         source/common/systems/forward-renderer.hpp
         source/common/systems/forward-renderer.cpp
         source/common/systems/free-camera-controller.hpp

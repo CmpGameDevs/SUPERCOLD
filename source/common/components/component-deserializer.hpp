@@ -9,6 +9,7 @@
 #include "collision.hpp"
 #include "model-renderer.hpp"
 #include "audio.hpp"
+#include "weapon.hpp"
 
 namespace our {
 
@@ -34,6 +35,8 @@ inline void deserializeComponent(const nlohmann::json &data, Entity *entity) {
         component = entity->addComponent<ModelComponent>();
     } else if (type == AudioComponent::getID()) {
         component = entity->addComponent<AudioComponent>();
+    } else if (type == WeaponComponent::getID()) {
+        component = entity->addComponent<WeaponComponent>();
     }
 
     if (component)

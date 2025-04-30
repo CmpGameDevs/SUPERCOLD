@@ -1,8 +1,10 @@
 #pragma once
-#include "../application.hpp"
-#include "../components/camera.hpp"
-#include "../components/fps-controller.hpp"
-#include "../ecs/world.hpp"
+#include <application.hpp>
+#include <components/camera.hpp>
+#include <components/fps-controller.hpp>
+#include <components/collision.hpp>
+#include <components/weapon.hpp>
+#include <ecs/world.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/constants.hpp>
 #include <glm/gtx/fast_trigonometry.hpp>
@@ -10,6 +12,7 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/euler_angles.hpp>
 #include "collision-system.hpp"
+#include "weapons-system.hpp"
 
 namespace our {
 
@@ -289,7 +292,72 @@ class FPSControllerSystem {
         if (controller->isCrouching) timeScaleVelocity *= controller->crouchSpeedModifier;
     }
 
-  public:
+    void handlePickup(FPSControllerComponent *controller, Entity *entity) {
+        if (app->getKeyboard().justPressed(GLFW_KEY_E)) {
+            if (collisionSystem == nullptr) return;
+            CollisionComponent *collision = entity->getComponent<CollisionComponent>();
+            if (!collision || !collision->ghostObject) return;
+            btTransform transform;
+            if (collision->ghostObject) transform = collision->ghostObject->getWorldTransform();
+
+            glm::vec3 ghostPosition(
+                transform.getOrigin().x(),
+                transform.getOrigin().y(),
+                transform.getOrigin().z()
+            );
+
+            glm::vec3 rayStart = ghostPosition;
+            // Ray should point forward from the camera
+            auto cameraMatrix = entity->getLocalToWorldMatrix();
+            glm::vec3 cameraForward = -glm::normalize(glm::vec3(cameraMatrix[2]));
+            glm::vec3 rayEnd = rayStart + cameraForward * controller->pickupDistance;
+            CollisionComponent *hitComponent = nullptr;
+            glm::vec3 hitPoint, hitNormal;
+
+            glm::vec3 color(0.0f, 1.0f, 1.0f); // Cyan color
+            if (collisionSystem->raycast(rayStart, rayEnd, hitComponent, hitPoint, hitNormal)) {
+                auto otherEntity = hitComponent->getOwner();
+                if (controller->pickedEntity)
+                    WeaponsSystem::getInstance().dropWeapon(entity->getWorld(), controller->pickedEntity);
+                controller->pickedEntity = otherEntity;
+                WeaponsSystem::getInstance().pickupWeapon(entity->getWorld(), entity, otherEntity);
+                color = glm::vec3(1.0f, 0.5f, 0.0f); // Orange color
+            }
+            collisionSystem->debugDrawRay(rayStart, rayEnd, color);
+        } else if (app->getKeyboard().justPressed(GLFW_KEY_Q)) {
+            if (controller->pickedEntity) {
+                auto cameraMatrix = entity->getLocalToWorldMatrix();
+                glm::vec3 cameraForward = -glm::normalize(glm::vec3(cameraMatrix[2]));
+                WeaponsSystem::getInstance().throwWeapon(entity->getWorld(), controller->pickedEntity, cameraForward);
+                controller->pickedEntity = nullptr;
+            }
+        }
+    }
+
+    void handleShooting(FPSControllerComponent *controller, Entity *entity, float deltaTime) {
+        if (!controller->pickedEntity) return;
+        auto weapon = controller->pickedEntity->getComponent<WeaponComponent>();
+        if (!weapon) return;
+        weapon->fireCooldown -= deltaTime;
+        bool isShooting = app->getMouse().justPressed(GLFW_MOUSE_BUTTON_LEFT) || (
+            app->getMouse().isPressed(GLFW_MOUSE_BUTTON_LEFT) && weapon->automatic
+        );
+        if (isShooting) {
+            printf("Attempting to fire weapon with current cooldown: %f\n", weapon->fireCooldown);
+            auto cameraMatrix = entity->getLocalToWorldMatrix();
+            glm::vec3 cameraForward = -glm::normalize(glm::vec3(cameraMatrix[2]));
+            if (weapon->fireCooldown <= 0.0f) {
+                printf("Firing weapon! Remaining ammo: %d\n", weapon->currentAmmo);
+                WeaponsSystem::getInstance().fireWeapon(entity->getWorld(), controller->pickedEntity, cameraForward);
+                weapon->fireCooldown = weapon->fireRate;
+            }
+        }
+        else if (app->getKeyboard().justPressed(GLFW_KEY_R)) {
+            WeaponsSystem::getInstance().reloadWeapon(entity->getWorld(), controller->pickedEntity);
+        }
+    }
+
+public:
     // Enters the state and locks the mouse
     void enter(Application *app) {
         this->app = app;
@@ -317,6 +385,8 @@ class FPSControllerSystem {
 
         // Handle crouch toggling with C key
         handleCrouching(controller, entity, deltaTime);
+        handlePickup(controller, entity);
+        handleShooting(controller, entity, deltaTime);
 
         handleMouseLockToggle();
         handleFov(camera, controller);

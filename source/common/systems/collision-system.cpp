@@ -7,11 +7,14 @@
 #include <BulletCollision/CollisionDispatch/btGhostObject.h>
 #include <BulletDynamics/Character/btKinematicCharacterController.h>
 #include <glm/gtx/matrix_decompose.hpp>
-
+#include <algorithm>
+#include <execution>
 
 namespace our {
 
     void CollisionSystem::initialize(glm::ivec2 windowSize, btDynamicsWorld* physicsWorld) {
+        if (this->physicsWorld) _freePhysicsWorld();
+        
         this->physicsWorld = static_cast<btDiscreteDynamicsWorld*>(physicsWorld);
         this->debugDrawer = new GLDebugDrawer(windowSize);
         this->physicsWorld->setDebugDrawer(debugDrawer);
@@ -83,7 +86,7 @@ namespace our {
             transform.scale = glm::vec3(glm::length(worldMatrix[0]), glm::length(worldMatrix[1]), glm::length(worldMatrix[2]));
             
             if(!collision->bulletBody && !collision->ghostObject) {
-                _createRigidBody(entity, collision, &transform);
+                createRigidBody(entity, collision, &transform);
             }
             _syncTransforms(entity, collision, &transform);
             if (!collision->isKinematic) {
@@ -180,9 +183,10 @@ namespace our {
         controller->characterController = characterController;
     }
 
-    void CollisionSystem::_createRigidBody(Entity* entity, CollisionComponent* collision, const Transform* transform) {
+    void CollisionSystem::createRigidBody(Entity* entity, CollisionComponent* collision, const Transform* transform) {
         btCollisionShape* shape = nullptr;
         if (collision->isKinematic) collision->mass = 0.0f;
+        printf("[CollisionSystem] Creating rigid body with kinematic: %s\n", collision->isKinematic ? "true" : "false");
                     
         // Create shape based on component data
         switch(collision->shape) {
@@ -306,7 +310,7 @@ namespace our {
     void CollisionSystem::_clearPreviousCollisions(World* world) {
         for(auto entity : world->getEntities()) {
             if(auto collision = entity->getComponent<CollisionComponent>()) {
-                collision->collidedEntities.clear();
+                collision->currentCollisions.clear();
             }
         }
     }
@@ -329,10 +333,76 @@ namespace our {
                     // Update their collision components
                     CollisionComponent* collA = entityA->getComponent<CollisionComponent>();
                     CollisionComponent* collB = entityB->getComponent<CollisionComponent>();
-                    if (collA) collA->collidedEntities.insert(entityB);
-                    if (collB) collB->collidedEntities.insert(entityA);
+                    if (collA) collA->currentCollisions.insert(entityB);
+                    if (collB) collB->currentCollisions.insert(entityA);
                 }
             }
+        }
+    }
+
+    void CollisionSystem::_processCollisions(World* world) {
+        for(auto entity : world->getEntities()) {
+            if(auto collision = entity->getComponent<CollisionComponent>()) {
+                if (!collision->hasCallbacks()) continue;
+
+                collision->enters.clear();
+                collision->exits.clear();
+
+                collision->enters.reserve(collision->currentCollisions.size());
+                collision->exits.reserve(collision->previousCollisions.size());
+            }
+        }
+
+        auto view = world->getEntities();
+        std::for_each(std::execution::par_unseq, view.begin(), view.end(),
+            [](Entity* entity) {
+                auto collision = entity->getComponent<CollisionComponent>();
+                if(!collision || !collision->hasCallbacks()) return;
+
+                if(collision->wantsEnter() || collision->wantsStay()) {
+                    for(auto& other : collision->currentCollisions) {
+                        if(!collision->previousCollisions.count(other)) {
+                            collision->enters.push_back(other);
+                        }
+                    }
+                }
+
+                if(collision->wantsExit()) {
+                    for(auto& other : collision->previousCollisions) {
+                        if(!collision->currentCollisions.count(other)) {
+                            collision->exits.push_back(other);
+                        }
+                    }
+                }
+            }
+        );
+
+        for(auto entity : world->getEntities()) {
+            auto collision = entity->getComponent<CollisionComponent>();
+            if(!collision || !collision->hasCallbacks()) continue;
+    
+            if(collision->wantsEnter()) {
+                for(auto other : collision->enters) {
+                    collision->callbacks.onEnter(other);
+                }
+            }
+    
+            if(collision->wantsStay()) {
+                for(auto other : collision->currentCollisions) {
+                    if(collision->previousCollisions.count(other)) {
+                        collision->callbacks.onStay(other);
+                    }
+                }
+            }
+    
+            if(collision->wantsExit()) {
+                for(auto other : collision->exits) {
+                    collision->callbacks.onExit(other);
+                }
+            }
+    
+            collision->previousCollisions = collision->currentCollisions;
+            collision->currentCollisions.clear();
         }
     }
 
@@ -341,6 +411,7 @@ namespace our {
         _clearPreviousCollisions(world);
         _processEntities(world);
         _detectCollisions();
+        _processCollisions(world);
     }
 
     bool CollisionSystem::raycast(const glm::vec3& start, const glm::vec3& end, 
@@ -374,6 +445,16 @@ namespace our {
             }
         }
         return false;
+    }
+
+    void CollisionSystem::applyVelocity(Entity* entity, const glm::vec3& velocity) {
+        if (auto collision = entity->getComponent<CollisionComponent>()) {
+            if (collision->bulletBody && collision->mass > 0.0f) {
+                btVector3 btVelocity(velocity.x, velocity.y, velocity.z);
+                collision->bulletBody->setLinearVelocity(btVelocity);
+                collision->bulletBody->activate();
+            }
+        }
     }
 
     void CollisionSystem::applyImpulse(Entity* entity, const glm::vec3& force, const glm::vec3& position) {
@@ -510,7 +591,7 @@ namespace our {
                 color = btVector3(0, 0, 1);
             } else if (auto entity = static_cast<Entity*>(obj->getUserPointer())) {
                 auto collision = entity->getComponent<CollisionComponent>();
-                if (collision && !collision->collidedEntities.empty()) {
+                if (collision && !collision->currentCollisions.empty()) {
                     color = btVector3(1, 0, 0);
                 }
                 if (collision->ghostObject) {
@@ -531,16 +612,23 @@ namespace our {
         debugDrawer->flushLines(world);
     }
 
+    void CollisionSystem::_freePhysicsWorld() {
+        if (physicsWorld) {
+            delete physicsWorld->getBroadphase();
+            delete physicsWorld->getDispatcher();
+            delete physicsWorld->getConstraintSolver();
+            delete physicsWorld;
+            physicsWorld = nullptr;
+        }
+    }
+
     void CollisionSystem::destroy() {
         if (debugDrawer) {
             delete debugDrawer;
             debugDrawer = nullptr;
         }
 
-        if (physicsWorld) {
-            delete physicsWorld;
-            physicsWorld = nullptr;
-        }
+        _freePhysicsWorld();
     }
 
 }

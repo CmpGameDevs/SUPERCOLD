@@ -17,10 +17,124 @@
     },
     "scene": {
         "renderer": {
+            "hdr": {
+                "enable": false,
+                "hdr_texture": "barcelona_rooftop",
+                "maxMipLevels": 5
+            }
         },
         "assets": {
+            "shaders": {
+                "pbr": {
+                "vs": "assets/shaders/light/pbr.vert",
+                "fs": "assets/shaders/light/pbr.frag"
+                },
+                "equirectangular": {
+                "vs": "assets/shaders/light/ibl/cubemap.vert",
+                "fs": "assets/shaders/light/ibl/equirectangular.frag"
+                },
+                "background": {
+                "vs": "assets/shaders/light/ibl/background.vert",
+                "fs": "assets/shaders/light/ibl/background.frag"
+                },
+                "irradiance": {
+                "vs": "assets/shaders/light/ibl/cubemap.vert",
+                "fs": "assets/shaders/light/ibl/irradiance.frag"
+                },
+                "prefilter": {
+                "vs": "assets/shaders/light/ibl/cubemap.vert",
+                "fs": "assets/shaders/light/ibl/prefilter.frag"
+                },
+                "brdf": {
+                "vs": "assets/shaders/light/ibl/brdf.vert",
+                "fs": "assets/shaders/light/ibl/brdf.frag"
+                }
+            },
             "meshes": {
                 "sphere": "assets/models/sphere/sphere.gltf"
+            },
+            "materials": {
+                "sun": {
+                "type": "lit",
+                "shader": "pbr",
+                "pipelineState": {
+                    "faceCulling": {
+                    "enabled": false
+                    },
+                    "depthTesting": {
+                    "enabled": true,
+                    "function": "GL_LEQUAL"
+                    }
+                },
+                "lights": [],
+                "tint": [1, 1, 1, 1],
+                "albedo": [1, 1, 1],
+                "roughness": 0.99,
+                "metallic": 0.1,
+                "emission": [300, 300, 300],
+                "ambientOcclusion": 1
+                },
+                "metal_0_0": {
+                "type": "lit",
+                "shader": "pbr",
+                "pipelineState": {
+                    "faceCulling": { "enabled": false },
+                    "depthTesting": { "enabled": true, "function": "GL_LEQUAL" }
+                },
+                "lights": ["sun1", "sun2", "sun3", "sun4"],
+                "tint": [1, 1, 1, 1],
+                "albedo": [0.5, 0.0, 0.0],
+                "roughness": 0.1,
+                "metallic": 0.2,
+                "emission": [0, 0, 0],
+                "ambientOcclusion": 1
+                }
+            },
+            "lights": {
+                "sun1": {
+                "type": "point",
+                "enabled": true,
+                "color": [300, 300, 300],
+                "position": [-10.0, 10.0, 10.0],
+                "attenuation": {
+                    "constant": 0,
+                    "linear": 0,
+                    "quadratic": 1
+                }
+                },
+                "sun2": {
+                "type": "point",
+                "enabled": true,
+                "color": [300, 300, 300],
+                "position": [10.0, 10.0, 10.0],
+                "attenuation": {
+                    "constant": 0,
+                    "linear": 0,
+                    "quadratic": 1
+                }
+                },
+                "sun3": {
+                "type": "point",
+                "enabled": true,
+                "color": [300, 300, 300],
+                "position": [-10.0, -10.0, 10.0],
+                "attenuation": {
+                    "constant": 0,
+                    "linear": 0,
+                    "quadratic": 1
+                }
+                },
+                "sun4": {
+                "type": "point",
+                "enabled": true,
+                "color": [300, 300, 300],
+                "position": [10.0, -10.0, 10.0],
+                "attenuation": {
+                    "constant": 0,
+                    "linear": 0,
+                    "quadratic": 1
+                }
+                }
             }
         },
         "world": [
@@ -104,6 +218,61 @@
                         "shape": "box",
                         "mass": 100,
                         "halfExtents": [1, 1, 1]
+                    }
+                ]
+            },
+            {
+                "position": [2, 6, -4],
+                "scale": [0.25, 0.25, 0.25],
+                "name": "gun",
+                "components": [
+                    {
+                        "type": "Collision",
+                        "shape": "box",
+                        "mass": 1,
+                        "halfExtents": [1, 1, 1]
+                    },
+                    {
+                        "type": "Weapon",
+                        "damage": 10,
+                        "range": 100,
+                        "fireRate": 0.4,
+                        "reloadTime": 2,
+                        "ammoCapacity": 10,
+                        "automatic": false
+                    },
+                    {
+                        "type": "Mesh Renderer",
+                        "mesh": "sphere",
+                        "material": "metal_0_0"
+                    }
+                ]
+            },
+            {
+                "position": [2, 6, -4],
+                "scale": [0.15, 0.25, 0.15],
+                "name": "gun",
+                "components": [
+                    {
+                        "type": "Collision",
+                        "shape": "box",
+                        "mass": 1,
+                        "halfExtents": [1, 1, 1]
+                    },
+                    {
+                        "type": "Weapon",
+                        "damage": 10,
+                        "range": 100,
+                        "fireRate": 0.1,
+                        "reloadTime": 2,
+                        "ammoCapacity": 30,
+                        "automatic": true,
+                        "throwForce": 2
+                    },
+                    {
+                        "type": "Mesh Renderer",
+                        "mesh": "sphere",
+                        "material": "metal_0_0"
                     }
                 ]
             },
