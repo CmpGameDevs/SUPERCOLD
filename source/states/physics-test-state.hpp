@@ -150,6 +150,10 @@ class PhysicsTestState : public our::State {
     }
 
     void onDraw(double deltaTime) override {
+        if (getApp()->getKeyboard().justPressed(GLFW_KEY_L)) {
+            collisionSystem.toggleDebugMode();
+        }
+
         fpsController.update(&world, (float)deltaTime);
 
         float speed = fpsController.getSpeedMagnitude();
@@ -162,7 +166,7 @@ class PhysicsTestState : public our::State {
         weaponsSystem.update(&world, scaledDeltaTime);
         raycast();
         renderer.render(&world);
-        // collisionSystem.debugDrawWorld(&world);
+        collisionSystem.debugDrawWorld(&world);
     }
 
     void onDestroy() override {

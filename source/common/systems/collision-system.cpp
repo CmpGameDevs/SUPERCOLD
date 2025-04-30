@@ -17,9 +17,8 @@ namespace our {
         
         this->physicsWorld = static_cast<btDiscreteDynamicsWorld*>(physicsWorld);
         this->debugDrawer = new GLDebugDrawer(windowSize);
+        this->debugDrawer->setDebugMode(GLDebugDrawer::DBG_NoDebug);
         this->physicsWorld->setDebugDrawer(debugDrawer);
-        if (this->physicsWorld->getDebugDrawer())
-            this->physicsWorld->getDebugDrawer()->setDebugMode(btIDebugDraw::DBG_DrawWireframe);
         this->physicsWorld->setGravity(btVector3(0, 0, 0));
         this->physicsWorld->getBroadphase()->getOverlappingPairCache()->setInternalGhostPairCallback(
             new btGhostPairCallback()
@@ -209,17 +208,12 @@ namespace our {
                     CollisionComponent tempCollision;
                     tempCollision.vertices = child.vertices;
                     tempCollision.indices = child.indices;
-                    tempCollision.mass = collision->mass;
+                    tempCollision.mass = 1;
                     tempCollision.isKinematic = collision->isKinematic;
                     
                     // Use existing mesh creation function
                     shape = _createMeshShape(&tempCollision, transform);
 
-                    shape->setLocalScaling(btVector3(
-                        transform->scale.x,
-                        transform->scale.y,
-                        transform->scale.z
-                    ));
                     break;
                 }
                 default:
@@ -268,12 +262,11 @@ namespace our {
                 return; // No need to create a rigid body for ghost objects
         }
 
-
-        // shape->setLocalScaling(btVector3(
-        //     transform->scale.x,
-        //     transform->scale.y,
-        //     transform->scale.z
-        // ));
+        shape->setLocalScaling(btVector3(
+            transform->scale.x,
+            transform->scale.y,
+            transform->scale.z
+        ));
 
         btTransform btTrans;
         btTrans.setIdentity();
@@ -469,6 +462,17 @@ namespace our {
         _processCollisions(world);
     }
 
+    void CollisionSystem::toggleDebugMode() {
+        if (debugDrawer) {
+            int mode = debugDrawer->getDebugMode();
+            if (mode == btIDebugDraw::DBG_NoDebug) {
+                debugDrawer->setDebugMode(btIDebugDraw::DBG_DrawWireframe);
+            } else {
+                debugDrawer->setDebugMode(btIDebugDraw::DBG_NoDebug);
+            }
+        }
+    }
+
     bool CollisionSystem::raycast(const glm::vec3& start, const glm::vec3& end, 
         CollisionComponent*& hitComponent, glm::vec3& hitPoint, glm::vec3& hitNormal) {
         if (!physicsWorld) return false;
@@ -553,12 +557,12 @@ namespace our {
             const btBroadphasePair& pair = pairs[i];
             btBroadphasePair* collisionPair = physicsWorld->getPairCache()->findPair(pair.m_pProxy0, pair.m_pProxy1);
             if (!collisionPair || !collisionPair->m_algorithm) continue;
-    
             btManifoldArray manifolds;
             collisionPair->m_algorithm->getAllContactManifolds(manifolds);
-    
+
             for (int j = 0; j < manifolds.size(); ++j) {
                 btPersistentManifold* manifold = manifolds[j];
+                if (!manifold || manifold->getNumContacts() <= 0) continue;
                 const btCollisionObject* objA = static_cast<const btCollisionObject*>(manifold->getBody0());
                 const btCollisionObject* objB = static_cast<const btCollisionObject*>(manifold->getBody1());
     
@@ -610,7 +614,6 @@ namespace our {
         btVector3 walk = btVector3(movement.x, movement.y, movement.z);
         btKinematicCharacterController* characterController = controller->characterController;
         characterController->setWalkDirection(walk);
-        
         _pushOverlappingObjects(collision->ghostObject, movement, deltaTime);    // Currently buggy
 
         Transform transform;
@@ -619,17 +622,17 @@ namespace our {
     }
 
     void CollisionSystem::debugDrawRay(const glm::vec3& start, const glm::vec3& end, const glm::vec3& color) {
-        if (debugDrawer) {
-            debugDrawer->drawLine(
-                btVector3(start.x, start.y, start.z),
-                btVector3(end.x, end.y, end.z),
-                btVector3(color.r, color.g, color.b)
-            );
-        }
+        if (!debugDrawer || !debugDrawer->getDebugMode() == btIDebugDraw::DBG_DrawWireframe) return;
+        debugDrawer->drawLine(
+            btVector3(start.x, start.y, start.z),
+            btVector3(end.x, end.y, end.z),
+            btVector3(color.r, color.g, color.b)
+        );
     }
 
     void CollisionSystem::debugDrawWorld(World *world) {
-        if (!debugDrawer || !physicsWorld) return;
+        if (!debugDrawer || !debugDrawer->getDebugMode() == btIDebugDraw::DBG_DrawWireframe) return;
+        if (!physicsWorld) return;
         
         // Manually iterate through all collision objects
         auto& collisionObjects = physicsWorld->getCollisionObjectArray();
@@ -644,25 +647,25 @@ namespace our {
                 color = btVector3(0, 1, 0);
             } else if (obj->getCollisionFlags() & btCollisionObject::CF_DYNAMIC_OBJECT) {
                 color = btVector3(0, 0, 1);
-            } else if (auto entity = static_cast<Entity*>(obj->getUserPointer())) {
-                auto collision = entity->getComponent<CollisionComponent>();
-                if (collision && !collision->currentCollisions.empty()) {
-                    color = btVector3(1, 0, 0);
-                }
-                if (collision->ghostObject) {
-                    physicsWorld->debugDrawObject(
-                        collision->ghostObject->getWorldTransform(),
-                        collision->ghostObject->getCollisionShape(),
-                        btVector3(1, 0.5, 0) // Orange color for ghost
-                    );
-                }
+            } else if (auto e = static_cast<Entity*>(obj->getUserPointer())) {
+                auto coll = e->getComponent<CollisionComponent>();
+                if (coll && !coll->currentCollisions.empty()) color = btVector3(1,0,0);
+                if (coll && coll->ghostObject) color = btVector3(1,0.5,0);
             }
-
-            physicsWorld->debugDrawObject(
-                obj->getWorldTransform(),
-                obj->getCollisionShape(),
-                color
-            );
+    
+            btCollisionShape* shape = obj->getCollisionShape();
+    
+            if (auto compound = dynamic_cast<btCompoundShape*>(shape)) {
+                const btTransform& worldTrans = obj->getWorldTransform();
+                for (int c = 0; c < compound->getNumChildShapes(); ++c) {
+                    const btTransform& childLocal = compound->getChildTransform(c);
+                    btTransform childWorld = worldTrans * childLocal;
+                    btCollisionShape* childShape = compound->getChildShape(c);
+                    physicsWorld->debugDrawObject(childWorld, childShape, color);
+                }
+            } else {
+                physicsWorld->debugDrawObject(obj->getWorldTransform(), shape, color);
+            }
         }
         debugDrawer->flushLines(world);
     }

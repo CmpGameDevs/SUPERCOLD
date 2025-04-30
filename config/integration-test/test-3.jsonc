@@ -21,37 +21,58 @@
                 "enable": false,
                 "hdr_texture": "barcelona_rooftop",
                 "maxMipLevels": 5
+            },
+            "postprocess":{
+                "bloomEnabled": true,
+                "bloomIntensity": 1.5,
+                "bloomIterations": 50,
+                "bloomDirection": 0,
+                "tonemappingEnabled": false,
+                "gammaCorrectionFactor": 1,
+                "bloomBrightnessCutoff": 0.1
             }
         },
         "assets": {
             "shaders": {
-                "pbr": {
-                "vs": "assets/shaders/light/pbr.vert",
-                "fs": "assets/shaders/light/pbr.frag"
+                "pbr":{
+                    "vs":"assets/shaders/light/pbr.vert",
+                    "fs":"assets/shaders/light/pbr.frag"
                 },
-                "equirectangular": {
-                "vs": "assets/shaders/light/ibl/cubemap.vert",
-                "fs": "assets/shaders/light/ibl/equirectangular.frag"
+                "equirectangular":{
+                    "vs":"assets/shaders/light/ibl/cubemap.vert",
+                    "fs":"assets/shaders/light/ibl/equirectangular.frag"
                 },
-                "background": {
-                "vs": "assets/shaders/light/ibl/background.vert",
-                "fs": "assets/shaders/light/ibl/background.frag"
+                "background":{
+                    "vs":"assets/shaders/light/ibl/background.vert",
+                    "fs":"assets/shaders/light/ibl/background.frag"
                 },
-                "irradiance": {
-                "vs": "assets/shaders/light/ibl/cubemap.vert",
-                "fs": "assets/shaders/light/ibl/irradiance.frag"
+                "irradiance":{
+                    "vs":"assets/shaders/light/ibl/cubemap.vert",
+                    "fs":"assets/shaders/light/ibl/irradiance.frag"
                 },
-                "prefilter": {
-                "vs": "assets/shaders/light/ibl/cubemap.vert",
-                "fs": "assets/shaders/light/ibl/prefilter.frag"
+                "prefilter":{
+                    "vs":"assets/shaders/light/ibl/cubemap.vert",
+                    "fs":"assets/shaders/light/ibl/prefilter.frag"
                 },
-                "brdf": {
-                "vs": "assets/shaders/light/ibl/brdf.vert",
-                "fs": "assets/shaders/light/ibl/brdf.frag"
+                "brdf":{
+                    "vs":"assets/shaders/light/ibl/brdf.vert",
+                    "fs":"assets/shaders/light/ibl/brdf.frag"
+                },
+                "bloom":{
+                    "vs":"assets/shaders/postprocess/bloom.vert",
+                    "fs":"assets/shaders/postprocess/bloom.frag"
+                },
+                "postprocess":{
+                    "vs":"assets/shaders/postprocess/post.vert",
+                    "fs":"assets/shaders/postprocess/post.frag"
                 }
             },
             "meshes": {
                 "sphere": "assets/models/sphere/sphere.gltf"
+            },
+            "models": {
+                "laser_gun": "assets/models/laser_gun/scene.gltf",
+                "gun": "assets/models/gun_leonel/scene.gltf"
             },
             "materials": {
                 "sun": {
@@ -250,29 +271,31 @@
             },
             {
                 "position": [2, 6, -4],
-                "scale": [0.15, 0.25, 0.15],
-                "name": "gun",
+                "scale": [0.25, 0.25, 0.25],
+                "name": "laser gun",
                 "components": [
                     {
                         "type": "Collision",
-                        "shape": "box",
+                        "shape": "model",
+                        "model": "laser_gun",
                         "mass": 1,
-                        "halfExtents": [1, 1, 1]
+                        "isKinematic": false
                     },
                     {
                         "type": "Weapon",
                         "damage": 10,
                         "range": 100,
-                        "fireRate": 0.1,
+                        "fireRate": 0.3,
                         "reloadTime": 2,
-                        "ammoCapacity": 30,
-                        "automatic": true,
-                        "throwForce": 2
+                        "ammoCapacity": 10,
+                        "automatic": false,
+                        "throwForce": 2,
+                        "bulletSize": 2,
+                        "rotation": [0, 0, 0]
                     },
                     {
-                        "type": "Mesh Renderer",
-                        "mesh": "sphere",
-                        "material": "metal_0_0"
+                        "type": "Model Renderer",
+                        "model": "laser_gun"
                     }
                 ]
             },
@@ -304,13 +327,31 @@
             },
             {
                 "position": [4, 3, -7],
+                "scale": [0.005, 0.005, 0.005],
+                "name": "gun leonel",
                 "components": [
                     {
                         "type": "Collision",
-                        "shape": "sphere",
-                        "mass": 0,
-                        "halfExtents": [1, 0.5, 0],
+                        "shape": "model",
+                        "model": "gun",
+                        "mass": 1,
                         "isKinematic": false
+                    },
+                    {
+                        "type": "Weapon",
+                        "damage": 10,
+                        "range": 100,
+                        "fireRate": 0.3,
+                        "reloadTime": 2,
+                        "ammoCapacity": 10,
+                        "automatic": false,
+                        "throwForce": 2,
+                        "bulletSize": 2,
+                        "rotation": [180, 0, 0]
+                    },
+                    {
+                        "type": "Model Renderer",
+                        "model": "gun"
                     }
                 ]
             },

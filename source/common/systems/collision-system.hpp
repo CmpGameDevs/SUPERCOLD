@@ -179,6 +179,9 @@ public:
     // Move a ghost object to a new position (e.g., for player movement)
     void moveGhost(Entity* entity, const glm::vec3& movement, float deltaTime);
 
+    // Toggle the debug drawer for visualizing the physics world
+    void toggleDebugMode();
+
     // Debug draw the world using the debug drawer
     void debugDrawWorld(World* world);
 
