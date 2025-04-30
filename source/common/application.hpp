@@ -6,7 +6,7 @@
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
 #include <imgui.h>
-
+#include <iostream>
 #include <string>
 #include <unordered_map>
 #include <type_traits>
@@ -61,6 +61,9 @@ namespace our {
 
         nlohmann::json app_config;           // A Json file that contains all application configuration
 
+        int current_level_index; 
+        std::vector<nlohmann::json> levels_configs; // A vector of Json files that contains all levels configuration
+
         std::unordered_map<std::string, State*> states;   // This will store all the states that the application can run
         State * currentState = nullptr;         // This will store the current scene that is being run
         State * nextState = nullptr;            // If it is requested to go to another scene, this will contain a pointer to that scene
@@ -78,7 +81,8 @@ namespace our {
     public:
 
         // Create an application with following configuration
-        Application(const nlohmann::json& app_config) : app_config(app_config) {}
+        Application(const nlohmann::json& app_config, const std::vector<nlohmann::json>& levels_configs) 
+            : app_config(app_config), levels_configs(levels_configs), current_level_index(0) {}
         // On destruction, delete all the states
         ~Application(){ for (auto &it : states) delete it.second; }
 
@@ -123,6 +127,14 @@ namespace our {
         [[nodiscard]] const Mouse& getMouse() const { return mouse; }
 
         [[nodiscard]] const nlohmann::json& getConfig() const { return app_config; }
+
+        [[nodiscard]] const nlohmann::json& getLevelConfig() const { return levels_configs[current_level_index - 1]; }
+
+        void goToNextLevel() {
+            //TODO: handle Game Over and Win conditions
+            current_level_index = current_level_index % levels_configs.size() + 1;
+            changeState("level" + std::to_string(current_level_index));
+        }
 
         ALCdevice* getAudioDevice() { return audioDevice; }
         ALCcontext* getAudioContext() { return audioContext; }
