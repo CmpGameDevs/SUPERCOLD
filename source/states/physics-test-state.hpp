@@ -150,6 +150,10 @@ class PhysicsTestState : public our::State {
     }
 
     void onDraw(double deltaTime) override {
+        if (getApp()->getKeyboard().justPressed(GLFW_KEY_L)) {
+            collisionSystem.toggleDebugMode();
+        }
+
         fpsController.update(&world, (float)deltaTime);
 
         float speed = fpsController.getSpeedMagnitude();

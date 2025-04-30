@@ -1,0 +1,371 @@
+{
+    "start-scene": "physics-test",
+    "window":
+    {
+        "title":"Integration Test Window",
+        "size":{
+            "width":1280,
+            "height":720
+        },
+        "fullscreen": false
+    },
+    "screenshots":{
+        "directory": "screenshots/integration-test",
+        "requests": [
+            { "file": "test-1.png", "frame":  1 }
+        ]
+    },
+    "scene": {
+        "renderer": {
+            "hdr": {
+                "enable": false,
+                "hdr_texture": "barcelona_rooftop",
+                "maxMipLevels": 5
+            },
+            "postprocess":{
+                "bloomEnabled": true,
+                "bloomIntensity": 1.5,
+                "bloomIterations": 50,
+                "bloomDirection": 0,
+                "tonemappingEnabled": false,
+                "gammaCorrectionFactor": 1,
+                "bloomBrightnessCutoff": 0.1
+            }
+        },
+        "assets": {
+            "shaders": {
+                "pbr":{
+                    "vs":"assets/shaders/light/pbr.vert",
+                    "fs":"assets/shaders/light/pbr.frag"
+                },
+                "equirectangular":{
+                    "vs":"assets/shaders/light/ibl/cubemap.vert",
+                    "fs":"assets/shaders/light/ibl/equirectangular.frag"
+                },
+                "background":{
+                    "vs":"assets/shaders/light/ibl/background.vert",
+                    "fs":"assets/shaders/light/ibl/background.frag"
+                },
+                "irradiance":{
+                    "vs":"assets/shaders/light/ibl/cubemap.vert",
+                    "fs":"assets/shaders/light/ibl/irradiance.frag"
+                },
+                "prefilter":{
+                    "vs":"assets/shaders/light/ibl/cubemap.vert",
+                    "fs":"assets/shaders/light/ibl/prefilter.frag"
+                },
+                "brdf":{
+                    "vs":"assets/shaders/light/ibl/brdf.vert",
+                    "fs":"assets/shaders/light/ibl/brdf.frag"
+                },
+                "bloom":{
+                    "vs":"assets/shaders/postprocess/bloom.vert",
+                    "fs":"assets/shaders/postprocess/bloom.frag"
+                },
+                "postprocess":{
+                    "vs":"assets/shaders/postprocess/post.vert",
+                    "fs":"assets/shaders/postprocess/post.frag"
+                }
+            },
+            "meshes": {
+                "sphere": "assets/models/sphere/sphere.gltf"
+            },
+            "models": {
+                "laser_gun": "assets/models/laser_gun/scene.gltf",
+                "gun": "assets/models/gun_leonel/scene.gltf"
+            },
+            "materials": {
+                "sun": {
+                "type": "lit",
+                "shader": "pbr",
+                "pipelineState": {
+                    "faceCulling": {
+                    "enabled": false
+                    },
+                    "depthTesting": {
+                    "enabled": true,
+                    "function": "GL_LEQUAL"
+                    }
+                },
+                "lights": [],
+                "tint": [1, 1, 1, 1],
+                "albedo": [1, 1, 1],
+                "roughness": 0.99,
+                "metallic": 0.1,
+                "emission": [300, 300, 300],
+                "ambientOcclusion": 1
+                },
+                "metal_0_0": {
+                "type": "lit",
+                "shader": "pbr",
+                "pipelineState": {
+                    "faceCulling": { "enabled": false },
+                    "depthTesting": { "enabled": true, "function": "GL_LEQUAL" }
+                },
+                "lights": ["sun1", "sun2", "sun3", "sun4"],
+                "tint": [1, 1, 1, 1],
+                "albedo": [0.5, 0.0, 0.0],
+                "roughness": 0.1,
+                "metallic": 0.2,
+                "emission": [0, 0, 0],
+                "ambientOcclusion": 1
+                }
+            },
+            "lights": {
+                "sun1": {
+                "type": "point",
+                "enabled": true,
+                "color": [300, 300, 300],
+                "position": [-10.0, 10.0, 10.0],
+                "attenuation": {
+                    "constant": 0,
+                    "linear": 0,
+                    "quadratic": 1
+                }
+                },
+                "sun2": {
+                "type": "point",
+                "enabled": true,
+                "color": [300, 300, 300],
+                "position": [10.0, 10.0, 10.0],
+                "attenuation": {
+                    "constant": 0,
+                    "linear": 0,
+                    "quadratic": 1
+                }
+                },
+                "sun3": {
+                "type": "point",
+                "enabled": true,
+                "color": [300, 300, 300],
+                "position": [-10.0, -10.0, 10.0],
+                "attenuation": {
+                    "constant": 0,
+                    "linear": 0,
+                    "quadratic": 1
+                }
+                },
+                "sun4": {
+                "type": "point",
+                "enabled": true,
+                "color": [300, 300, 300],
+                "position": [10.0, -10.0, 10.0],
+                "attenuation": {
+                    "constant": 0,
+                    "linear": 0,
+                    "quadratic": 1
+                }
+                }
+            }
+        },
+        "world": [
+            {
+                "position": [0, 10, -1],
+                "components": [
+                    {
+                        "type": "Camera"
+                    },
+                    {
+                        "type": "FPS Controller",
+                        "rotationSensitivityX": 0.005,
+                        "rotationSensitivityY": 0.005,
+                        "invertYAxis": false,
+                        "fovSensitivity": 0.1,
+                        "positionSensitivity": 2.0,
+                        "speedupFactor": 3.0,
+                        "minVerticalRotation": -85.0,
+                        "maxVerticalRotation": 85.0,
+                        "gravity": 9.8,
+                        "jumpHeight": 4,
+                        "jumpCooldown": 0.3,
+                        "movementSmoothing": 0.2,
+                        "rotationSmoothing": 0.1,
+                        "acceleration": 10.0,
+                        "deceleration": 8.0,
+                        "crouchHeightModifier": 0.5,
+                        "crouchSpeedModifier": 0.6,
+                        "sprintSpeedModifier": 2.0,
+                        "maxStamina": 100.0,
+                        "staminaDepletionRate": 20.0,
+                        "staminaRecoveryRate": 10.0
+                    },
+                    {
+                        "type": "Collision",
+                        "shape": "ghost",
+                        "mass": 2,
+                        "halfExtents": [0.2, 0.9, 0]
+                    }
+                ]
+            },
+            {
+                "position": [0, 0, -1],
+                "components": [
+                    {
+                        "type": "Collision",
+                        "shape": "box",
+                        "mass": 0,
+                        "halfExtents": [20, 0.5, 20]
+                    }
+                ]
+            },
+            {
+                "position": [-3, 7, -4],
+                "scale": [2, 2, 2],
+                "components": [
+                    {
+                        "type": "Collision",
+                        "shape": "box",
+                        "mass": 10,
+                        "halfExtents": [0.5, 0.5, 0.5]
+                    }
+                ]
+            },
+            {
+                "position": [-1, 7, -4],
+                "components": [
+                    {
+                        "type": "Collision",
+                        "shape": "box",
+                        "mass": 15,
+                        "halfExtents": [0.5, 0.5, 0.5]
+                    }
+                ]
+            },
+            {
+                "position": [2, 3, -4],
+                "components": [
+                    {
+                        "type": "Collision",
+                        "shape": "box",
+                        "mass": 100,
+                        "halfExtents": [1, 1, 1]
+                    }
+                ]
+            },
+            {
+                "position": [2, 6, -4],
+                "scale": [0.25, 0.25, 0.25],
+                "name": "gun",
+                "components": [
+                    {
+                        "type": "Collision",
+                        "shape": "box",
+                        "mass": 1,
+                        "halfExtents": [1, 1, 1]
+                    },
+                    {
+                        "type": "Weapon",
+                        "damage": 10,
+                        "range": 100,
+                        "fireRate": 0.4,
+                        "reloadTime": 2,
+                        "ammoCapacity": 10,
+                        "automatic": false
+                    },
+                    {
+                        "type": "Mesh Renderer",
+                        "mesh": "sphere",
+                        "material": "metal_0_0"
+                    }
+                ]
+            },
+            {
+                "position": [2, 6, -4],
+                "scale": [0.25, 0.25, 0.25],
+                "name": "laser gun",
+                "components": [
+                    {
+                        "type": "Collision",
+                        "shape": "model",
+                        "model": "laser_gun",
+                        "mass": 1,
+                        "isKinematic": false
+                    },
+                    {
+                        "type": "Weapon",
+                        "damage": 10,
+                        "range": 100,
+                        "fireRate": 0.3,
+                        "reloadTime": 2,
+                        "ammoCapacity": 10,
+                        "automatic": false,
+                        "throwForce": 2,
+                        "bulletSize": 2,
+                        "rotation": [0, 0, 0]
+                    },
+                    {
+                        "type": "Model Renderer",
+                        "model": "laser_gun"
+                    }
+                ]
+            },
+            {
+                "position": [3, 3, -4],
+                "components": [
+                    {
+                        "type": "Collision",
+                        "shape": "box",
+                        "mass": 0,
+                        "halfExtents": [1, 1, 1],
+                        "isKinematic": true
+                    }
+                ],
+                "children": [
+                    {
+                        "position": [0, 1, 0],
+                        "components": [
+                            {
+                                "type": "Collision",
+                                "shape": "box",
+                                "mass": 0,
+                                "halfExtents": [1,0.001, 1],
+                                "isKinematic": false
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "position": [4, 3, -7],
+                "scale": [0.005, 0.005, 0.005],
+                "name": "gun leonel",
+                "components": [
+                    {
+                        "type": "Collision",
+                        "shape": "model",
+                        "model": "gun",
+                        "mass": 1,
+                        "isKinematic": false
+                    },
+                    {
+                        "type": "Weapon",
+                        "damage": 10,
+                        "range": 100,
+                        "fireRate": 0.3,
+                        "reloadTime": 2,
+                        "ammoCapacity": 10,
+                        "automatic": false,
+                        "throwForce": 2,
+                        "bulletSize": 2,
+                        "rotation": [180, 0, 0]
+                    },
+                    {
+                        "type": "Model Renderer",
+                        "model": "gun"
+                    }
+                ]
+            },
+            {
+                "position": [1, 2, -6],
+                "components": [
+                    {
+                        "type": "Collision",
+                        "shape": "capsule",
+                        "mass": 50,
+                        "halfExtents": [1, 3, 2]
+                    }
+                ]
+            }
+        ]
+    }
+}
