@@ -113,33 +113,33 @@ class Menustate: public our::State {
         glm::ivec2 size = getApp()->getFrameBufferSize();
         buttons[0].size = {750.0f, 50.0f};
         buttons[0].position = {size.x / 2.0f - buttons[0].size.x / 2.0f - 60.0f, size.y - buttons[0].size.y - 67.0f};
-        buttons[0].action = [this](){this->getApp()->changeState("play");};
+        buttons[0].action = [this](){this->getApp()->goToNextLevel();};
 
         // Position it in top left corner of the screen
         buttons[1].position = {276.0f, 281.0f};
         buttons[1].size = {133.0f, 38.0f};
         buttons[1].action = [this](){this->getApp()->close();};
 
-        auto &config = getApp()->getConfig()["scene"];
+        // auto &config = getApp()->getConfig()["scene"];
         // If we have assets in the scene config, we deserialize them
-        if (config.contains("assets")) {
-            our::AssetLoader<our::AudioBuffer>::deserialize(config["assets"]["audio"]);
-        }
+        // if (config.contains("assets")) {
+        //     our::AssetLoader<our::AudioBuffer>::deserialize(config["assets"]["audio"]);
+        // }
 
-        audioSystem = new our::AudioSystem(getApp()->getAudioContext());
+        // audioSystem = new our::AudioSystem(getApp()->getAudioContext());
     }
 
     void onDraw(double deltaTime) override {
         // Play the background music
-        audioSystem->playBackgroundMusic("background", 0.2f);
-        audioSystem->update(nullptr, deltaTime);
+        // audioSystem->playBackgroundMusic("background", 0.2f);
+        // audioSystem->update(nullptr, deltaTime);
 
         // Get a reference to the keyboard object
         auto& keyboard = getApp()->getKeyboard();
 
         if(keyboard.justPressed(GLFW_KEY_SPACE) || keyboard.justPressed(GLFW_KEY_ENTER)){
             // If the space key is pressed in this frame, go to the play state
-            getApp()->changeState("play");
+            getApp()->goToNextLevel();
         } else if(keyboard.justPressed(GLFW_KEY_ESCAPE)) {
             // If the escape key is pressed in this frame, exit the game
             getApp()->close();
@@ -188,12 +188,12 @@ class Menustate: public our::State {
                 highlightMaterial->setup();
                 highlightMaterial->shader->set("transform", VP*button.getLocalToWorld());
                 rectangle->draw();
-                audioSystem->setCategoryVolume("music", 0.2f, 1.5f);
+                // audioSystem->setCategoryVolume("music", 0.2f, 1.5f);
                 inside = true;
             }
         }
-        if (!inside)
-            audioSystem->setCategoryVolume("music", 0.4f, 0.5f);
+        // if (!inside)
+        //     audioSystem->setCategoryVolume("music", 0.4f, 0.5f);
 
     }
 

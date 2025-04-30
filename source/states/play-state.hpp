@@ -1,7 +1,5 @@
 #pragma once
 
-#include <application.hpp>
-
 #include <asset-loader.hpp>
 #include <ecs/world.hpp>
 #include <systems/forward-renderer.hpp>
@@ -12,7 +10,7 @@
 
 // This state shows how to use the ECS framework and deserialization.
 class Playstate : public our::State {
-
+    static bool initialized;
     our::World world;
     our::ForwardRenderer renderer;
     our::CollisionSystem collisionSystem;
@@ -21,25 +19,19 @@ class Playstate : public our::State {
     game::TimeScaler timeScaler;
     float timeScale;
 
-    void onInitialize() override {
+    void initializeGame() {
+        if (initialized) return; 
+        initialized = true;
         // First of all, we get the scene configuration from the app config
         auto &config = getApp()->getConfig()["scene"];
         // If we have assets in the scene config, we deserialize them
         if (config.contains("assets")) {
             our::deserializeAllAssets(config["assets"]);
         }
-        // If we have a world in the scene config, we use it to populate our world
-        if (config.contains("world")) {
-            world.deserialize(config["world"]);
-        }
-        // We initialize the camera controller system since it needs a pointer to the app
         fpsController.enter(getApp());
         // Then we initialize the renderer
         auto size = getApp()->getFrameBufferSize();
         renderer.initialize(size, config["renderer"]);
-
-        timeScale = 1.0f;
-
         // Create Bullet components
         btDefaultCollisionConfiguration* collisionConfig = new btDefaultCollisionConfiguration();
         btCollisionDispatcher* dispatcher = new btCollisionDispatcher(collisionConfig);
@@ -57,11 +49,23 @@ class Playstate : public our::State {
         fpsController.setCollisionSystem(&collisionSystem);
     }
 
+    void onInitialize() override {
+        // If we have a world in the scene config, we use it to populate our world
+        initializeGame();
+        // Level-dependant components
+        auto &levelConfig = getApp()->getLevelConfig();
+        if (levelConfig.contains("world")) {
+            world.deserialize(levelConfig["world"]);
+        }
+        timeScale = 1.0f;
+    }
+
     void onDraw(double deltaTime) override {
         // Here, we just run a bunch of systems to control the world logic
         fpsController.update(&world, (float)deltaTime);
 
         float speed = fpsController.getSpeedMagnitude();
+        
         timeScaler.update(speed);
         timeScale = timeScaler.getTimeScale();
 
@@ -69,7 +73,7 @@ class Playstate : public our::State {
 
         movementSystem.update(&world, scaledDeltaTime);
         collisionSystem.update(&world, scaledDeltaTime);
-        // And finally we use the renderer system to draw the scene
+        // // And finally we use the renderer system to draw the scene
         renderer.render(&world);
         collisionSystem.debugDrawWorld(&world);
 
@@ -78,18 +82,14 @@ class Playstate : public our::State {
 
         if (keyboard.justPressed(GLFW_KEY_ESCAPE)) {
             // If the escape key is pressed in this frame, go to the play state
-            getApp()->changeState("menu");
+            getApp()->goToNextLevel();
         }
     }
 
     void onDestroy() override {
-        // Don't forget to destroy the renderer
-        renderer.destroy();
-        // On exit, we call exit for the camera controller system to make sure that the mouse is unlocked
-        fpsController.exit();
         // Clear the world
         world.clear();
-        // and we delete all the loaded assets to free memory on the RAM and the VRAM
-        our::clearAllAssets();
     }
 };
+
+bool Playstate::initialized = false;

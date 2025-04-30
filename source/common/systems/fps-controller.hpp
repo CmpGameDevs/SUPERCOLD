@@ -294,6 +294,7 @@ class FPSControllerSystem {
     void enter(Application *app) {
         this->app = app;
         app->getMouse().lockMouse(app->getWindow());
+        mouseLocked = true;
     }
 
     void setCollisionSystem(CollisionSystem *collisionSystem) {
