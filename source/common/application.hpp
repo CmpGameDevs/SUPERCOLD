@@ -132,8 +132,11 @@ namespace our {
 
         void goToNextLevel() {
             //TODO: handle Game Over and Win conditions
-            current_level_index = current_level_index % levels_configs.size() + 1;
-            changeState("level" + std::to_string(current_level_index));
+            if(current_level_index == levels_configs.size()) {
+                std::cout << "You win!!" << std::endl;
+                return;
+            }
+            changeState("level" + std::to_string(++current_level_index));
         }
 
         ALCdevice* getAudioDevice() { return audioDevice; }

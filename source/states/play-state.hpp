@@ -6,30 +6,36 @@
 #include <systems/collision-system.hpp>
 #include <systems/fps-controller.hpp>
 #include <core/time-scale.hpp>
+#include <systems/text-renderer.hpp>
 
-// This state shows how to use the ECS framework and deserialization.
+
 class Playstate : public our::State {
     static bool initialized;
     our::World world;
-    our::CollisionSystem &collisionSystem = our::CollisionSystem::getInstance();
-    our::ForwardRenderer &renderer = our::ForwardRenderer::getInstance();  
+    our::CollisionSystem& collisionSystem = our::CollisionSystem::getInstance();
+    our::ForwardRenderer& renderer = our::ForwardRenderer::getInstance();
     our::FPSControllerSystem fpsController;
     game::TimeScaler timeScaler;
     float timeScale;
+    our::TextRenderer& textRenderer = our::TextRenderer::getInstance();  
 
     void initializeGame() {
         if (initialized) return; 
         initialized = true;
-        // First of all, we get the scene configuration from the app config
-        auto &config = getApp()->getConfig()["scene"];
-        // If we have assets in the scene config, we deserialize them
+        
+        // Retrieve scene configuration from the app config
+        auto& config = getApp()->getConfig()["scene"];
+        
+        // Deserialize all assets from the configuration if present
         if (config.contains("assets")) {
             our::deserializeAllAssets(config["assets"]);
         }
-        // Then we initialize the renderer
+
+        // Initialize the renderer with the appropriate configuration
         auto size = getApp()->getFrameBufferSize();
         renderer.initialize(size, config["renderer"]);
-        // Create Bullet components
+
+        // Initialize Bullet physics system
         btDefaultCollisionConfiguration* collisionConfig = new btDefaultCollisionConfiguration();
         btCollisionDispatcher* dispatcher = new btCollisionDispatcher(collisionConfig);
         btBroadphaseInterface* broadphase = new btDbvtBroadphase();
@@ -42,51 +48,71 @@ class Playstate : public our::State {
             solver,
             collisionConfig
         );
+
+        // Initialize the collision system with the physics world
         collisionSystem.initialize(size, physicsWorld);
+        auto windowSize = getApp()->getWindowSize();
+        textRenderer.initialize(windowSize.x, windowSize.y);  
     }
 
     void onInitialize() override {
-        // If we have a world in the scene config, we use it to populate our world
         initializeGame();
-        // Level-dependant components
-        auto &levelConfig = getApp()->getLevelConfig();
+
+        // Level-dependent components initialization
+        auto& levelConfig = getApp()->getLevelConfig();
+        
         if (levelConfig.contains("world")) {
             world.deserialize(levelConfig["world"]);
         }
+        textRenderer.showCenteredText("SUPER");
+        textRenderer.showCenteredText("COLD");
+
+        // Set up the FPS controller system and assign the collision system
         fpsController.enter(getApp());
         fpsController.setCollisionSystem(&collisionSystem);
+        
+        // Set default time scale
         timeScale = 1.0f;
     }
 
     void onDraw(double deltaTime) override {
-        // Here, we just run a bunch of systems to control the world logic
+        // Update FPS Controller
         fpsController.update(&world, (float)deltaTime);
         
+        // Get speed magnitude from FPS controller
         float speed = fpsController.getSpeedMagnitude();
-        
+
+        // Update the time scaler based on the speed
         timeScaler.update(speed);
 
+        // Get the current time scale
         timeScale = timeScaler.getTimeScale();
 
+        // Apply the time scale to the delta time
         float scaledDeltaTime = (float)deltaTime * timeScale;
 
+        // Update the collision system
         collisionSystem.update(&world, scaledDeltaTime);
-        // // And finally we use the renderer system to draw the scene
+
+        // Render the world using the renderer system
         renderer.render(&world);
 
-        // Get a reference to the keyboard object
-        auto &keyboard = getApp()->getKeyboard();
+        // Render some test text
+        textRenderer.renderCenteredText(deltaTime);
 
+        // Handle keyboard input (escape key to transition between levels)
+        auto& keyboard = getApp()->getKeyboard();
+        
         if (keyboard.justPressed(GLFW_KEY_ESCAPE)) {
-            // If the escape key is pressed in this frame, go to the play state
             getApp()->goToNextLevel();
         }
     }
 
     void onDestroy() override {
-        //this has to be uncommented to prevent memory leaks, but it will cause a crash in collision system
+        // Uncomment to clean up the world and prevent memory leaks, but ensure collision system is intact
         // world.clear();
     }
 };
 
+// Static member initialization
 bool Playstate::initialized = false;

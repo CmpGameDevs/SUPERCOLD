@@ -16,20 +16,11 @@
         ]
     },
     "scene": {
-        "renderer":{
+        "renderer": {
             "hdr": {
                 "enable": true,
-                "hdr_texture": "green_space",
+                "hdr_texture": "circus_backstage",
                 "maxMipLevels": 5
-            },
-            "postprocess":{
-                "bloomEnabled": true,
-                "bloomIntensity": 0.8,
-                "bloomIterations": 50,
-                "bloomDirection": 0,
-                "tonemappingEnabled": false,
-                "gammaCorrectionFactor": 1,
-                "bloomBrightnessCutoff": 0.75
             }
         },
         "assets":{
@@ -82,7 +73,13 @@
                 "helmet_albedo": "assets/textures/pbr/helmet/albedo.jpg",
                 "helmet_ambientOcclusion": "assets/textures/pbr/helmet/ao.jpg",
                 "helmet_emissive": "assets/textures/pbr/helmet/emissive.jpg",
-                "green_space": "assets/textures/hdr/green_space.hdr"
+                "green_space": "assets/textures/hdr/green_space.hdr",
+                "rusted_normal": "assets/textures/pbr/rusted_iron/normal.png",
+                "rusted_metallic": "assets/textures/pbr/rusted_iron/metallic.png",
+                "rusted_roughness": "assets/textures/pbr/rusted_iron/roughness.png",
+                "rusted_albedo": "assets/textures/pbr/rusted_iron/albedo.png",
+                "rusted_ambientOcclusion": "assets/textures/pbr/rusted_iron/ao.png",
+                "circus_backstage": "assets/textures/hdr/circus_backstage.hdr"
             },
             "samplers":{
                 "default":{}
@@ -96,6 +93,38 @@
                 "cube": "assets/models/cube.obj"
             },
             "materials":{
+                "rusted_iron":{
+                    "type": "lit",
+                    "shader": "pbr",
+                    "pipelineState": {
+                        "faceCulling":{
+                            "enabled": false
+                        },
+                        "depthTesting":{
+                            "enabled": true,
+                            "function": "GL_LEQUAL"
+                        }
+                    },
+                    "lights": ["sun1", "sun2", "sun3", "sun4"],
+                    "tint": [1, 1, 1, 1],
+                    "useTextureAlbedo": true,
+                    "useTextureNormal": true,
+                    "useTextureMetallic": true,
+                    "useTextureRoughness": true,
+                    "useTextureAmbientOcclusion": true,
+                    "useTextureEmissive": false,
+                    "albedo": [0.75, 0.75, 0.75],
+                    "roughness": 0.5,
+                    "metallic": 0.85,
+                    "emission": [0, 0, 0],
+                    "ambientOcclusion": 1,
+                    "textureAlbedo": "rusted_albedo",
+                    "textureNormal": "rusted_normal",
+                    "textureMetallic": "rusted_metallic",
+                    "textureRoughness": "rusted_roughness",
+                    "textureAmbientOcclusion": "rusted_ambientOcclusion",
+                    "textureEmissive": "rusted_ambientOcclusion"
+                },
                 "metal": {
                     "type": "tinted",
                     "shader": "tinted",
@@ -185,6 +214,39 @@
                     "enabled": true,
                     "color": [100, 100 , 100],
                     "position": [-10.0,  10.0, 10.0],
+                    "attenuation": {
+                        "constant": 0,
+                        "linear": 0,
+                        "quadratic": 1
+                    }
+                },
+                "sun2":{
+                    "type": "point",
+                    "enabled": false,
+                    "color": [300, 300 , 300],
+                    "position": [10.0,  10.0, 10.0],
+                    "attenuation": {
+                        "constant": 0,
+                        "linear": 0,
+                        "quadratic": 1
+                    }
+                },
+                "sun3":{
+                    "type": "point",
+                    "enabled": true,
+                    "color": [300, 300 , 300],
+                    "position": [-10.0,  -10.0, 10.0],
+                    "attenuation": {
+                        "constant": 0,
+                        "linear": 0,
+                        "quadratic": 1
+                    }
+                },
+                "sun4":{
+                    "type": "point",
+                    "enabled": false,
+                    "color": [300, 300 , 300],
+                    "position": [10.0,  -10.0, 10.0],
                     "attenuation": {
                         "constant": 0,
                         "linear": 0,

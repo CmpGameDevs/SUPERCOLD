@@ -79,7 +79,7 @@ int main(int argc, char** argv) {
     // app.registerState<EntityTestState>("entity-test");
     // app.registerState<RendererTestState>("renderer-test");
     // app.registerState<LightTestState>("light-test");
-    // app.registerState<PhysicsTestState>("physics-test");
+    app.registerState<PhysicsTestState>("physics-test");
 
     // Then choose the state to run based on the option "start-scene" in the config
     if(app_config.contains(std::string{"start-scene"})){

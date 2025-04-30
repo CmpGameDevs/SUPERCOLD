@@ -1,0 +1,11 @@
+Model Information:
+* title:	9mm bullet
+* source:	https://sketchfab.com/3d-models/9mm-bullet-dac549f6a99d4856b12cc814828637de
+* author:	lluismartinezborrell (https://sketchfab.com/lluismartinezborrell)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "9mm bullet" (https://sketchfab.com/3d-models/9mm-bullet-dac549f6a99d4856b12cc814828637de) by lluismartinezborrell (https://sketchfab.com/lluismartinezborrell) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
