@@ -147,7 +147,7 @@ set(COMMON_SOURCES
         source/common/systems/fps-controller.hpp
         source/common/systems/movement.hpp
 )
-
+add_subdirectory(vendor/freetype-2.13.3 vendor/freetype-2.13.3/build)
 # Define the directories in which to search for the included headers
 include_directories(
         source/common
@@ -158,6 +158,7 @@ include_directories(
         vendor/imgui
         vendor/utils
         vendor/bullet3/src
+        vendor/freetype-2.13.3/include
         ${OPENGL_INCLUDE_DIR}
         ${GLEW_INCLUDE_DIRS}
 )
@@ -196,5 +197,6 @@ target_link_libraries(GAME_APPLICATION
         BulletDynamics 
         BulletCollision 
         LinearMath
+        freetype
         OpenAL::OpenAL
 )

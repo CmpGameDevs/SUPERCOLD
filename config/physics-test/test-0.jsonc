@@ -54,9 +54,9 @@
                 "sphere": "assets/models/sphere/sphere.gltf"
             },
             "models":{
-                // "gun": "assets/models/city/scene.gltf"
-                "master_chief": "assets/models/master_chief/scene.gltf",
-                "gun": "assets/models/gun_leonel/scene.gltf"
+                // "gun": "assets/models/gun_leonel/scene.gltf",
+                // "master_chief": "assets/models/master_chief/scene.gltf",
+                "city": "assets/models/city/scene.gltf"
 
             },
             "textures":{
@@ -303,49 +303,15 @@
                     }
                 ]
             },
-            {
-                "position": [1, 1, -6],
-                "scale": [0.01, 0.01, 0.01],
-                "components": [
-                    {
-                        "type": "Collision",
-                        "shape": "model",
-                        "mass": 500,
-                        "model": "gun"
-                    },
-                    {
-                        "type": "Model Renderer",
-                        "model": "gun"
-                    }
-                ]
-            },
-            {
-                "position": [5, 1, -6],
-                "scale": [3, 3, 3],
-                "components": [
-                    {
-                        "type": "Collision",
-                        "shape": "model",
-                        "mass": 100,
-                        "model": "master_chief"
-                    },
-                    {
-                        "type": "Model Renderer",
-                        "model": "master_chief"
-                    }
-                ]
-            },
             // {
-            //     "position": [5, 1, -6],
+            //     "position": [1, 1, -6],
             //     "scale": [0.01, 0.01, 0.01],
             //     "components": [
             //         {
             //             "type": "Collision",
             //             "shape": "model",
-            //             "mass": 0,
-            //             "model": "gun",
-            //             "isKinematic": false
-
+            //             "mass": 500,
+            //             "model": "gun"
             //         },
             //         {
             //             "type": "Model Renderer",
@@ -353,6 +319,40 @@
             //         }
             //     ]
             // },
+            // {
+            //     "position": [5, 1, -6],
+            //     "scale": [3, 3, 3],
+            //     "components": [
+            //         {
+            //             "type": "Collision",
+            //             "shape": "model",
+            //             "mass": 100,
+            //             "model": "master_chief"
+            //         },
+            //         {
+            //             "type": "Model Renderer",
+            //             "model": "master_chief"
+            //         }
+            //     ]
+            // },
+            {
+                "position": [0, 1, -6],
+                "scale": [0.01, 0.01, 0.01],
+                "components": [
+                    {
+                        "type": "Collision",
+                        "shape": "model",
+                        "mass": 0,
+                        "model": "city",
+                        "isKinematic": false
+
+                    },
+                    {
+                        "type": "Model Renderer",
+                        "model": "city"
+                    }
+                ]
+            },
             {
                 "position": [-10.0,  10.0, 10.0],
                 "components": [

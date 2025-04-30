@@ -1,0 +1,11 @@
+Model Information:
+* title:	school
+* source:	https://sketchfab.com/3d-models/school-6a24ea9b1ce441ca81e2a96938cbec9c
+* author:	mamont nikita (https://sketchfab.com/mamontnikita62)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "school" (https://sketchfab.com/3d-models/school-6a24ea9b1ce441ca81e2a96938cbec9c) by mamont nikita (https://sketchfab.com/mamontnikita62) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
