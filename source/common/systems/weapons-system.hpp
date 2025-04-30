@@ -53,15 +53,15 @@ public:
 
     void update(World* world, float deltaTime);
 
-    void throwWeapon(World* world, Entity* entity, glm::vec3 forward);
+    bool throwWeapon(World* world, Entity* entity, glm::vec3 forward);
 
-    void dropWeapon(World* world, Entity* entity);
+    bool dropWeapon(World* world, Entity* entity);
 
-    void reloadWeapon(World* world, Entity* entity);
+    bool reloadWeapon(World* world, Entity* entity);
 
-    void fireWeapon(World* world, Entity* entity, glm::vec3 direction);
+    bool fireWeapon(World* world, Entity* entity, glm::vec3 direction);
 
-    void pickupWeapon(World* world, Entity* entity, Entity* weaponEntity);
+    bool pickupWeapon(World* world, Entity* entity, Entity* weaponEntity);
 
     void onDestroy();
 };

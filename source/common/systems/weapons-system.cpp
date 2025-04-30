@@ -31,20 +31,21 @@ namespace our {
         }
     }
     
-    void WeaponsSystem::throwWeapon(World* world, Entity* entity, glm::vec3 forward) {
-        dropWeapon(world, entity);
+    bool WeaponsSystem::throwWeapon(World* world, Entity* entity, glm::vec3 forward) {
+        if (!dropWeapon(world, entity)) return false;
 
         // Throw weapon to the front of the player
         WeaponComponent* weapon = entity->getComponent<WeaponComponent>();
         glm::vec3 throwDirection = forward * 10.0f * weapon->throwForce;
         CollisionSystem::getInstance().applyVelocity(entity, throwDirection);
         weaponsMap.erase(entity);
+        return true;
     }
     
-    void WeaponsSystem::dropWeapon(World* world, Entity* entity) {
-        if (!entity) return;
+    bool WeaponsSystem::dropWeapon(World* world, Entity* entity) {
+        if (!entity) return false;
         WeaponComponent* weapon = entity->getComponent<WeaponComponent>();
-        if (!weapon) return;
+        if (!weapon) return false;
         // Set the weapon's position and rotation to match the world's
         glm::mat4 worldMatrix = entity->getLocalToWorldMatrix();
         entity->parent = nullptr;
@@ -54,27 +55,29 @@ namespace our {
 
         CollisionComponent* collision = static_cast<CollisionComponent*>(_addCollisionComponent(entity));
         weaponsMap.erase(entity);
+        return true;
     }
     
-    void WeaponsSystem::reloadWeapon(World* world, Entity* entity) {
-        if (!entity) return;
+    bool WeaponsSystem::reloadWeapon(World* world, Entity* entity) {
+        if (!entity) return false;
         WeaponComponent* weapon = entity->getComponent<WeaponComponent>();
-        if (!weapon) return;
+        if (!weapon) return false;
         // Reload the weapon's ammo
         weapon->currentAmmo = weapon->ammoCapacity;
         // TODO: Add a reload animation or sound
         // Add a cooldown to prevent spamming the reload action
         weapon->fireCooldown = 0.3f;
         printf("Reloaded weapon! Current ammo: %d\n", weapon->currentAmmo);
+        return true;
     }
     
-    void WeaponsSystem::fireWeapon(World* world, Entity* entity, glm::vec3 direction) {
-        if (!entity) return;
+    bool WeaponsSystem::fireWeapon(World* world, Entity* entity, glm::vec3 direction) {
+        if (!entity) return false;
         WeaponComponent* weapon = entity->getComponent<WeaponComponent>();
-        if (!weapon) return;
+        if (!weapon) return false;
         // Check if the weapon has ammo and if the fire cooldown is active
-        if (weapon->currentAmmo <= 0 || weapon->fireCooldown > 0.0f) return;
-        float speed = 5.0f;
+        if (weapon->currentAmmo <= 0 || weapon->fireCooldown > 0.0f) return false;
+        float speed = 10.0f;
         float lifetime = 5.0f;
         // Create a projectile entity
         Entity* projectileEntity = _createProjectile(world, entity, direction, speed);
@@ -82,19 +85,23 @@ namespace our {
         projectiles.insert(projectile);
         weapon->currentAmmo--;
         printf("Fired weapon! Remaining ammo: %d\n", weapon->currentAmmo);
+        return true;
     }
     
-    void WeaponsSystem::pickupWeapon(World* world, Entity* entity, Entity* weaponEntity) {
-        if (!entity || !weaponEntity) return;
+    bool WeaponsSystem::pickupWeapon(World* world, Entity* entity, Entity* weaponEntity) {
+        if (!entity || !weaponEntity) return false;
         WeaponComponent* weapon = weaponEntity->getComponent<WeaponComponent>();
-        if (!weapon) return;
+        if (!weapon) return false;
+        printf("Picked up weapon: %s\n", weaponEntity->name.c_str());
         // Remove rigid body from the weapon entity
         _removeCollisionComponent(weaponEntity);
         // Attach the weapon to the player entity
         weaponEntity->parent = entity;
         // Set the weapon's position and rotation to match the player's
-        weaponEntity->localTransform.position = glm::vec3(0.4f, -0.2f, -0.4f);
-        weaponEntity->localTransform.rotation = glm::vec3(0, 0, 0);
+        weaponEntity->localTransform.position = glm::vec3(0.6f, -0.2f, -0.4f);
+        weaponEntity->localTransform.rotation = weapon->weaponRotation;
+        printf("Picked up weapon! Current ammo: %d\n", weapon->currentAmmo);
+        return true;
     }
     
     void WeaponsSystem::_removeCollisionComponent(Entity* entity) {
@@ -134,8 +141,9 @@ namespace our {
         projectileEntity->localTransform.scale = glm::vec3(glm::length(worldMatrix[0]), glm::length(worldMatrix[1]), glm::length(worldMatrix[2]));
         // Set Projectile Properties
         CollisionComponent* collision = projectileEntity->addComponent<CollisionComponent>();
+        WeaponComponent* weapon = owner->getComponent<WeaponComponent>();
         collision->shape = CollisionShape::SPHERE;
-        collision->halfExtents = glm::vec3(0.2f);
+        collision->halfExtents = glm::vec3(1.0f * weapon->bulletSize);
         collision->mass = 0;
         collision->isKinematic = true;
         collision->callbacks.onEnter = [this, projectileEntity, world](Entity* other) {

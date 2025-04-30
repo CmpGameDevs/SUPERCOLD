@@ -287,10 +287,10 @@
                         "range": 100,
                         "fireRate": 0.3,
                         "reloadTime": 2,
-                        "ammoCapacity": 10,
-                        "automatic": false,
+                        "ammoCapacity": 30,
+                        "automatic": true,
                         "throwForce": 2,
-                        "bulletSize": 2,
+                        "bulletSize": 0.4,
                         "rotation": [0, 0, 0]
                     },
                     {
