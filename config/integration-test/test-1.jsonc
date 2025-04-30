@@ -1,378 +1,373 @@
 {
-    "start-scene": "physics-test",
-    "window":
-    {
-        "title":"Integration Test Window",
-        "size":{
-            "width":1280,
-            "height":720
-        },
-        "fullscreen": false
+  "start-scene": "physics-test",
+  "window": {
+    "title": "Integration Test Window",
+    "size": {
+      "width": 1280,
+      "height": 720
     },
-    "screenshots":{
-        "directory": "screenshots/integration-test",
-        "requests": [
-            { "file": "test-1.png", "frame":  1 }
-        ]
+    "fullscreen": false
+  },
+  "screenshots": {
+    "directory": "screenshots/integration-test",
+    "requests": [{ "file": "test-1.png", "frame": 1 }]
+  },
+  "scene": {
+    "renderer": {
+      "hdr": {
+        "enable": true,
+        "hdr_texture": "circus_backstage",
+        "maxMipLevels": 5
+      }
     },
-    "scene": {
-        "renderer": {
-            "hdr": {
-                "enable": true,
-                "hdr_texture": "circus_backstage",
-                "maxMipLevels": 5
-            }
+    "assets": {
+      "shaders": {
+        "pbr": {
+          "vs": "assets/shaders/light/pbr.vert",
+          "fs": "assets/shaders/light/pbr.frag"
         },
-        "assets": {
-            "shaders":{
-                "pbr":{
-                    "vs":"assets/shaders/light/pbr.vert",
-                    "fs":"assets/shaders/light/pbr.frag"
-                },
-                "equirectangular":{
-                    "vs":"assets/shaders/light/ibl/cubemap.vert",
-                    "fs":"assets/shaders/light/ibl/equirectangular.frag"
-                },
-                "background":{
-                    "vs":"assets/shaders/light/ibl/background.vert",
-                    "fs":"assets/shaders/light/ibl/background.frag"
-                },
-                "irradiance":{
-                    "vs":"assets/shaders/light/ibl/cubemap.vert",
-                    "fs":"assets/shaders/light/ibl/irradiance.frag"
-                },
-                "prefilter":{
-                    "vs":"assets/shaders/light/ibl/cubemap.vert",
-                    "fs":"assets/shaders/light/ibl/prefilter.frag"
-                },
-                "brdf":{
-                    "vs":"assets/shaders/light/ibl/brdf.vert",
-                    "fs":"assets/shaders/light/ibl/brdf.frag"
-                }
-            },
-            "meshes": {
-                "sphere": "assets/models/sphere/sphere.gltf"
-            },
-            "models":{
-                "gun": "assets/models/city/scene.gltf"
-                // "master_chief": "assets/models/master_chief/scene.gltf",
-                // "city": "assets/models/city1/scene.gltf"
-
-            },
-            "textures":{
-                "rusted_normal": "assets/textures/pbr/rusted_iron/normal.png",
-                "rusted_metallic": "assets/textures/pbr/rusted_iron/metallic.png",
-                "rusted_roughness": "assets/textures/pbr/rusted_iron/roughness.png",
-                "rusted_albedo": "assets/textures/pbr/rusted_iron/albedo.png",
-                "rusted_ambientOcclusion": "assets/textures/pbr/rusted_iron/ao.png",
-                "circus_backstage": "assets/textures/hdr/circus_backstage.hdr"
-            },
-            "materials": {
-                "rusted_iron":{
-                    "type": "lit",
-                    "shader": "pbr",
-                    "pipelineState": {
-                        "faceCulling":{
-                            "enabled": false
-                        },
-                        "depthTesting":{
-                            "enabled": true,
-                            "function": "GL_LEQUAL"
-                        }
-                    },
-                    "lights": ["sun1", "sun2", "sun3", "sun4"],
-                    "tint": [1, 1, 1, 1],
-                    "useTextureAlbedo": true,
-                    "useTextureNormal": true,
-                    "useTextureMetallic": true,
-                    "useTextureRoughness": true,
-                    "useTextureAmbientOcclusion": true,
-                    "useTextureEmissive": false,
-                    "albedo": [0.75, 0.75, 0.75],
-                    "roughness": 0.5,
-                    "metallic": 0.85,
-                    "emission": [0, 0, 0],
-                    "ambientOcclusion": 1,
-                    "textureAlbedo": "rusted_albedo",
-                    "textureNormal": "rusted_normal",
-                    "textureMetallic": "rusted_metallic",
-                    "textureRoughness": "rusted_roughness",
-                    "textureAmbientOcclusion": "rusted_ambientOcclusion",
-                    "textureEmissive": "rusted_ambientOcclusion"
-                },
-                "sun":{
-                    "type": "lit",
-                    "shader": "pbr",
-                    "pipelineState": {
-                        "faceCulling":{
-                            "enabled": false
-                        },
-                        "depthTesting":{
-                            "enabled": true,
-                            "function": "GL_LEQUAL"
-                        }
-                    },
-                    "lights": [],
-                    "tint": [1, 1, 1, 1],
-                    "useTextureAlbedo": false,
-                    "useTextureNormal": false,
-                    "useTextureMetallic": false,
-                    "useTextureRoughness": false,
-                    "useTextureAmbientOcclusion": false,
-                    "useTextureEmissive": false,
-                    "albedo": [1, 1, 1],
-                    "roughness": 0.99,
-                    "metallic": 0.1,
-                    "emission": [300, 300, 300],
-                    "ambientOcclusion": 1,
-                    "textureAlbedo": "grass_albedo",
-                    "textureNormal": "grass_normal",
-                    "textureMetallic": "grass_metallic",
-                    "textureRoughness": "grass_roughness",
-                    "textureAmbientOcclusion": "grass_ambientOcclusion",
-                    "textureEmissive": "grass_metal"
-                }
-            },
-            "lights": {
-                "sun1":{
-                    "type": "point",
-                    "enabled": true,
-                    "color": [300, 300 , 300],
-                    "position": [-10.0,  10.0, 10.0],
-                    "attenuation": {
-                        "constant": 0,
-                        "linear": 0,
-                        "quadratic": 1
-                    }
-                },
-                "sun2":{
-                    "type": "point",
-                    "enabled": false,
-                    "color": [300, 300 , 300],
-                    "position": [10.0,  10.0, 10.0],
-                    "attenuation": {
-                        "constant": 0,
-                        "linear": 0,
-                        "quadratic": 1
-                    }
-                },
-                "sun3":{
-                    "type": "point",
-                    "enabled": true,
-                    "color": [300, 300 , 300],
-                    "position": [-10.0,  -10.0, 10.0],
-                    "attenuation": {
-                        "constant": 0,
-                        "linear": 0,
-                        "quadratic": 1
-                    }
-                },
-                "sun4":{
-                    "type": "point",
-                    "enabled": false,
-                    "color": [300, 300 , 300],
-                    "position": [10.0,  -10.0, 10.0],
-                    "attenuation": {
-                        "constant": 0,
-                        "linear": 0,
-                        "quadratic": 1
-                    }
-                }
-            }
+        "equirectangular": {
+          "vs": "assets/shaders/light/ibl/cubemap.vert",
+          "fs": "assets/shaders/light/ibl/equirectangular.frag"
         },
-        "world": [
-            {
-                "position": [0, 10, -1],
-                "components": [
-                    {
-                        "type": "Camera"
-                    },
-                    {
-                        "type": "FPS Controller",
-                        "rotationSensitivityX": 0.005,
-                        "rotationSensitivityY": 0.005,
-                        "invertYAxis": false,
-                        "fovSensitivity": 0.1,
-                        "positionSensitivity": 2.0,
-                        "speedupFactor": 3.0,
-                        "minVerticalRotation": -85.0,
-                        "maxVerticalRotation": 85.0,
-                        "gravity": 9.8,
-                        "jumpHeight": 4,
-                        "jumpCooldown": 0.3,
-                        "movementSmoothing": 0.2,
-                        "rotationSmoothing": 0.1,
-                        "acceleration": 10.0,
-                        "deceleration": 8.0,
-                        "crouchHeightModifier": 0.5,
-                        "crouchSpeedModifier": 0.6,
-                        "sprintSpeedModifier": 2.0,
-                        "maxStamina": 100.0,
-                        "staminaDepletionRate": 20.0,
-                        "staminaRecoveryRate": 10.0
-                    },
-                    {
-                        "type": "Collision",
-                        "shape": "ghost",
-                        "mass": 2,
-                        "halfExtents": [0.2, 0.9, 0]
-                    }
-                ]
+        "background": {
+          "vs": "assets/shaders/light/ibl/background.vert",
+          "fs": "assets/shaders/light/ibl/background.frag"
+        },
+        "irradiance": {
+          "vs": "assets/shaders/light/ibl/cubemap.vert",
+          "fs": "assets/shaders/light/ibl/irradiance.frag"
+        },
+        "prefilter": {
+          "vs": "assets/shaders/light/ibl/cubemap.vert",
+          "fs": "assets/shaders/light/ibl/prefilter.frag"
+        },
+        "brdf": {
+          "vs": "assets/shaders/light/ibl/brdf.vert",
+          "fs": "assets/shaders/light/ibl/brdf.frag"
+        }
+      },
+      "meshes": {
+        "sphere": "assets/models/sphere/sphere.gltf"
+      },
+      "models": {
+        "gun": "assets/models/city/scene.gltf"
+        // "master_chief": "assets/models/master_chief/scene.gltf",
+        // "city": "assets/models/city1/scene.gltf"
+      },
+      "textures": {
+        "rusted_normal": "assets/textures/pbr/rusted_iron/normal.png",
+        "rusted_metallic": "assets/textures/pbr/rusted_iron/metallic.png",
+        "rusted_roughness": "assets/textures/pbr/rusted_iron/roughness.png",
+        "rusted_albedo": "assets/textures/pbr/rusted_iron/albedo.png",
+        "rusted_ambientOcclusion": "assets/textures/pbr/rusted_iron/ao.png",
+        "circus_backstage": "assets/textures/hdr/circus_backstage.hdr"
+      },
+      "materials": {
+        "rusted_iron": {
+          "type": "lit",
+          "shader": "pbr",
+          "pipelineState": {
+            "faceCulling": {
+              "enabled": false
             },
-            {
-                "position": [0, 0, -1],
-                "components": [
-                    {
-                        "type": "Collision",
-                        "shape": "box",
-                        "mass": 0,
-                        "halfExtents": [20, 0.5, 20]
-                    }
-                ]
-            },
-            // {
-            //     "position": [-3, 7, -4],
-            //     "scale": [2, 2, 2],
-            //     "components": [
-            //         {
-            //             "type": "Collision",
-            //             "shape": "box",
-            //             "mass": 10,
-            //             "halfExtents": [0.5, 0.5, 0.5]
-            //         }
-            //     ]
-            // },
-            // {
-            //     "position": [-1, 7, -4],
-            //     "components": [
-            //         {
-            //             "type": "Collision",
-            //             "shape": "box",
-            //             "mass": 15,
-            //             "halfExtents": [0.5, 0.5, 0.5]
-            //         }
-            //     ]
-            // },
-            // {
-            //     "position": [2, 3, -4],
-            //     "components": [
-            //         {
-            //             "type": "Collision",
-            //             "shape": "box",
-            //             "mass": 100,
-            //             "halfExtents": [1, 1, 1]
-            //         }
-            //     ]
-            // },
-            // {
-            //     "position": [3, 3, -4],
-            //     "components": [
-            //         {
-            //             "type": "Collision",
-            //             "shape": "mesh",
-            //             "mass": 3,
-            //             "mesh": "sphere",
-            //             "halfExtents": [1, 1, 1],
-            //             "isKinematic": false
-            //         }
-            //     ],
-            //     "children": [
-            //         {
-            //             "position": [0, 1, 0],
-            //             "components": [
-            //                 {
-            //                     "type": "Collision",
-            //                     "shape": "box",
-            //                     "mass": 0,
-            //                     "halfExtents": [1,0.001, 1],
-            //                     "isKinematic": false
-            //                 }
-            //             ]
-            //         }
-            //     ]
-            // },
-            // {
-            //     "position": [4, 3, -7],
-            //     "components": [
-            //         {
-            //             "type": "Collision",
-            //             "shape": "sphere",
-            //             "mass": 0,
-            //             "halfExtents": [1, 0.5, 0],
-            //             "isKinematic": false
-            //         }
-            //     ]
-            // },
-            // {
-            //     "position": [1, 1, -6],
-            //     "scale": [0.01, 0.01, 0.01],
-            //     "components": [
-            //         {
-            //             "type": "Collision",
-            //             "shape": "model",
-            //             "mass": 500,
-            //             "model": "gun"
-            //         },
-            //         {
-            //             "type": "Model Renderer",
-            //             "model": "gun"
-            //         }
-            //     ]
-            // },
-            // {
-            //     "position": [5, 1, -6],
-            //     "scale": [3, 3, 3],
-            //     "components": [
-            //         {
-            //             "type": "Collision",
-            //             "shape": "model",
-            //             "mass": 100,
-            //             "model": "master_chief"
-            //         },
-            //         {
-            //             "type": "Model Renderer",
-            //             "model": "master_chief"
-            //         }
-            //     ]
-            // },
-            {
-                "position": [5, 1, -6],
-                "scale": [0.01, 0.01, 0.01],
-                "components": [
-                    {
-                        "type": "Collision",
-                        "shape": "model",
-                        "mass": 0,
-                        "model": "gun",
-                        "isKinematic": false
-
-                    },
-                    {
-                        "type": "Model Renderer",
-                        "model": "gun"
-                    }
-                ]
-            },
-            {
-                "position": [-10.0,  10.0, 10.0],
-                "components": [
-                    {
-                        "type": "Mesh Renderer",
-                        "mesh": "sphere",
-                        "material": "sun"
-                    }
-                ]
-            },
-            {
-                "position": [-10.0,  -10.0, 10.0],
-                "components": [
-                    {
-                        "type": "Mesh Renderer",
-                        "mesh": "sphere",
-                        "material": "sun"
-                    }
-                ]
+            "depthTesting": {
+              "enabled": true,
+              "function": "GL_LEQUAL"
             }
+          },
+          "lights": ["sun1", "sun2", "sun3", "sun4"],
+          "tint": [1, 1, 1, 1],
+          "useTextureAlbedo": true,
+          "useTextureNormal": true,
+          "useTextureMetallic": true,
+          "useTextureRoughness": true,
+          "useTextureAmbientOcclusion": true,
+          "useTextureEmissive": false,
+          "albedo": [0.75, 0.75, 0.75],
+          "roughness": 0.5,
+          "metallic": 0.85,
+          "emission": [0, 0, 0],
+          "ambientOcclusion": 1,
+          "textureAlbedo": "rusted_albedo",
+          "textureNormal": "rusted_normal",
+          "textureMetallic": "rusted_metallic",
+          "textureRoughness": "rusted_roughness",
+          "textureAmbientOcclusion": "rusted_ambientOcclusion",
+          "textureEmissive": "rusted_ambientOcclusion"
+        },
+        "sun": {
+          "type": "lit",
+          "shader": "pbr",
+          "pipelineState": {
+            "faceCulling": {
+              "enabled": false
+            },
+            "depthTesting": {
+              "enabled": true,
+              "function": "GL_LEQUAL"
+            }
+          },
+          "lights": [],
+          "tint": [1, 1, 1, 1],
+          "useTextureAlbedo": false,
+          "useTextureNormal": false,
+          "useTextureMetallic": false,
+          "useTextureRoughness": false,
+          "useTextureAmbientOcclusion": false,
+          "useTextureEmissive": false,
+          "albedo": [1, 1, 1],
+          "roughness": 0.99,
+          "metallic": 0.1,
+          "emission": [300, 300, 300],
+          "ambientOcclusion": 1,
+          "textureAlbedo": "grass_albedo",
+          "textureNormal": "grass_normal",
+          "textureMetallic": "grass_metallic",
+          "textureRoughness": "grass_roughness",
+          "textureAmbientOcclusion": "grass_ambientOcclusion",
+          "textureEmissive": "grass_metal"
+        }
+      },
+      "lights": {
+        "sun1": {
+          "type": "point",
+          "enabled": true,
+          "color": [300, 300, 300],
+          "position": [-10.0, 10.0, 10.0],
+          "attenuation": {
+            "constant": 0,
+            "linear": 0,
+            "quadratic": 1
+          }
+        },
+        "sun2": {
+          "type": "point",
+          "enabled": false,
+          "color": [300, 300, 300],
+          "position": [10.0, 10.0, 10.0],
+          "attenuation": {
+            "constant": 0,
+            "linear": 0,
+            "quadratic": 1
+          }
+        },
+        "sun3": {
+          "type": "point",
+          "enabled": true,
+          "color": [300, 300, 300],
+          "position": [-10.0, -10.0, 10.0],
+          "attenuation": {
+            "constant": 0,
+            "linear": 0,
+            "quadratic": 1
+          }
+        },
+        "sun4": {
+          "type": "point",
+          "enabled": false,
+          "color": [300, 300, 300],
+          "position": [10.0, -10.0, 10.0],
+          "attenuation": {
+            "constant": 0,
+            "linear": 0,
+            "quadratic": 1
+          }
+        }
+      }
+    },
+    "world": [
+      {
+        "position": [0, 10, -1],
+        "components": [
+          {
+            "type": "Camera"
+          },
+          {
+            "type": "FPS Controller",
+            "rotationSensitivityX": 0.005,
+            "rotationSensitivityY": 0.005,
+            "invertYAxis": false,
+            "fovSensitivity": 0.1,
+            "positionSensitivity": 2.0,
+            "speedupFactor": 3.0,
+            "minVerticalRotation": -85.0,
+            "maxVerticalRotation": 85.0,
+            "gravity": 9.8,
+            "jumpHeight": 4,
+            "jumpCooldown": 0.3,
+            "movementSmoothing": 0.2,
+            "rotationSmoothing": 0.1,
+            "acceleration": 10.0,
+            "deceleration": 8.0,
+            "crouchHeightModifier": 0.5,
+            "crouchSpeedModifier": 0.6,
+            "sprintSpeedModifier": 2.0,
+            "maxStamina": 100.0,
+            "staminaDepletionRate": 20.0,
+            "staminaRecoveryRate": 10.0
+          },
+          {
+            "type": "Collision",
+            "shape": "ghost",
+            "mass": 2,
+            "halfExtents": [0.2, 0.9, 0]
+          }
         ]
-    }
+      },
+      {
+        "position": [0, 0, -1],
+        "components": [
+          {
+            "type": "Collision",
+            "shape": "box",
+            "mass": 0,
+            "halfExtents": [20, 0.5, 20]
+          }
+        ]
+      },
+      // {
+      //     "position": [-3, 7, -4],
+      //     "scale": [2, 2, 2],
+      //     "components": [
+      //         {
+      //             "type": "Collision",
+      //             "shape": "box",
+      //             "mass": 10,
+      //             "halfExtents": [0.5, 0.5, 0.5]
+      //         }
+      //     ]
+      // },
+      // {
+      //     "position": [-1, 7, -4],
+      //     "components": [
+      //         {
+      //             "type": "Collision",
+      //             "shape": "box",
+      //             "mass": 15,
+      //             "halfExtents": [0.5, 0.5, 0.5]
+      //         }
+      //     ]
+      // },
+      // {
+      //     "position": [2, 3, -4],
+      //     "components": [
+      //         {
+      //             "type": "Collision",
+      //             "shape": "box",
+      //             "mass": 100,
+      //             "halfExtents": [1, 1, 1]
+      //         }
+      //     ]
+      // },
+      // {
+      //     "position": [3, 3, -4],
+      //     "components": [
+      //         {
+      //             "type": "Collision",
+      //             "shape": "mesh",
+      //             "mass": 3,
+      //             "mesh": "sphere",
+      //             "halfExtents": [1, 1, 1],
+      //             "isKinematic": false
+      //         }
+      //     ],
+      //     "children": [
+      //         {
+      //             "position": [0, 1, 0],
+      //             "components": [
+      //                 {
+      //                     "type": "Collision",
+      //                     "shape": "box",
+      //                     "mass": 0,
+      //                     "halfExtents": [1,0.001, 1],
+      //                     "isKinematic": false
+      //                 }
+      //             ]
+      //         }
+      //     ]
+      // },
+      // {
+      //     "position": [4, 3, -7],
+      //     "components": [
+      //         {
+      //             "type": "Collision",
+      //             "shape": "sphere",
+      //             "mass": 0,
+      //             "halfExtents": [1, 0.5, 0],
+      //             "isKinematic": false
+      //         }
+      //     ]
+      // },
+      // {
+      //     "position": [1, 1, -6],
+      //     "scale": [0.01, 0.01, 0.01],
+      //     "components": [
+      //         {
+      //             "type": "Collision",
+      //             "shape": "model",
+      //             "mass": 500,
+      //             "model": "gun"
+      //         },
+      //         {
+      //             "type": "Model Renderer",
+      //             "model": "gun"
+      //         }
+      //     ]
+      // },
+      // {
+      //     "position": [5, 1, -6],
+      //     "scale": [3, 3, 3],
+      //     "components": [
+      //         {
+      //             "type": "Collision",
+      //             "shape": "model",
+      //             "mass": 100,
+      //             "model": "master_chief"
+      //         },
+      //         {
+      //             "type": "Model Renderer",
+      //             "model": "master_chief"
+      //         }
+      //     ]
+      // },
+      {
+        "position": [5, 1, -6],
+        "scale": [0.01, 0.01, 0.01],
+        "components": [
+          {
+            "type": "Collision",
+            "shape": "model",
+            "mass": 0,
+            "model": "gun",
+            "isKinematic": false
+          },
+          {
+            "type": "Model Renderer",
+            "model": "gun"
+          }
+        ]
+      },
+      {
+        "position": [-10.0, 10.0, 10.0],
+        "components": [
+          {
+            "type": "Mesh Renderer",
+            "mesh": "sphere",
+            "material": "sun"
+          }
+        ]
+      },
+      {
+        "position": [-10.0, -10.0, 10.0],
+        "components": [
+          {
+            "type": "Mesh Renderer",
+            "mesh": "sphere",
+            "material": "sun"
+          }
+        ]
+      }
+    ]
+  }
 }

@@ -2,17 +2,13 @@
 #include <deserialize-utils.hpp>
 #include <asset-loader.hpp>
 #include <mesh/mesh.hpp>
-#include <model/model.hpp>
+#include <systems/collision-system.hpp>
 #include "collision.hpp"
 
 namespace our {
     
     CollisionComponent::~CollisionComponent() {
-        if(bulletBody) {
-            delete bulletBody->getCollisionShape();
-            delete bulletBody->getMotionState();
-            delete bulletBody;
-        }
+        freeBulletBody();
 
         if (triangleMesh) {
             delete triangleMesh;
@@ -24,6 +20,19 @@ namespace our {
         }
     }
     
+    void CollisionComponent::freeBulletBody() {
+        if (bulletBody) {
+            // Remove the body from the physics world if it exists
+            CollisionSystem::getInstance().getPhysicsWorld()->removeCollisionObject(bulletBody);
+
+            // Delete the motion state and collision shape
+            delete bulletBody->getCollisionShape();
+            delete bulletBody->getMotionState();
+            delete bulletBody;
+            bulletBody = nullptr;
+        }
+    }
+
     void CollisionComponent::deserialize(const nlohmann::json& data) {
         // Shape parsing
         if(data.contains("shape")) {
@@ -60,30 +69,6 @@ namespace our {
                 }
                 if(data.contains("indices")) {
                     indices = data["indices"].get<std::vector<uint32_t>>();
-                }
-            }
-            else if(shapeStr == "model") {
-                shape = CollisionShape::COMPOUND;
-                Model* model = AssetLoader<Model>::get(data["model"].get<std::string>());
-                // Add each mesh as a child shape
-                for(unsigned int i = 0; i < model->meshRenderers.size(); i++) {
-                    Mesh* mesh = model->meshRenderers[i]->mesh;
-                    glm::mat4 meshWorldMatrix = model->matricesMeshes[i];
-                    
-                    CollisionComponent::ChildShape childShape;
-                    childShape.shape = CollisionShape::MESH;
-                    childShape.vertices.reserve(mesh->cpuVertices.size());
-                    
-                    // Transform vertices to mesh-local space
-                    for(const auto& vertex : mesh->cpuVertices) {
-                        Vertex transformedVertex = vertex;
-                        glm::vec4 transformedPos = meshWorldMatrix * glm::vec4(vertex.position, 1.0f);
-                        transformedVertex.position = glm::vec3(transformedPos);
-                        childShape.vertices.push_back(transformedVertex);
-                    }
-                    
-                    childShape.indices = mesh->cpuIndices;
-                    childShapes.push_back(childShape);
                 }
             }
             else if(shapeStr == "ghost") shape = CollisionShape::GHOST;

@@ -110,6 +110,13 @@ class CollisionSystem {
     btDiscreteDynamicsWorld* physicsWorld = nullptr;
     GLDebugDrawer* debugDrawer = nullptr;
 
+    // Private constructor to prevent instantiation
+    CollisionSystem() = default;
+    CollisionSystem(const CollisionSystem&) = delete; // Prevent copying
+    CollisionSystem& operator=(const CollisionSystem&) = delete; // Prevent assignment
+    CollisionSystem(CollisionSystem&&) = delete; // Prevent moving
+    CollisionSystem& operator=(CollisionSystem&&) = delete; // Prevent moving assignment
+
     // Simulate the gravity and drag forces on the physics world
     static void _simulateDrag(btDynamicsWorld* world, btScalar deltaTime);
     // Step the physics simulation by a given time step
@@ -118,8 +125,6 @@ class CollisionSystem {
     void _processEntities(World* world);
     // Sync the transforms of the entity and its collision component
     void _syncTransforms(Entity* entity, CollisionComponent* collision, Transform* transform);
-    // Create a rigid body for the entity based on its collision component and transform
-    void _createRigidBody(Entity* entity, CollisionComponent* collision, const Transform* transform);
     // Create a mesh shape for the entity based on its collision component and transform
     btCollisionShape* _createMeshShape(CollisionComponent* collision, const Transform* transform);
     // Create a compound shape for the entity based on its collision component and transform
@@ -132,20 +137,35 @@ class CollisionSystem {
     void _pushOverlappingObjects(btPairCachingGhostObject* ghost, const glm::vec3& position, float deltaTime);
     // Detect collisions between entities and update their collision components
     void _detectCollisions();
+    // Process the detected collisions and call the appropriate callbacks
+    void _processCollisions(World* world);
+    // Free the Bullet physics world and its components
+    void _freePhysicsWorld();
 
 public:
+    static CollisionSystem& getInstance() {
+        static CollisionSystem instance;
+        return instance;
+    }
+
     // Initialize the collision system with a Bullet physics world
     void initialize(glm::ivec2 windowSize, btDynamicsWorld* physicsWorld);
 
     // Get the Bullet physics world
     btDiscreteDynamicsWorld* getPhysicsWorld() { return physicsWorld; }
 
+    // Create a rigid body for the entity based on its collision component and transform
+    void createRigidBody(Entity* entity, CollisionComponent* collision, const Transform* transform);
+    
     // Update entity transforms and physics simulation
     void update(World* world, float deltaTime);
 
     // Perform a raycast and return hit results
     bool raycast(const glm::vec3& start, const glm::vec3& end, 
         CollisionComponent*& hitComponent, glm::vec3& hitPoint, glm::vec3& hitNormal);
+
+    // Apply a linear velocity to the entity (e.g., for throwing)
+    void applyVelocity(Entity* entity, const glm::vec3& velocity);
 
     // Apply an instant impulse (e.g., for throwing)
     void applyImpulse(Entity* entity, const glm::vec3& force, const glm::vec3& position = glm::vec3(0));
@@ -169,4 +189,4 @@ public:
     void destroy();
 };
 
-} // namespace our
+}

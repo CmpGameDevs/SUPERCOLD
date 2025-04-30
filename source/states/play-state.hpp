@@ -13,7 +13,7 @@ class Playstate : public our::State {
     static bool initialized;
     our::World world;
     our::ForwardRenderer renderer;
-    our::CollisionSystem collisionSystem;
+    our::CollisionSystem &collisionSystem = our::CollisionSystem::getInstance();
     our::FPSControllerSystem fpsController;
     our::MovementSystem movementSystem;
     game::TimeScaler timeScaler;

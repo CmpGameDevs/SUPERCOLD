@@ -4,6 +4,7 @@
 #include <asset-loader.hpp>
 #include <systems/forward-renderer.hpp>
 #include <systems/collision-system.hpp>
+#include <systems/weapons-system.hpp>
 #include <systems/fps-controller.hpp>
 #include <core/time-scale.hpp>
 #include <btBulletDynamicsCommon.h>
@@ -13,7 +14,8 @@ class PhysicsTestState : public our::State {
     our::World world;
     our::ForwardRenderer renderer;
     our::FPSControllerSystem fpsController;
-    our::CollisionSystem collisionSystem;
+    our::CollisionSystem &collisionSystem = our::CollisionSystem::getInstance();
+    our::WeaponsSystem &weaponsSystem = our::WeaponsSystem::getInstance();
     game::TimeScaler timeScaler;
     float timeScale;
 
@@ -153,10 +155,11 @@ class PhysicsTestState : public our::State {
         float speed = fpsController.getSpeedMagnitude();
         timeScaler.update(speed);
         timeScale = timeScaler.getTimeScale();
-        float scaledDeltaTime = (float)deltaTime * timeScale;
+        float scaledDeltaTime = (float)deltaTime;
 
         applyForces();
         collisionSystem.update(&world, scaledDeltaTime);
+        weaponsSystem.update(&world, scaledDeltaTime);
         raycast();
         renderer.render(&world);
         // collisionSystem.debugDrawWorld(&world);
@@ -167,6 +170,8 @@ class PhysicsTestState : public our::State {
         renderer.destroy();
         // Destroy the collision system and free resources
         collisionSystem.destroy();
+        // Destroy the weapons system and free resources
+        weaponsSystem.onDestroy();
         // On exit, we call exit for the camera controller system to make sure that the mouse is unlocked
         fpsController.exit();
         // Clear the world

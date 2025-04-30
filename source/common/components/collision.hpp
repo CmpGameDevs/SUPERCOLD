@@ -48,13 +48,36 @@ namespace our {
         btPairCachingGhostObject* ghostObject = nullptr;
 
         // For collision detection, we need to store the collided entities
-        std::unordered_set<Entity*> collidedEntities;
-
+        std::unordered_set<Entity*> currentCollisions;
+        std::unordered_set<Entity*> previousCollisions;
+        
+        // Use separate containers for delta tracking
+        std::vector<Entity*> enters;
+        std::vector<Entity*> exits;
+        
         // For realism add drag and cross-section
         float dragCoefficient = 1.0f;
         float crossSectionArea = 1.0f;
 
+        // Add callback for collision detection
+        using CollisionCallback = std::function<void(Entity* other)>;
+    
+        struct CollisionEvents {
+            CollisionCallback onEnter = nullptr;
+            CollisionCallback onStay = nullptr;
+            CollisionCallback onExit = nullptr;
+        };
+
+        CollisionEvents callbacks;
+
         virtual ~CollisionComponent();
+
+        void freeBulletBody();
+
+        bool hasCallbacks() const { return callbacks.onEnter || callbacks.onStay || callbacks.onExit; }
+        bool wantsEnter() const { return callbacks.onEnter != nullptr; }
+        bool wantsStay() const { return callbacks.onStay != nullptr; }
+        bool wantsExit() const { return callbacks.onExit != nullptr; }
 
         // The ID of this component type is "Collision"
         static std::string getID() { return "Collision"; }
