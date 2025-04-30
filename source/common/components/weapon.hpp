@@ -2,6 +2,8 @@
 
 #include <glm/glm.hpp>
 #include <ecs/component.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/quaternion.hpp>
 
 namespace our {
 
@@ -16,6 +18,8 @@ namespace our {
         int currentAmmo = 0;
         bool automatic = false;
         float throwForce = 1.0f;
+        float bulletSize = 0.2f;
+        glm::quat weaponRotation = glm::identity<glm::quat>();
 
         static std::string getID() { return "Weapon"; }
 

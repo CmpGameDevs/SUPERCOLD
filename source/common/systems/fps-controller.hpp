@@ -317,10 +317,12 @@ class FPSControllerSystem {
             glm::vec3 color(0.0f, 1.0f, 1.0f); // Cyan color
             if (collisionSystem->raycast(rayStart, rayEnd, hitComponent, hitPoint, hitNormal)) {
                 auto otherEntity = hitComponent->getOwner();
-                if (controller->pickedEntity)
-                    WeaponsSystem::getInstance().dropWeapon(entity->getWorld(), controller->pickedEntity);
-                controller->pickedEntity = otherEntity;
-                WeaponsSystem::getInstance().pickupWeapon(entity->getWorld(), entity, otherEntity);
+                WeaponComponent* weapon = otherEntity->getComponent<WeaponComponent>();
+                if (!weapon) return;
+                if (controller->pickedEntity && WeaponsSystem::getInstance().dropWeapon(entity->getWorld(), controller->pickedEntity))
+                    controller->pickedEntity = nullptr;
+                if (WeaponsSystem::getInstance().pickupWeapon(entity->getWorld(), entity, otherEntity))
+                    controller->pickedEntity = otherEntity;
                 color = glm::vec3(1.0f, 0.5f, 0.0f); // Orange color
             }
             collisionSystem->debugDrawRay(rayStart, rayEnd, color);
@@ -328,8 +330,8 @@ class FPSControllerSystem {
             if (controller->pickedEntity) {
                 auto cameraMatrix = entity->getLocalToWorldMatrix();
                 glm::vec3 cameraForward = -glm::normalize(glm::vec3(cameraMatrix[2]));
-                WeaponsSystem::getInstance().throwWeapon(entity->getWorld(), controller->pickedEntity, cameraForward);
-                controller->pickedEntity = nullptr;
+                if (WeaponsSystem::getInstance().throwWeapon(entity->getWorld(), controller->pickedEntity, cameraForward))
+                    controller->pickedEntity = nullptr;
             }
         }
     }
@@ -343,16 +345,11 @@ class FPSControllerSystem {
             app->getMouse().isPressed(GLFW_MOUSE_BUTTON_LEFT) && weapon->automatic
         );
         if (isShooting) {
-            printf("Attempting to fire weapon with current cooldown: %f\n", weapon->fireCooldown);
             auto cameraMatrix = entity->getLocalToWorldMatrix();
             glm::vec3 cameraForward = -glm::normalize(glm::vec3(cameraMatrix[2]));
-            if (weapon->fireCooldown <= 0.0f) {
-                printf("Firing weapon! Remaining ammo: %d\n", weapon->currentAmmo);
-                WeaponsSystem::getInstance().fireWeapon(entity->getWorld(), controller->pickedEntity, cameraForward);
+            if (WeaponsSystem::getInstance().fireWeapon(entity->getWorld(), controller->pickedEntity, cameraForward))
                 weapon->fireCooldown = weapon->fireRate;
-            }
-        }
-        else if (app->getKeyboard().justPressed(GLFW_KEY_R)) {
+        } else if (app->getKeyboard().justPressed(GLFW_KEY_R)) {
             WeaponsSystem::getInstance().reloadWeapon(entity->getWorld(), controller->pickedEntity);
         }
     }

@@ -127,6 +127,8 @@ class CollisionSystem {
     void _syncTransforms(Entity* entity, CollisionComponent* collision, Transform* transform);
     // Create a mesh shape for the entity based on its collision component and transform
     btCollisionShape* _createMeshShape(CollisionComponent* collision, const Transform* transform);
+    // Create a compound shape for the entity based on its collision component and transform
+    btCollisionShape* _createCompoundShape(CollisionComponent* collision, const Transform* transform);
     // Create ghost object for the entity based on its collision component and transform
     void _createGhostObject(Entity* entity, CollisionComponent* collision, const Transform* transform);
     // Clear previous collisions for the entity
@@ -176,6 +178,9 @@ public:
 
     // Move a ghost object to a new position (e.g., for player movement)
     void moveGhost(Entity* entity, const glm::vec3& movement, float deltaTime);
+
+    // Toggle the debug drawer for visualizing the physics world
+    void toggleDebugMode();
 
     // Debug draw the world using the debug drawer
     void debugDrawWorld(World* world);

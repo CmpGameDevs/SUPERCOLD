@@ -10,7 +10,6 @@ void Model::draw(CameraComponent* camera, glm::mat4 localToWorld, glm::ivec2 win
         glm::mat4 VP = projection * view;
         for (unsigned int i = 0; i < meshRenderers.size(); i++)
         {
-
             Material* material = meshRenderers[i]->material;
             Mesh* mesh = meshRenderers[i]->mesh;
             glm::mat4 meshWorldMatrix = localToWorld * matricesMeshes[i];
@@ -212,7 +211,8 @@ void Model::loadMaterials() {
         mat->useTextureEmissive = false;
         mat->useTextureMetallic = false;
         mat->useTextureRoughness = false;
-
+        mat->metallic = 0.95f;
+        mat->roughness = 0.85f;
 
         // Set alpha mode if available
         if (material.find("alphaMode") != material.end()) {

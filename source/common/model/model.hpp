@@ -19,16 +19,18 @@ class Model {
 
     std::vector<Texture2D *> textures;
     std::vector<Material *> materials;
-    std::vector<MeshRendererComponent *> meshRenderers;
     std::vector<glm::vec3> translationsMeshes;
     std::vector<glm::quat> rotationsMeshes;
     std::vector<glm::vec3> scalesMeshes;
-    std::vector<glm::mat4> matricesMeshes;
     std::vector<unsigned char> data;
     json JSON;
     std::string path;
-
-  public:
+    
+    public:
+    
+    std::vector<MeshRendererComponent *> meshRenderers;
+    std::vector<glm::mat4> matricesMeshes;
+    
     ~Model() {
         for (auto &texture : textures) delete texture;
         for (auto &material : materials) delete material;
