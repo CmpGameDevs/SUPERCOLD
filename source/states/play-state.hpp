@@ -5,17 +5,15 @@
 #include <systems/forward-renderer.hpp>
 #include <systems/collision-system.hpp>
 #include <systems/fps-controller.hpp>
-#include <systems/movement.hpp>
 #include <core/time-scale.hpp>
 
 // This state shows how to use the ECS framework and deserialization.
 class Playstate : public our::State {
     static bool initialized;
     our::World world;
-    our::ForwardRenderer renderer;
     our::CollisionSystem &collisionSystem = our::CollisionSystem::getInstance();
+    our::ForwardRenderer &renderer = our::ForwardRenderer::getInstance();  
     our::FPSControllerSystem fpsController;
-    our::MovementSystem movementSystem;
     game::TimeScaler timeScaler;
     float timeScale;
 
@@ -28,7 +26,6 @@ class Playstate : public our::State {
         if (config.contains("assets")) {
             our::deserializeAllAssets(config["assets"]);
         }
-        fpsController.enter(getApp());
         // Then we initialize the renderer
         auto size = getApp()->getFrameBufferSize();
         renderer.initialize(size, config["renderer"]);
@@ -46,7 +43,6 @@ class Playstate : public our::State {
             collisionConfig
         );
         collisionSystem.initialize(size, physicsWorld);
-        fpsController.setCollisionSystem(&collisionSystem);
     }
 
     void onInitialize() override {
@@ -57,25 +53,26 @@ class Playstate : public our::State {
         if (levelConfig.contains("world")) {
             world.deserialize(levelConfig["world"]);
         }
+        fpsController.enter(getApp());
+        fpsController.setCollisionSystem(&collisionSystem);
         timeScale = 1.0f;
     }
 
     void onDraw(double deltaTime) override {
         // Here, we just run a bunch of systems to control the world logic
         fpsController.update(&world, (float)deltaTime);
-
+        
         float speed = fpsController.getSpeedMagnitude();
         
         timeScaler.update(speed);
+
         timeScale = timeScaler.getTimeScale();
 
         float scaledDeltaTime = (float)deltaTime * timeScale;
 
-        movementSystem.update(&world, scaledDeltaTime);
         collisionSystem.update(&world, scaledDeltaTime);
         // // And finally we use the renderer system to draw the scene
         renderer.render(&world);
-        collisionSystem.debugDrawWorld(&world);
 
         // Get a reference to the keyboard object
         auto &keyboard = getApp()->getKeyboard();
@@ -87,8 +84,8 @@ class Playstate : public our::State {
     }
 
     void onDestroy() override {
-        // Clear the world
-        world.clear();
+        //this has to be uncommented to prevent memory leaks, but it will cause a crash in collision system
+        // world.clear();
     }
 };
 

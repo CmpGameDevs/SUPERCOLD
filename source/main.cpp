@@ -57,7 +57,7 @@ int main(int argc, char** argv) {
 
     file_in.close();
 
-    int levels_count = 2;
+    int levels_count = 3;
 
     std::vector<nlohmann::json> levels_configs = parseLevels(levels_count);
 

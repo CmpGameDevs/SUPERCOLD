@@ -440,9 +440,9 @@ namespace our {
                 for(auto other : collision->currentCollisions) {
                     if(collision->previousCollisions.count(other)) {
                         collision->callbacks.onStay(other);
-                    }
                 }
             }
+        }
     
             if(collision->wantsExit()) {
                 for(auto other : collision->exits) {
@@ -686,7 +686,6 @@ namespace our {
             delete debugDrawer;
             debugDrawer = nullptr;
         }
-
         _freePhysicsWorld();
     }
 
