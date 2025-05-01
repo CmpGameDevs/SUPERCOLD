@@ -98,7 +98,7 @@ class Playstate : public our::State {
         renderer.render(&world);
 
         // Render some test text
-        textRenderer.renderCenteredText(deltaTime);
+        textRenderer.renderCenteredText();
 
         // Handle keyboard input (escape key to transition between levels)
         auto& keyboard = getApp()->getKeyboard();

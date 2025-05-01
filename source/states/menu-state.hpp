@@ -120,19 +120,19 @@ class Menustate: public our::State {
         buttons[1].size = {133.0f, 38.0f};
         buttons[1].action = [this](){this->getApp()->close();};
 
-        // auto &config = getApp()->getConfig()["scene"];
+        auto &config = getApp()->getConfig()["scene"];
         // If we have assets in the scene config, we deserialize them
-        // if (config.contains("assets")) {
-        //     our::AssetLoader<our::AudioBuffer>::deserialize(config["assets"]["audio"]);
-        // }
+        if (config.contains("assets")) {
+            our::AssetLoader<our::AudioBuffer>::deserialize(config["assets"]["audio"]);
+        }
 
-        // audioSystem = new our::AudioSystem(getApp()->getAudioContext());
+        audioSystem = new our::AudioSystem(getApp()->getAudioContext());
     }
 
     void onDraw(double deltaTime) override {
         // Play the background music
-        // audioSystem->playBackgroundMusic("background", 0.2f);
-        // audioSystem->update(nullptr, deltaTime);
+        audioSystem->playBackgroundMusic("background", 0.2f);
+        audioSystem->update(nullptr, deltaTime);
 
         // Get a reference to the keyboard object
         auto& keyboard = getApp()->getKeyboard();
@@ -187,13 +187,15 @@ class Menustate: public our::State {
             if(button.isInside(mousePosition)){
                 highlightMaterial->setup();
                 highlightMaterial->shader->set("transform", VP*button.getLocalToWorld());
-                rectangle->draw();
-                // audioSystem->setCategoryVolume("music", 0.2f, 1.5f);
+                rectangle->draw(); 
+                highlightMaterial->teardown();
+                audioSystem->setCategoryVolume("music", 0.2f, 1.5f);
                 inside = true;
             }
         }
-        // if (!inside)
-        //     audioSystem->setCategoryVolume("music", 0.4f, 0.5f);
+
+        if (!inside)
+            audioSystem->setCategoryVolume("music", 0.4f, 0.5f);
 
     }
 
