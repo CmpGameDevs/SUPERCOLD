@@ -347,7 +347,12 @@ class FPSControllerSystem {
         if (isShooting) {
             auto cameraMatrix = entity->getLocalToWorldMatrix();
             glm::vec3 cameraForward = -glm::normalize(glm::vec3(cameraMatrix[2]));
-            if (WeaponsSystem::getInstance().fireWeapon(entity->getWorld(), controller->pickedEntity, cameraForward))
+            auto viewMatrix = glm::inverse(cameraMatrix);
+            auto windowSize = app->getWindowSize();
+            glm::vec2 viewPortSize = glm::vec2(windowSize.x, windowSize.y);
+            glm::mat4 projectionMatrix = entity->getComponent<CameraComponent>()->getProjectionMatrix(viewPortSize);
+
+            if (WeaponsSystem::getInstance().fireWeapon(entity->getWorld(), controller->pickedEntity, cameraForward, viewMatrix, projectionMatrix))
                 weapon->fireCooldown = weapon->fireRate;
         } else if (app->getKeyboard().justPressed(GLFW_KEY_R)) {
             WeaponsSystem::getInstance().reloadWeapon(entity->getWorld(), controller->pickedEntity);

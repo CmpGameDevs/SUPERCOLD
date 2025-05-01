@@ -4,6 +4,7 @@
 #include <components/collision.hpp>
 #include <systems/collision-system.hpp>
 #include <components/model-renderer.hpp>
+#include <systems/movement.hpp>
 
 namespace our {
     void WeaponsSystem::update(World* world, float deltaTime) {
@@ -15,11 +16,9 @@ namespace our {
                 toRemove.push_back(proj);
                 continue;
             }
-            proj->entity->localTransform.position += proj->direction * proj->speed * deltaTime;
             proj->timeAlive += deltaTime;
 
             if(proj->lifetime > 0.0f && proj->timeAlive >= proj->lifetime) {
-                printf("Projectile lifetime expired.\n");
                 world->markForRemoval(proj->entity);
                 toRemove.push_back(proj);
             }
@@ -34,8 +33,6 @@ namespace our {
     
     bool WeaponsSystem::throwWeapon(World* world, Entity* entity, glm::vec3 forward) {
         if (!dropWeapon(world, entity)) return false;
-
-        // Throw weapon to the front of the player
         WeaponComponent* weapon = entity->getComponent<WeaponComponent>();
         glm::vec3 throwDirection = forward * 10.0f * weapon->throwForce;
         CollisionSystem::getInstance().applyVelocity(entity, throwDirection);
@@ -47,13 +44,11 @@ namespace our {
         if (!entity) return false;
         WeaponComponent* weapon = entity->getComponent<WeaponComponent>();
         if (!weapon) return false;
-        // Set the weapon's position and rotation to match the world's
         glm::mat4 worldMatrix = entity->getLocalToWorldMatrix();
         entity->parent = nullptr;
         entity->localTransform.position = glm::vec3(worldMatrix[3]);
         entity->localTransform.rotation = glm::vec3(worldMatrix[2]);
         entity->localTransform.scale = glm::vec3(glm::length(worldMatrix[0]), glm::length(worldMatrix[1]), glm::length(worldMatrix[2]));
-
         CollisionComponent* collision = static_cast<CollisionComponent*>(_addCollisionComponent(entity));
         weaponsMap.erase(entity);
         return true;
@@ -63,16 +58,12 @@ namespace our {
         if (!entity) return false;
         WeaponComponent* weapon = entity->getComponent<WeaponComponent>();
         if (!weapon) return false;
-        // Reload the weapon's ammo
         weapon->currentAmmo = weapon->ammoCapacity;
-        // TODO: Add a reload animation or sound
-        // Add a cooldown to prevent spamming the reload action
         weapon->fireCooldown = 0.3f;
-        printf("Reloaded weapon! Current ammo: %d\n", weapon->currentAmmo);
         return true;
     }
     
-    bool WeaponsSystem::fireWeapon(World* world, Entity* entity, glm::vec3 direction) {
+    bool WeaponsSystem::fireWeapon(World* world, Entity* entity, glm::vec3 direction, glm::mat4 viewMatrix, glm::mat4 projectionMatrix) {
         if (!entity) return false;
         WeaponComponent* weapon = entity->getComponent<WeaponComponent>();
         if (!weapon) return false;
@@ -80,12 +71,10 @@ namespace our {
         if (weapon->currentAmmo <= 0 || weapon->fireCooldown > 0.0f) return false;
         float speed = 10.0f;
         float lifetime = 5.0f;
-        // Create a projectile entity
-        Entity* projectileEntity = _createProjectile(world, entity, direction, speed);
+        Entity* projectileEntity = _createProjectile(world, entity, direction, speed, viewMatrix, projectionMatrix);
         Projectile *projectile = new Projectile(projectileEntity, entity, direction, speed, weapon->range, lifetime);
         projectiles.insert(projectile);
         weapon->currentAmmo--;
-        printf("Fired weapon! Remaining ammo: %d\n", weapon->currentAmmo);
         return true;
     }
     
@@ -93,15 +82,10 @@ namespace our {
         if (!entity || !weaponEntity) return false;
         WeaponComponent* weapon = weaponEntity->getComponent<WeaponComponent>();
         if (!weapon) return false;
-        printf("Picked up weapon: %s\n", weaponEntity->name.c_str());
-        // Remove rigid body from the weapon entity
         _removeCollisionComponent(weaponEntity);
-        // Attach the weapon to the player entity
         weaponEntity->parent = entity;
-        // Set the weapon's position and rotation to match the player's
         weaponEntity->localTransform.position = glm::vec3(0.6f, -0.2f, -0.4f);
         weaponEntity->localTransform.rotation = weapon->weaponRotation;
-        printf("Picked up weapon! Current ammo: %d\n", weapon->currentAmmo);
         return true;
     }
     
@@ -120,57 +104,67 @@ namespace our {
 
     Component *WeaponsSystem::_addCollisionComponent(Entity* entity) {
         CollisionComponent* collision = static_cast<CollisionComponent*>(weaponsMap[entity]);
-        // Calculate the world matrix from the entity's local transform
         glm::mat4 worldMatrix = entity->getLocalToWorldMatrix();
         Transform transform;
         transform.position = glm::vec3(worldMatrix[3]);
         transform.rotation = entity->localTransform.rotation;
         transform.scale = glm::vec3(glm::length(worldMatrix[0]), glm::length(worldMatrix[1]), glm::length(worldMatrix[2]));
-
         CollisionSystem::getInstance().createRigidBody(entity, collision, &transform);
-
         entity->addComponent(collision);
         return collision;
     }
 
-    Entity *WeaponsSystem::_createProjectile(World* world, Entity* owner, glm::vec3 direction, float speed) {
+    glm::vec3 getCrosshairDirection(glm::mat4 viewMatrix, glm::mat4 projectionMatrix) {
+        glm::vec2 screenCenter = glm::vec2(0.5f, 0.5f);
+        glm::vec4 rayClip(screenCenter.x * 2.0f - 1.0f, screenCenter.y * 2.0f - 1.0f, 1.0f, 1.0f);
+        glm::vec4 rayEye = glm::inverse(projectionMatrix) * rayClip;
+        rayEye = glm::vec4(rayEye.x, rayEye.y, -1.0f, 0.0f);
+        return glm::normalize(glm::vec3(glm::inverse(viewMatrix) * rayEye));
+    }
+    
+    Entity *WeaponsSystem::_createProjectile(World* world, Entity* owner, glm::vec3 direction, float speed, glm::mat4 viewMatrix, glm::mat4 projectionMatrix) {
         Entity* projectileEntity = world->add();
         projectileEntity->name = "Projectile";
 
-        // Set Transform
         WeaponComponent* weapon = owner->getComponent<WeaponComponent>();
         glm::mat4 worldMatrix = owner->getLocalToWorldMatrix();
-        projectileEntity->localTransform.position = glm::vec3(worldMatrix[3]);
-        projectileEntity->localTransform.scale = weapon->bulletScale; 
-        // Rotation relative to the owner
-        projectileEntity->localTransform.rotation = owner->parent->localTransform.rotation * weapon->bulletRotation;
 
-        // Set Projectile Properties
+        glm::vec3 weaponForward = glm::normalize(glm::vec3(worldMatrix[2])); 
+        glm::vec3 weaponRight = glm::normalize(glm::vec3(worldMatrix[0]));
+        glm::vec3 muzzlePosition = glm::vec3(worldMatrix[3]) + weaponForward * weapon->muzzleForwardOffset + weaponRight * weapon->muzzleRightOffset;
+
+
+        glm::quat bulletRotation = owner->parent->localTransform.rotation * weapon->bulletRotation;
+
+        projectileEntity->localTransform.position = muzzlePosition;
+        projectileEntity->localTransform.scale = weapon->bulletScale;
+        projectileEntity->localTransform.rotation = bulletRotation;
+
+        glm::vec3 cameraPosition = glm::vec3(glm::inverse(viewMatrix)[3]);
+        glm::vec3 crosshairDir = getCrosshairDirection(viewMatrix, projectionMatrix);
+        
+        auto* movement = projectileEntity->addComponent<MovementComponent>();
+        glm::vec3 bulletDirection = glm::normalize((cameraPosition + crosshairDir * weapon->range) - muzzlePosition);
+        movement->linearVelocity = bulletDirection * speed;
+
         CollisionComponent* collision = projectileEntity->addComponent<CollisionComponent>();
         if(weapon->model){
             ModelComponent* modelRenderer = projectileEntity->addComponent<ModelComponent>();
-
             collision->shape = CollisionShape::COMPOUND;
-
             Model* model = weapon->model;
             modelRenderer->model = model;
-
             for(unsigned int i = 0; i < model->meshRenderers.size(); i++) {
                 Mesh* mesh = model->meshRenderers[i]->mesh;
                 glm::mat4 meshWorldMatrix = model->matricesMeshes[i];
-                
                 CollisionComponent::ChildShape childShape;
                 childShape.shape = CollisionShape::MESH;
                 childShape.vertices.reserve(mesh->cpuVertices.size());
-                
-                // Transform vertices to mesh-local space
                 for(const auto& vertex : mesh->cpuVertices) {
                     Vertex transformedVertex = vertex;
                     glm::vec4 transformedPos = meshWorldMatrix * glm::vec4(vertex.position, 1.0f);
                     transformedVertex.position = glm::vec3(transformedPos);
                     childShape.vertices.push_back(transformedVertex);
                 }
-                
                 childShape.indices = mesh->cpuIndices;
                 collision->childShapes.push_back(childShape);
             }

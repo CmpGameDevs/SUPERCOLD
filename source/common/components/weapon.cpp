@@ -16,6 +16,8 @@ namespace our {
         automatic = data.value("automatic", automatic);
         throwForce = data.value("throwForce", throwForce);
         bulletSize = data.value("bulletSize", bulletSize);
+        muzzleForwardOffset = data.value("muzzleForwardOffset", 0.0f); 
+        muzzleRightOffset = data.value("muzzleRightOffset", 0.0f);  
         glm::vec3 currentEuler = glm::degrees(glm::eulerAngles(weaponRotation));
         glm::vec3 eulerDegrees = data.value("rotation", currentEuler);
         glm::vec3 eulerRadians = glm::radians(eulerDegrees);
