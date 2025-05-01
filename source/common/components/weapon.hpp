@@ -4,6 +4,8 @@
 #include <ecs/component.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp>
+#include <model/model.hpp>
+#include <asset-loader.hpp>
 
 namespace our {
 
@@ -20,6 +22,9 @@ namespace our {
         float throwForce = 1.0f;
         float bulletSize = 0.2f;
         glm::quat weaponRotation = glm::identity<glm::quat>();
+        glm::quat bulletRotation = glm::identity<glm::quat>();
+        glm::vec3 bulletScale = glm::vec3(1.0f, 1.0f, 1.0f);
+        Model* model = nullptr;
 
         static std::string getID() { return "Weapon"; }
 

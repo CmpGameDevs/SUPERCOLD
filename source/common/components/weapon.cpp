@@ -21,5 +21,17 @@ namespace our {
         glm::vec3 eulerRadians = glm::radians(eulerDegrees);
         glm::mat4 rotMat = glm::yawPitchRoll(eulerRadians.y, eulerRadians.x, eulerRadians.z);
         weaponRotation = glm::quat_cast(rotMat);
+
+        currentEuler = glm::degrees(glm::eulerAngles(bulletRotation));
+        eulerDegrees = data.value("bulletRotation", currentEuler);
+        eulerRadians = glm::radians(eulerDegrees);
+        rotMat = glm::yawPitchRoll(eulerRadians.y, eulerRadians.x, eulerRadians.z);
+        bulletRotation = glm::quat_cast(rotMat);
+
+        bulletScale = data.value("bulletScale", bulletScale);
+
+        if(data.contains("model") && data["model"].is_string()){
+            model =  AssetLoader<Model>::get(data["model"].get<std::string>());
+        }
     }
 }

@@ -3,6 +3,7 @@
 #include <components/camera.hpp>
 #include <components/collision.hpp>
 #include <systems/collision-system.hpp>
+#include <components/model-renderer.hpp>
 
 namespace our {
     void WeaponsSystem::update(World* world, float deltaTime) {
@@ -135,14 +136,47 @@ namespace our {
     Entity *WeaponsSystem::_createProjectile(World* world, Entity* owner, glm::vec3 direction, float speed) {
         Entity* projectileEntity = world->add();
         projectileEntity->name = "Projectile";
+
         // Set Transform
+        WeaponComponent* weapon = owner->getComponent<WeaponComponent>();
         glm::mat4 worldMatrix = owner->getLocalToWorldMatrix();
         projectileEntity->localTransform.position = glm::vec3(worldMatrix[3]);
-        projectileEntity->localTransform.scale = glm::vec3(glm::length(worldMatrix[0]), glm::length(worldMatrix[1]), glm::length(worldMatrix[2]));
+        projectileEntity->localTransform.scale = weapon->bulletScale; 
+        // Rotation relative to the owner
+        projectileEntity->localTransform.rotation = owner->parent->localTransform.rotation * weapon->bulletRotation;
+
         // Set Projectile Properties
         CollisionComponent* collision = projectileEntity->addComponent<CollisionComponent>();
-        WeaponComponent* weapon = owner->getComponent<WeaponComponent>();
-        collision->shape = CollisionShape::SPHERE;
+        if(weapon->model){
+            ModelComponent* modelRenderer = projectileEntity->addComponent<ModelComponent>();
+
+            collision->shape = CollisionShape::COMPOUND;
+
+            Model* model = weapon->model;
+            modelRenderer->model = model;
+
+            for(unsigned int i = 0; i < model->meshRenderers.size(); i++) {
+                Mesh* mesh = model->meshRenderers[i]->mesh;
+                glm::mat4 meshWorldMatrix = model->matricesMeshes[i];
+                
+                CollisionComponent::ChildShape childShape;
+                childShape.shape = CollisionShape::MESH;
+                childShape.vertices.reserve(mesh->cpuVertices.size());
+                
+                // Transform vertices to mesh-local space
+                for(const auto& vertex : mesh->cpuVertices) {
+                    Vertex transformedVertex = vertex;
+                    glm::vec4 transformedPos = meshWorldMatrix * glm::vec4(vertex.position, 1.0f);
+                    transformedVertex.position = glm::vec3(transformedPos);
+                    childShape.vertices.push_back(transformedVertex);
+                }
+                
+                childShape.indices = mesh->cpuIndices;
+                collision->childShapes.push_back(childShape);
+            }
+        }
+        else collision->shape = CollisionShape::SPHERE;
+
         collision->halfExtents = glm::vec3(1.0f * weapon->bulletSize);
         collision->mass = 0;
         collision->isKinematic = true;

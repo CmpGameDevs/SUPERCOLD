@@ -159,7 +159,7 @@ class PhysicsTestState : public our::State {
         float speed = fpsController.getSpeedMagnitude();
         timeScaler.update(speed);
         timeScale = timeScaler.getTimeScale();
-        float scaledDeltaTime = (float)deltaTime;
+        float scaledDeltaTime = (float)deltaTime *  timeScale;
 
         applyForces();
         collisionSystem.update(&world, scaledDeltaTime);

@@ -18,7 +18,7 @@
     "scene": {
         "renderer": {
             "hdr": {
-                "enable": false,
+                "enable": true,
                 "hdr_texture": "barcelona_rooftop",
                 "maxMipLevels": 5
             },
@@ -67,12 +67,16 @@
                     "fs":"assets/shaders/postprocess/post.frag"
                 }
             },
+            "textures":{
+                "barcelona_rooftop": "assets/textures/hdr/barcelona_rooftop.hdr"
+            },
             "meshes": {
                 "sphere": "assets/models/sphere/sphere.gltf"
             },
             "models": {
                 "laser_gun": "assets/models/laser_gun/scene.gltf",
-                "gun": "assets/models/gun_leonel/scene.gltf"
+                "gun": "assets/models/gun_leonel/scene.gltf",
+                "bullet": "assets/models/bullet/scene.gltf"
             },
             "materials": {
                 "sun": {
@@ -243,7 +247,7 @@
                 ]
             },
             {
-                "position": [10, 1, -4],
+                "position": [2, 6, -4],
                 "scale": [0.25, 0.25, 0.25],
                 "name": "gun",
                 "components": [
@@ -291,8 +295,10 @@
                         "automatic": true,
                         "throwForce": 2,
                         "bulletSize": 0.4,
-                        "rotation": [0, 0, 0],
-                        "bulletScale": [0.05, 0.05, 0.05]
+                        "rotation": [0, 70, 0],
+                        "bulletScale": [0.03, 0.03, 0.03],
+                        "bulletRotation": [180,0,0],
+                        "model": "bullet"
                     },
                     {
                         "type": "Model Renderer",
@@ -349,7 +355,9 @@
                         "throwForce": 2,
                         "bulletSize": 2,
                         "rotation": [180, 0, 0],
-                        "bulletScale": [0.05, 0.05, 0.05]
+                        "bulletScale": [0.03, 0.03, 0.03],
+                        "bulletRotation": [180,0,0],
+                        "model": "bullet"
                     },
                     {
                         "type": "Model Renderer",

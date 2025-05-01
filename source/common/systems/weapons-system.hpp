@@ -4,6 +4,8 @@
 #include <ecs/world.hpp>
 #include <unordered_map>
 #include <unordered_set>
+#include <asset-loader.hpp>
+#include <model/model.hpp>
 
 namespace our {
 
