@@ -51,12 +51,11 @@ public:
 
     void initialize(float w, float h) {
         std::string fontPath = "assets/font/font2.ttf";
-        our::ShaderProgram* shader = new our::ShaderProgram();
-        shader->attach("assets/shaders/text.vert", GL_VERTEX_SHADER);
-        shader->attach("assets/shaders/text.frag", GL_FRAGMENT_SHADER);
-        shader->link();
-        shader->use();
-        textShader = shader;
+        textShader = new our::ShaderProgram();
+        textShader->attach("assets/shaders/text.vert", GL_VERTEX_SHADER);
+        textShader->attach("assets/shaders/text.frag", GL_FRAGMENT_SHADER);
+        textShader->link();
+        textShader->use();
         screenWidth = w;
         screenHeight = h;
         projection = glm::ortho(0.0f, screenWidth, 0.0f, screenHeight);
@@ -190,7 +189,7 @@ public:
         active = true;
     }
 
-    void renderCenteredText(float deltaTime) {
+    void renderCenteredText() {
         if (!active) return;
 
         float currentTime = static_cast<float>(glfwGetTime());
@@ -229,6 +228,8 @@ public:
         }
         glDeleteBuffers(1, &VBO);
         glDeleteVertexArrays(1, &VAO);
+        delete textShader;
+        textShader = nullptr;
     }
 };
 

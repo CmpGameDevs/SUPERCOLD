@@ -66,6 +66,9 @@
                     "fs":"assets/shaders/textured.frag"
                 }
             },
+            "audio": {
+                "background": "assets/audio/music/main_track.wav"
+            },
             "textures":{
                 "helmet_normal": "assets/textures/pbr/helmet/normal.jpg",
                 "helmet_metallic": "assets/textures/pbr/helmet/metallic.jpg",

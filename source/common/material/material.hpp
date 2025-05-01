@@ -37,6 +37,7 @@ namespace our {
     public:
         glm::vec4 tint;
 
+        void teardown();
         void setup() const override;
         void deserialize(const nlohmann::json& data) override;
     };
