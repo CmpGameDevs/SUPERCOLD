@@ -74,6 +74,21 @@
                 "laser_gun": "assets/models/laser_gun/scene.gltf",
                 "gun": "assets/models/gun_leonel/scene.gltf"
             },
+            "audio": {
+                "background": "assets/audio/music/main_track.wav",
+                "intro": "assets/audio/music/start_of_level.wav",
+                "level_1": "assets/audio/music/level.wav",
+                "level_2": "assets/audio/music/level_2.wav",
+                "SUPERCOLD": "assets/audio/sfx/SUPERCOLD.wav",
+                "shutter": "assets/audio/sfx/shutter.wav",
+                "killing": "assets/audio/sfx/killing.wav",
+                "death_sound": "assets/audio/sfx/killing.wav",
+                "gun_shooting": "assets/audio/sfx/gun_shooting.wav",
+                "gun_reloading": "assets/audio/sfx/gun_reloading.wav",
+                "gunshot": "assets/audio/sfx/gunshot.wav",
+                "gun_empty": "assets/audio/sfx/gunempty.wav",
+                "throwing": "assets/audio/sfx/throwing.wav"
+            },
             "materials": {
                 "sun": {
                 "type": "lit",

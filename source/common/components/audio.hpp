@@ -62,6 +62,8 @@ class AudioComponent : public Component {
 
     void updateMovingSource(ALuint source, const glm::vec3 &position, const glm::vec3 &velocity);
 
+    void pollFinishedSources();
+
     void stop(const std::string &soundName);
 
     void stopAll();

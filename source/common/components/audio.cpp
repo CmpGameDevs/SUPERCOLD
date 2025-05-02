@@ -69,29 +69,6 @@ namespace our
                     }
 
                     alSourcePlay(entry.source);
-
-                    // Start monitoring thread
-                    std::thread([this, source = entry.source, spatialized]() {
-                        std::unique_lock<std::mutex> threadLock(audioMutex);
-                        alcMakeContextCurrent(context);
-
-                        ALint state;
-                        do {
-                            alGetSourcei(source, AL_SOURCE_STATE, &state);
-                            threadLock.unlock();
-                            std::this_thread::sleep_for(std::chrono::milliseconds(10));
-                            threadLock.lock();
-                        } while (state == AL_PLAYING);
-
-                        for (auto &e : sourcePool) {
-                            if (e.source == source) {
-                                e.inUse = false;
-                                break;
-                            }
-                        }
-                        alcMakeContextCurrent(nullptr);
-                    }).detach();
-
                     break;
                 }
             }
@@ -113,6 +90,19 @@ namespace our
         alSource3f(source, AL_POSITION, position.x, position.y, position.z);
         alSource3f(source, AL_VELOCITY, velocity.x, velocity.y, velocity.z);
     }
+
+    void AudioComponent::pollFinishedSources() {
+        std::lock_guard<std::mutex> lock(audioMutex);
+        for(auto &entry : sourcePool) {
+          if(entry.inUse) {
+            ALint state;
+            alGetSourcei(entry.source, AL_SOURCE_STATE, &state);
+            if(state != AL_PLAYING) {
+              entry.inUse = false;
+            }
+          }
+        }
+      }
 
     void AudioComponent::stop(const std::string &soundName) {
         std::lock_guard<std::mutex> lock(audioMutex);

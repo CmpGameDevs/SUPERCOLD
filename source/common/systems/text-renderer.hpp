@@ -5,6 +5,7 @@
 #include <application.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <systems/audio-system.hpp>
 #include <glad/gl.h>
 #include <ft2build.h>
 #include FT_FREETYPE_H
@@ -178,7 +179,8 @@ public:
 
         auto [text, fadeIn, visible, fadeOut, color] = textQueue.front();
         textQueue.pop();
-
+        
+        AudioSystem::getInstance().playSfx("shutter", false, 3.0f);
         fadeStartTime = static_cast<float>(glfwGetTime());
         fadeDuration = fadeIn;
         visibleDuration = visible;
@@ -197,7 +199,7 @@ public:
         float totalDuration = fadeDuration + visibleDuration + fadeOutDuration;
 
         if (elapsed > totalDuration) {
-            active = false;  
+            active = false;
             showNextText();
             return;
         }

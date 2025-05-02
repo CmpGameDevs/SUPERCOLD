@@ -2,19 +2,19 @@
 #include <asset-loader.hpp>
 
 namespace our {
-    
-    AudioSystem::AudioSystem(ALCcontext* context) {
+
+    void AudioSystem::initialize(ALCcontext* context) {
         our::AudioComponent::setContext(context);
         alDistanceModel(AL_INVERSE_DISTANCE_CLAMPED);
         initializeCategories();
-    }
 
-    AudioSystem::~AudioSystem() {
+        const size_t globalPoolSize = 8;
+        globalSfxHandler = std::make_unique<AudioComponent>(globalPoolSize);
     }
 
     void AudioSystem::initializeCategories() {
         categories["sfx"] = {1.0f};
-        categories["music"] = {0.8f};
+        categories["music"] = {0.3f};
         categories["voice"] = {1.0f};
         categories["ambient"] = {0.7f};
     }
@@ -23,15 +23,34 @@ namespace our {
         std::lock_guard<std::mutex> lock(audioMutex);
         _updateListener();
         _updateBackgroundMusic(deltaTime);
-        
+
+        if (globalSfxHandler) {
+            globalSfxHandler->pollFinishedSources();
+        }
+
         if (!world) return;
         for(auto entity : world->getEntities()){
             AudioComponent* audio = entity->getComponent<AudioComponent>();
             if(audio){
+                audio->pollFinishedSources();
                 _updateComponent(entity, audio, deltaTime);
             }
         }
         _updateCategoryVolumes(world, deltaTime);
+    }
+
+    void AudioSystem::playSfx(const std::string& name, bool loop, float volume) {
+        const std::string category = "sfx";
+        auto& cat = categories[category];
+        std::lock_guard<std::mutex> lock(audioMutex);
+        AudioBuffer* buffer = AssetLoader<AudioBuffer>::get(name);
+        globalSfxHandler->addSound(name, buffer, category);
+        globalSfxHandler->play(name, glm::vec3(0), false, loop, volume * cat.volume);
+    }
+
+    void AudioSystem::stopSfx(const std::string& name) {
+        std::lock_guard<std::mutex> lock(audioMutex);
+        globalSfxHandler->stop(name);
     }
 
     void AudioSystem::playSpatialSound(const std::string& name,
@@ -63,9 +82,12 @@ namespace our {
             categories[category].targetVolume = 0.0f;
             categories[category].fadeSpeed = 1.0f / fadeDuration;
         }
-        
+
+        AudioBuffer* buffer = AssetLoader<AudioBuffer>::get(name);
+        if (!buffer) return;
+
         backgroundTrack.component = std::make_unique<AudioComponent>();
-        backgroundTrack.component->addSound(name, AssetLoader<AudioBuffer>::get(name), category);
+        backgroundTrack.component->addSound(name, buffer, category);
         backgroundTrack.currentTrack = name;
         auto& cat = categories[category];
         

@@ -26,7 +26,6 @@ private:
         float fadeProgress = 0.0f;
     };
 
-    ALCcontext* context = nullptr;
     glm::vec3 listenerPosition;
     glm::vec3 listenerVelocity;
     glm::vec3 listenerForward = glm::vec3(0, 0, -1);
@@ -37,14 +36,25 @@ private:
 
     std::mutex audioMutex;
 
-public:
-    AudioSystem(ALCcontext* context);
+    std::unique_ptr<AudioComponent> globalSfxHandler = nullptr;
 
-    ~AudioSystem();
+public:
+    static AudioSystem& getInstance() {
+        static AudioSystem instance;
+        return instance;
+    }
+
+    void initialize(ALCcontext* context);
 
     void initializeCategories();
 
     void update(World* world, float deltaTime);
+
+    void stopSfx(const std::string& name);
+
+    void playSfx(const std::string& name,
+                bool loop = false,
+                float volume = 1.0f);
 
     void playSpatialSound(const std::string& name, 
                          Entity* entity,
@@ -63,12 +73,13 @@ public:
                             const glm::vec3& forward = glm::vec3(0,0,-1),
                             const glm::vec3& up = glm::vec3(0,1,0));
 
-    
     void setListenerGain(float gain);
 
     void setCategoryVolume(const std::string& category, float volume, float fadeTime = 0.0f);
 
 private:
+    AudioSystem() = default;
+
     void _updateComponent(Entity* entity, AudioComponent* audio, float deltaTime);
 
     void _updateListener();

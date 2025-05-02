@@ -5,6 +5,7 @@
 #include <systems/collision-system.hpp>
 #include <components/model-renderer.hpp>
 #include <systems/movement.hpp>
+#include <systems/audio-system.hpp>
 
 namespace our {
     void WeaponsSystem::update(World* world, float deltaTime) {
@@ -37,6 +38,8 @@ namespace our {
         glm::vec3 throwDirection = forward * 10.0f * weapon->throwForce;
         CollisionSystem::getInstance().applyVelocity(entity, throwDirection);
         weaponsMap.erase(entity);
+        glm::vec3 globalPosition = entity->getLocalToWorldMatrix()[3];
+        AudioSystem::getInstance().playSpatialSound("throwing", entity, globalPosition, "sfx", false, 1.0f, 100.0f);
         return true;
     }
     
@@ -60,6 +63,8 @@ namespace our {
         if (!weapon) return false;
         weapon->currentAmmo = weapon->ammoCapacity;
         weapon->fireCooldown = 0.3f;
+        glm::vec3 globalPosition = entity->getLocalToWorldMatrix()[3];
+        AudioSystem::getInstance().playSpatialSound("gun_reloading", entity, globalPosition, "sfx", false, 1.0f, 100.0f);
         return true;
     }
     
@@ -67,14 +72,21 @@ namespace our {
         if (!entity) return false;
         WeaponComponent* weapon = entity->getComponent<WeaponComponent>();
         if (!weapon) return false;
-        // Check if the weapon has ammo and if the fire cooldown is active
-        if (weapon->currentAmmo <= 0 || weapon->fireCooldown > 0.0f) return false;
+        if (weapon->fireCooldown > 0.0f) return false;
+        if (weapon->currentAmmo <= 0) {
+            glm::vec3 globalPosition = entity->getLocalToWorldMatrix()[3];
+            AudioSystem::getInstance().playSpatialSound("gun_empty", entity, globalPosition, "sfx", false, 1.0f, 100.0f);
+            return false;
+        }
+
         float speed = 10.0f;
         float lifetime = 5.0f;
         Entity* projectileEntity = _createProjectile(world, entity, direction, speed, viewMatrix, projectionMatrix);
         Projectile *projectile = new Projectile(projectileEntity, entity, direction, speed, weapon->range, lifetime);
         projectiles.insert(projectile);
         weapon->currentAmmo--;
+        glm::vec3 globalPosition = entity->getLocalToWorldMatrix()[3];
+        AudioSystem::getInstance().playSpatialSound("gunshot", entity, globalPosition, "sfx", false, 1.0f, 100.0f);
         return true;
     }
     
@@ -162,6 +174,7 @@ namespace our {
         }
 
         movement->linearVelocity = bulletDirection * speed;
+        printf("Velocity: %f %f %f\n", movement->linearVelocity.x, movement->linearVelocity.y, movement->linearVelocity.z);
 
         CollisionComponent* collision = projectileEntity->addComponent<CollisionComponent>();
         if(weapon->model){

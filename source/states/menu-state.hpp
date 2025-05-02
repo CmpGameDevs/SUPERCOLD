@@ -56,7 +56,7 @@ class Menustate: public our::State {
     // An array of the button that we can interact with
     std::array<Button, 2> buttons;
     // Audio system
-    our::AudioSystem* audioSystem;
+    our::AudioSystem& audioSystem = our::AudioSystem::getInstance();
 
     void onInitialize() override {
         // First, we create a material for the menu's background
@@ -125,14 +125,13 @@ class Menustate: public our::State {
         if (config.contains("assets")) {
             our::AssetLoader<our::AudioBuffer>::deserialize(config["assets"]["audio"]);
         }
-
-        audioSystem = new our::AudioSystem(getApp()->getAudioContext());
+        audioSystem.initialize(getApp()->getAudioContext());
     }
 
     void onDraw(double deltaTime) override {
         // Play the background music
-        audioSystem->playBackgroundMusic("background", 0.2f);
-        audioSystem->update(nullptr, deltaTime);
+        audioSystem.playBackgroundMusic("background", 0.2f);
+        audioSystem.update(nullptr, deltaTime);
 
         // Get a reference to the keyboard object
         auto& keyboard = getApp()->getKeyboard();
@@ -182,21 +181,14 @@ class Menustate: public our::State {
         rectangle->draw();
 
         // For every button, check if the mouse is inside it. If the mouse is inside, we draw the highlight rectangle over it.
-        bool inside = false;
         for(auto& button: buttons){
             if(button.isInside(mousePosition)){
                 highlightMaterial->setup();
                 highlightMaterial->shader->set("transform", VP*button.getLocalToWorld());
                 rectangle->draw(); 
                 highlightMaterial->teardown();
-                audioSystem->setCategoryVolume("music", 0.2f, 1.5f);
-                inside = true;
             }
         }
-
-        if (!inside)
-            audioSystem->setCategoryVolume("music", 0.4f, 0.5f);
-
     }
 
     void onDestroy() override {
