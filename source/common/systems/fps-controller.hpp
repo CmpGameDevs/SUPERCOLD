@@ -117,42 +117,6 @@ class FPSControllerSystem {
         }
     }
 
-    bool checkGrounded(FPSControllerComponent *controller, Entity* entity) {
-        bool isGrounded = false;
-        CollisionSystem *collisionSystem = &CollisionSystem::getInstance();
-        if (collisionSystem != nullptr) {
-            CollisionComponent* collision = entity->getComponent<CollisionComponent>();
-            if (collision) {
-                btTransform transform;
-                if (collision->bulletBody) transform = collision->bulletBody->getWorldTransform();
-                else if (collision->ghostObject) transform = collision->ghostObject->getWorldTransform();
-                else return false;
-
-                glm::vec3 ghostPosition(
-                    transform.getOrigin().x(),
-                    transform.getOrigin().y(),
-                    transform.getOrigin().z()
-                );
-
-                float height = controller->currentGhostHeight * 0.5f;
-                glm::vec3 rayStart = ghostPosition;
-                glm::vec3 rayEnd = ghostPosition - glm::vec3(0, height + GROUND_EPSILON, 0);
-                CollisionComponent* hitComponent = nullptr;
-                glm::vec3 hitPoint, hitNormal;
-
-                glm::vec3 color(0.0f, 1.0f, 1.0f); // Cyan color
-                if (collisionSystem->raycast(rayStart, rayEnd, hitComponent, hitPoint, hitNormal)) {
-                    isGrounded = true;
-                    verticalVelocity = 0.0f;
-                    controller->isJumping = false;
-                    color = glm::vec3(1.0f, 0.5f, 0.0f); // Orange color
-                }
-                collisionSystem->debugDrawRay(rayStart, rayEnd, color);
-            }
-        }
-        return isGrounded;
-    }
-
     // Handles jumping mechanics
     void handleJump(FPSControllerComponent *controller, float deltaTime) {
         btKinematicCharacterController* characterController = controller->characterController;
@@ -314,7 +278,6 @@ class FPSControllerSystem {
             CollisionComponent *hitComponent = nullptr;
             glm::vec3 hitPoint, hitNormal;
 
-            glm::vec3 color(0.0f, 1.0f, 1.0f); // Cyan color
             if (collisionSystem->raycast(rayStart, rayEnd, hitComponent, hitPoint, hitNormal)) {
                 auto otherEntity = hitComponent->getOwner();
                 WeaponComponent* weapon = otherEntity->getComponent<WeaponComponent>();
@@ -323,9 +286,7 @@ class FPSControllerSystem {
                     controller->pickedEntity = nullptr;
                 if (WeaponsSystem::getInstance().pickupWeapon(entity->getWorld(), entity, otherEntity))
                     controller->pickedEntity = otherEntity;
-                color = glm::vec3(1.0f, 0.5f, 0.0f); // Orange color
             }
-            collisionSystem->debugDrawRay(rayStart, rayEnd, color);
         } else if (app->getKeyboard().justPressed(GLFW_KEY_Q)) {
             if (controller->pickedEntity) {
                 auto cameraMatrix = entity->getLocalToWorldMatrix();

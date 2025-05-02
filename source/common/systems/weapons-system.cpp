@@ -144,7 +144,23 @@ namespace our {
         glm::vec3 crosshairDir = getCrosshairDirection(viewMatrix, projectionMatrix);
         
         auto* movement = projectileEntity->addComponent<MovementComponent>();
-        glm::vec3 bulletDirection = glm::normalize((cameraPosition + crosshairDir * weapon->range) - muzzlePosition);
+        
+        // Cast a ray from the camera to the target point
+        glm::vec3 rayStart = cameraPosition;
+        glm::vec3 rayEnd = rayStart + direction * weapon->range;
+        CollisionComponent *hitComponent = nullptr;
+        glm::vec3 hitPoint, hitNormal;
+        glm::vec3 bulletDirection;
+        CollisionSystem *collisionSystem = &CollisionSystem::getInstance();
+        if (collisionSystem->raycast(rayStart, rayEnd, hitComponent, hitPoint, hitNormal)) {
+            // Update the direction of the bullet
+            bulletDirection = glm::normalize(hitPoint - muzzlePosition); 
+        }
+        else {
+            // If no hit, use the crosshair direction
+            bulletDirection = glm::normalize((cameraPosition + crosshairDir * weapon->range) - muzzlePosition);
+        }
+
         movement->linearVelocity = bulletDirection * speed;
 
         CollisionComponent* collision = projectileEntity->addComponent<CollisionComponent>();
