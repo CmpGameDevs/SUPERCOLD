@@ -6,6 +6,7 @@
 #include <systems/collision-system.hpp>
 #include <systems/weapons-system.hpp>
 #include <systems/fps-controller.hpp>
+#include <systems/movement.hpp>
 #include <core/time-scale.hpp>
 #include <btBulletDynamicsCommon.h>
 
@@ -16,6 +17,7 @@ class PhysicsTestState : public our::State {
     our::FPSControllerSystem fpsController;
     our::CollisionSystem &collisionSystem = our::CollisionSystem::getInstance();
     our::WeaponsSystem &weaponsSystem = our::WeaponsSystem::getInstance();
+    our::MovementSystem movementSystem;
     game::TimeScaler timeScaler;
     float timeScale;
 
@@ -50,7 +52,6 @@ class PhysicsTestState : public our::State {
             collisionConfig
         );
         collisionSystem.initialize(size, physicsWorld);
-        fpsController.setCollisionSystem(&collisionSystem);
         timeScale = 1.0f;
     }
 
@@ -159,8 +160,9 @@ class PhysicsTestState : public our::State {
         float speed = fpsController.getSpeedMagnitude();
         timeScaler.update(speed);
         timeScale = timeScaler.getTimeScale();
-        float scaledDeltaTime = (float)deltaTime;
+        float scaledDeltaTime = (float)deltaTime *  timeScale;
 
+        movementSystem.update(&world, scaledDeltaTime);
         applyForces();
         collisionSystem.update(&world, scaledDeltaTime);
         weaponsSystem.update(&world, scaledDeltaTime);

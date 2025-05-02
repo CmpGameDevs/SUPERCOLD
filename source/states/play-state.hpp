@@ -1,46 +1,41 @@
 #pragma once
 
-#include <application.hpp>
-
 #include <asset-loader.hpp>
 #include <ecs/world.hpp>
 #include <systems/forward-renderer.hpp>
 #include <systems/collision-system.hpp>
 #include <systems/fps-controller.hpp>
-#include <systems/movement.hpp>
 #include <core/time-scale.hpp>
+#include <systems/text-renderer.hpp>
 
-// This state shows how to use the ECS framework and deserialization.
+
 class Playstate : public our::State {
-
+    static bool initialized;
     our::World world;
-    our::ForwardRenderer renderer;
-    our::CollisionSystem &collisionSystem = our::CollisionSystem::getInstance();
+    our::CollisionSystem& collisionSystem = our::CollisionSystem::getInstance();
+    our::ForwardRenderer& renderer = our::ForwardRenderer::getInstance();
     our::FPSControllerSystem fpsController;
-    our::MovementSystem movementSystem;
     game::TimeScaler timeScaler;
     float timeScale;
+    our::TextRenderer& textRenderer = our::TextRenderer::getInstance();  
 
-    void onInitialize() override {
-        // First of all, we get the scene configuration from the app config
-        auto &config = getApp()->getConfig()["scene"];
-        // If we have assets in the scene config, we deserialize them
+    void initializeGame() {
+        if (initialized) return; 
+        initialized = true;
+        
+        // Retrieve scene configuration from the app config
+        auto& config = getApp()->getConfig()["scene"];
+        
+        // Deserialize all assets from the configuration if present
         if (config.contains("assets")) {
             our::deserializeAllAssets(config["assets"]);
         }
-        // If we have a world in the scene config, we use it to populate our world
-        if (config.contains("world")) {
-            world.deserialize(config["world"]);
-        }
-        // We initialize the camera controller system since it needs a pointer to the app
-        fpsController.enter(getApp());
-        // Then we initialize the renderer
+
+        // Initialize the renderer with the appropriate configuration
         auto size = getApp()->getFrameBufferSize();
         renderer.initialize(size, config["renderer"]);
 
-        timeScale = 1.0f;
-
-        // Create Bullet components
+        // Initialize Bullet physics system
         btDefaultCollisionConfiguration* collisionConfig = new btDefaultCollisionConfiguration();
         btCollisionDispatcher* dispatcher = new btCollisionDispatcher(collisionConfig);
         btBroadphaseInterface* broadphase = new btDbvtBroadphase();
@@ -53,43 +48,70 @@ class Playstate : public our::State {
             solver,
             collisionConfig
         );
+
+        // Initialize the collision system with the physics world
         collisionSystem.initialize(size, physicsWorld);
-        fpsController.setCollisionSystem(&collisionSystem);
+        auto windowSize = getApp()->getWindowSize();
+        textRenderer.initialize(windowSize.x, windowSize.y);  
+    }
+
+    void onInitialize() override {
+        initializeGame();
+
+        // Level-dependent components initialization
+        auto& levelConfig = getApp()->getLevelConfig();
+        
+        if (levelConfig.contains("world")) {
+            world.deserialize(levelConfig["world"]);
+        }
+        textRenderer.showCenteredText("SUPER");
+        textRenderer.showCenteredText("COLD");
+
+        // Set up the FPS controller system and assign the collision system
+        fpsController.enter(getApp());
+        
+        // Set default time scale
+        timeScale = 1.0f;
     }
 
     void onDraw(double deltaTime) override {
-        // Here, we just run a bunch of systems to control the world logic
+        // Update FPS Controller
         fpsController.update(&world, (float)deltaTime);
-
+        
+        // Get speed magnitude from FPS controller
         float speed = fpsController.getSpeedMagnitude();
+
+        // Update the time scaler based on the speed
         timeScaler.update(speed);
+
+        // Get the current time scale
         timeScale = timeScaler.getTimeScale();
 
+        // Apply the time scale to the delta time
         float scaledDeltaTime = (float)deltaTime * timeScale;
 
-        movementSystem.update(&world, scaledDeltaTime);
+        // Update the collision system
         collisionSystem.update(&world, scaledDeltaTime);
-        // And finally we use the renderer system to draw the scene
+
+        // Render the world using the renderer system
         renderer.render(&world);
-        collisionSystem.debugDrawWorld(&world);
 
-        // Get a reference to the keyboard object
-        auto &keyboard = getApp()->getKeyboard();
+        // Render some test text
+        textRenderer.renderCenteredText();
 
+        // Handle keyboard input (escape key to transition between levels)
+        auto& keyboard = getApp()->getKeyboard();
+        
         if (keyboard.justPressed(GLFW_KEY_ESCAPE)) {
-            // If the escape key is pressed in this frame, go to the play state
-            getApp()->changeState("menu");
+            getApp()->goToNextLevel();
         }
     }
 
     void onDestroy() override {
-        // Don't forget to destroy the renderer
-        renderer.destroy();
-        // On exit, we call exit for the camera controller system to make sure that the mouse is unlocked
-        fpsController.exit();
-        // Clear the world
+        // Uncomment to clean up the world and prevent memory leaks, but ensure collision system is intact
         world.clear();
-        // and we delete all the loaded assets to free memory on the RAM and the VRAM
-        our::clearAllAssets();
     }
 };
+
+// Static member initialization
+bool Playstate::initialized = false;

@@ -1,4 +1,4 @@
-
+#pragma once
 #include <components/mesh-renderer.hpp>
 #include <components/camera.hpp>
 #include <json/json.hpp>

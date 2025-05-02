@@ -113,7 +113,7 @@ class Menustate: public our::State {
         glm::ivec2 size = getApp()->getFrameBufferSize();
         buttons[0].size = {750.0f, 50.0f};
         buttons[0].position = {size.x / 2.0f - buttons[0].size.x / 2.0f - 60.0f, size.y - buttons[0].size.y - 67.0f};
-        buttons[0].action = [this](){this->getApp()->changeState("play");};
+        buttons[0].action = [this](){this->getApp()->goToNextLevel();};
 
         // Position it in top left corner of the screen
         buttons[1].position = {276.0f, 281.0f};
@@ -139,7 +139,7 @@ class Menustate: public our::State {
 
         if(keyboard.justPressed(GLFW_KEY_SPACE) || keyboard.justPressed(GLFW_KEY_ENTER)){
             // If the space key is pressed in this frame, go to the play state
-            getApp()->changeState("play");
+            getApp()->goToNextLevel();
         } else if(keyboard.justPressed(GLFW_KEY_ESCAPE)) {
             // If the escape key is pressed in this frame, exit the game
             getApp()->close();
@@ -187,11 +187,13 @@ class Menustate: public our::State {
             if(button.isInside(mousePosition)){
                 highlightMaterial->setup();
                 highlightMaterial->shader->set("transform", VP*button.getLocalToWorld());
-                rectangle->draw();
+                rectangle->draw(); 
+                highlightMaterial->teardown();
                 audioSystem->setCategoryVolume("music", 0.2f, 1.5f);
                 inside = true;
             }
         }
+
         if (!inside)
             audioSystem->setCategoryVolume("music", 0.4f, 0.5f);
 

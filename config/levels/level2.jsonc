@@ -1,0 +1,197 @@
+{
+    "world": [
+            {
+                "position": [0, 2, -1],
+                "components": [
+                    {
+                        "type": "Camera"
+                    },
+                    {
+                        "type": "FPS Controller",
+                        "rotationSensitivityX": 0.005,
+                        "rotationSensitivityY": 0.005,
+                        "invertYAxis": false,
+                        "fovSensitivity": 0.1,
+                        "positionSensitivity": 2.0,
+                        "speedupFactor": 3.0,
+                        "minVerticalRotation": -85.0,
+                        "maxVerticalRotation": 85.0,
+                        "gravity": 9.8,
+                        "jumpHeight": 4,
+                        "jumpCooldown": 0.3,
+                        "movementSmoothing": 0.2,
+                        "rotationSmoothing": 0.1,
+                        "acceleration": 10.0,
+                        "deceleration": 8.0,
+                        "crouchHeightModifier": 0.5,
+                        "crouchSpeedModifier": 0.6,
+                        "sprintSpeedModifier": 2.0,
+                        "maxStamina": 100.0,
+                        "staminaDepletionRate": 20.0,
+                        "staminaRecoveryRate": 10.0
+                    },
+                    {
+                        "type": "Collision",
+                        "shape": "ghost",
+                        "mass": 2,
+                        "halfExtents": [0.2, 0.9, 0]
+                    }
+                ]
+            },
+            {
+                "position": [0, 0, -1],
+                "components": [
+                    {
+                        "type": "Collision",
+                        "shape": "box",
+                        "mass": 0,
+                        "halfExtents": [20, 0.5, 20]
+                    }
+                ]
+            },
+            {
+                "position": [-3, 7, -4],
+                "scale": [2, 2, 2],
+                "components": [
+                    {
+                        "type": "Collision",
+                        "shape": "box",
+                        "mass": 10,
+                        "halfExtents": [0.5, 0.5, 0.5]
+                    }
+                ]
+            },
+            {
+                "position": [-1, 7, -4],
+                "components": [
+                    {
+                        "type": "Collision",
+                        "shape": "box",
+                        "mass": 15,
+                        "halfExtents": [0.5, 0.5, 0.5]
+                    }
+                ]
+            },
+            {
+                "position": [2, 3, -4],
+                "components": [
+                    {
+                        "type": "Collision",
+                        "shape": "box",
+                        "mass": 100,
+                        "halfExtents": [1, 1, 1]
+                    }
+                ]
+            },
+            {
+                "position": [3, 3, -4],
+                "components": [
+                    {
+                        "type": "Collision",
+                        "shape": "mesh",
+                        "mass": 3,
+                        "mesh": "sphere",
+                        "halfExtents": [1, 1, 1],
+                        "isKinematic": false
+                    }
+                ],
+                "children": [
+                    {
+                        "position": [0, 1, 0],
+                        "components": [
+                            {
+                                "type": "Collision",
+                                "shape": "box",
+                                "mass": 0,
+                                "halfExtents": [1,0.001, 1],
+                                "isKinematic": false
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "position": [4, 3, -7],
+                "components": [
+                    {
+                        "type": "Collision",
+                        "shape": "sphere",
+                        "mass": 0,
+                        "halfExtents": [1, 0.5, 0],
+                        "isKinematic": false
+                    }
+                ]
+            },
+            // {
+            //     "position": [1, 1, -6],
+            //     "scale": [0.01, 0.01, 0.01],
+            //     "components": [
+            //         {
+            //             "type": "Collision",
+            //             "shape": "model",
+            //             "mass": 500,
+            //             "model": "gun"
+            //         },
+            //         {
+            //             "type": "Model Renderer",
+            //             "model": "gun"
+            //         }
+            //     ]
+            // },
+            // {
+            //     "position": [5, 1, -6],
+            //     "scale": [3, 3, 3],
+            //     "components": [
+            //         {
+            //             "type": "Collision",
+            //             "shape": "model",
+            //             "mass": 100,
+            //             "model": "master_chief"
+            //         },
+            //         {
+            //             "type": "Model Renderer",
+            //             "model": "master_chief"
+            //         }
+            //     ]
+            // },
+            {
+                "position": [0, 1, -6],
+                "scale": [0.01, 0.01, 0.01],
+                "components": [
+                    {
+                        "type": "Collision",
+                        "shape": "model",
+                        "mass": 0,
+                        "model": "city",
+                        "isKinematic": false
+
+                    },
+                    {
+                        "type": "Model Renderer",
+                        "model": "city"
+                    }
+                ]
+            },
+            {
+                "position": [-10.0,  10.0, 10.0],
+                "components": [
+                    {
+                        "type": "Mesh Renderer",
+                        "mesh": "sphere",
+                        "material": "sun"
+                    }
+                ]
+            },
+            {
+                "position": [-10.0,  -10.0, 10.0],
+                "components": [
+                    {
+                        "type": "Mesh Renderer",
+                        "mesh": "sphere",
+                        "material": "sun"
+                    }
+                ]
+            }
+        ]
+}
+  

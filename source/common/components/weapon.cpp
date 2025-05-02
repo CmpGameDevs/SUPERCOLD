@@ -16,10 +16,24 @@ namespace our {
         automatic = data.value("automatic", automatic);
         throwForce = data.value("throwForce", throwForce);
         bulletSize = data.value("bulletSize", bulletSize);
+        muzzleForwardOffset = data.value("muzzleForwardOffset", 0.0f); 
+        muzzleRightOffset = data.value("muzzleRightOffset", 0.0f);  
         glm::vec3 currentEuler = glm::degrees(glm::eulerAngles(weaponRotation));
         glm::vec3 eulerDegrees = data.value("rotation", currentEuler);
         glm::vec3 eulerRadians = glm::radians(eulerDegrees);
         glm::mat4 rotMat = glm::yawPitchRoll(eulerRadians.y, eulerRadians.x, eulerRadians.z);
         weaponRotation = glm::quat_cast(rotMat);
+
+        currentEuler = glm::degrees(glm::eulerAngles(bulletRotation));
+        eulerDegrees = data.value("bulletRotation", currentEuler);
+        eulerRadians = glm::radians(eulerDegrees);
+        rotMat = glm::yawPitchRoll(eulerRadians.y, eulerRadians.x, eulerRadians.z);
+        bulletRotation = glm::quat_cast(rotMat);
+
+        bulletScale = data.value("bulletScale", bulletScale);
+
+        if(data.contains("model") && data["model"].is_string()){
+            model =  AssetLoader<Model>::get(data["model"].get<std::string>());
+        }
     }
 }

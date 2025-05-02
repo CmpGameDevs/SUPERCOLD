@@ -2,6 +2,7 @@
 
 #include <json/json.hpp>
 #include <string>
+#include <iostream>
 
 namespace our
 {
@@ -30,8 +31,10 @@ class Component
     // It is abstract since it must be overriden by derived components
     virtual void deserialize(const nlohmann::json &data) = 0;
     // Returns the owner of this component
+
     Entity *getOwner() const
     {
+        if(!owner) std::cout << "lmao" << std::endl;
         return owner;
     }
     // Define a virtual destructor

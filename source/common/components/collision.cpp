@@ -16,7 +16,11 @@ namespace our {
         }
 
         if (ghostObject) {
-            delete ghostObject->getCollisionShape();
+            CollisionSystem::getInstance().getPhysicsWorld()->removeCollisionObject(ghostObject);
+            btCollisionShape* shape = ghostObject->getCollisionShape();
+            if (shape) {
+                delete shape;
+            }
             delete ghostObject;
         }
     }

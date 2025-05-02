@@ -231,7 +231,6 @@ namespace our {
     void CollisionSystem::createRigidBody(Entity* entity, CollisionComponent* collision, const Transform* transform) {
         btCollisionShape* shape = nullptr;
         if (collision->isKinematic) collision->mass = 0.0f;
-        printf("[CollisionSystem] Creating rigid body with kinematic: %s\n", collision->isKinematic ? "true" : "false");
                     
         // Create shape based on component data
         switch(collision->shape) {
@@ -262,11 +261,12 @@ namespace our {
                 return; // No need to create a rigid body for ghost objects
         }
 
-        shape->setLocalScaling(btVector3(
-            transform->scale.x,
-            transform->scale.y,
-            transform->scale.z
-        ));
+
+        // shape->setLocalScaling(btVector3(
+        //     transform->scale.x,
+        //     transform->scale.y,
+        //     transform->scale.z
+        // ));
 
         btTransform btTrans;
         btTrans.setIdentity();
@@ -439,9 +439,9 @@ namespace our {
                 for(auto other : collision->currentCollisions) {
                     if(collision->previousCollisions.count(other)) {
                         collision->callbacks.onStay(other);
-                    }
                 }
             }
+        }
     
             if(collision->wantsExit()) {
                 for(auto other : collision->exits) {
@@ -483,14 +483,17 @@ namespace our {
         // Configure raycast query
         btCollisionWorld::ClosestRayResultCallback rayCallback(btStart, btEnd);
         physicsWorld->rayTest(btStart, btEnd, rayCallback);
-
+        
+        glm::vec3 color(0.0f, 1.0f, 1.0f); // Cyan color
         if (rayCallback.hasHit()) {
+            color = glm::vec3(1.0f, 0.5f, 0.0f); // Orange color
+            
             hitPoint = glm::vec3(
             rayCallback.m_hitPointWorld.x(),
             rayCallback.m_hitPointWorld.y(),
             rayCallback.m_hitPointWorld.z()
-            );
-            hitNormal = glm::vec3(
+        );
+        hitNormal = glm::vec3(
             rayCallback.m_hitNormalWorld.x(),
             rayCallback.m_hitNormalWorld.y(),
             rayCallback.m_hitNormalWorld.z()
@@ -498,11 +501,13 @@ namespace our {
             // Extract the hit entity's collision component
             auto* hitBody = btRigidBody::upcast(rayCallback.m_collisionObject);
             if (hitBody && hitBody->getUserPointer()) {
+                debugDrawRay(start, end, color);
                 Entity* hitEntity = static_cast<Entity*>(hitBody->getUserPointer());
                 hitComponent = hitEntity->getComponent<CollisionComponent>();
                 return true;
             }
         }
+        debugDrawRay(start, end, color);
         return false;
     }
 
@@ -685,7 +690,6 @@ namespace our {
             delete debugDrawer;
             debugDrawer = nullptr;
         }
-
         _freePhysicsWorld();
     }
 

@@ -46,6 +46,10 @@ namespace our
         tint = data.value("tint", glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
     }
 
+    void TintedMaterial::teardown() {
+        glBlendEquation(GL_FUNC_ADD);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    }
     // This function should call the setup of its parent and
     // set the "alphaThreshold" uniform to the value in the member variable alphaThreshold
     // Then it should bind the texture and sampler to a texture unit and send the unit number to the uniform variable "tex"
@@ -56,9 +60,10 @@ namespace our
         shader->set("alphaThreshold", alphaThreshold);
         glActiveTexture(GL_TEXTURE0);
         texture->bind();
-        sampler->bind(0);
+        // sampler->bind(0);
         shader->set("tex", 0);
     }
+
 
     // This function read the material data from a json object
     void TexturedMaterial::deserialize(const nlohmann::json &data)

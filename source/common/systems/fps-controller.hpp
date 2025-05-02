@@ -39,7 +39,6 @@ class FPSControllerSystem {
 
   private:
     Application *app = nullptr;
-    CollisionSystem *collisionSystem = nullptr;
     bool mouseLocked = true;
     float jumpTimer = 0.0f;
     glm::vec3 currentVelocity = glm::vec3(0.0f);
@@ -116,41 +115,6 @@ class FPSControllerSystem {
             controller->currentStamina += controller->staminaRecoveryRate * deltaTime;
             controller->currentStamina = std::min(controller->currentStamina, controller->maxStamina);
         }
-    }
-
-    bool checkGrounded(FPSControllerComponent *controller, Entity* entity) {
-        bool isGrounded = false;
-        if (collisionSystem != nullptr) {
-            CollisionComponent* collision = entity->getComponent<CollisionComponent>();
-            if (collision) {
-                btTransform transform;
-                if (collision->bulletBody) transform = collision->bulletBody->getWorldTransform();
-                else if (collision->ghostObject) transform = collision->ghostObject->getWorldTransform();
-                else return false;
-
-                glm::vec3 ghostPosition(
-                    transform.getOrigin().x(),
-                    transform.getOrigin().y(),
-                    transform.getOrigin().z()
-                );
-
-                float height = controller->currentGhostHeight * 0.5f;
-                glm::vec3 rayStart = ghostPosition;
-                glm::vec3 rayEnd = ghostPosition - glm::vec3(0, height + GROUND_EPSILON, 0);
-                CollisionComponent* hitComponent = nullptr;
-                glm::vec3 hitPoint, hitNormal;
-
-                glm::vec3 color(0.0f, 1.0f, 1.0f); // Cyan color
-                if (collisionSystem->raycast(rayStart, rayEnd, hitComponent, hitPoint, hitNormal)) {
-                    isGrounded = true;
-                    verticalVelocity = 0.0f;
-                    controller->isJumping = false;
-                    color = glm::vec3(1.0f, 0.5f, 0.0f); // Orange color
-                }
-                collisionSystem->debugDrawRay(rayStart, rayEnd, color);
-            }
-        }
-        return isGrounded;
     }
 
     // Handles jumping mechanics
@@ -272,7 +236,7 @@ class FPSControllerSystem {
                     t.getOrigin().setY(bottomY + halfHeight);
                     collision->ghostObject->setWorldTransform(t);
 
-                    auto* world = collisionSystem->getPhysicsWorld();
+                    auto* world = CollisionSystem::getInstance().getPhysicsWorld();
                     world->getBroadphase()->getOverlappingPairCache()->cleanProxyFromPairs(
                     collision->ghostObject->getBroadphaseHandle(),
                     world->getDispatcher()
@@ -293,8 +257,8 @@ class FPSControllerSystem {
     }
 
     void handlePickup(FPSControllerComponent *controller, Entity *entity) {
+        CollisionSystem *collisionSystem = &CollisionSystem::getInstance();
         if (app->getKeyboard().justPressed(GLFW_KEY_E)) {
-            if (collisionSystem == nullptr) return;
             CollisionComponent *collision = entity->getComponent<CollisionComponent>();
             if (!collision || !collision->ghostObject) return;
             btTransform transform;
@@ -314,7 +278,6 @@ class FPSControllerSystem {
             CollisionComponent *hitComponent = nullptr;
             glm::vec3 hitPoint, hitNormal;
 
-            glm::vec3 color(0.0f, 1.0f, 1.0f); // Cyan color
             if (collisionSystem->raycast(rayStart, rayEnd, hitComponent, hitPoint, hitNormal)) {
                 auto otherEntity = hitComponent->getOwner();
                 WeaponComponent* weapon = otherEntity->getComponent<WeaponComponent>();
@@ -323,9 +286,7 @@ class FPSControllerSystem {
                     controller->pickedEntity = nullptr;
                 if (WeaponsSystem::getInstance().pickupWeapon(entity->getWorld(), entity, otherEntity))
                     controller->pickedEntity = otherEntity;
-                color = glm::vec3(1.0f, 0.5f, 0.0f); // Orange color
             }
-            collisionSystem->debugDrawRay(rayStart, rayEnd, color);
         } else if (app->getKeyboard().justPressed(GLFW_KEY_Q)) {
             if (controller->pickedEntity) {
                 auto cameraMatrix = entity->getLocalToWorldMatrix();
@@ -347,7 +308,12 @@ class FPSControllerSystem {
         if (isShooting) {
             auto cameraMatrix = entity->getLocalToWorldMatrix();
             glm::vec3 cameraForward = -glm::normalize(glm::vec3(cameraMatrix[2]));
-            if (WeaponsSystem::getInstance().fireWeapon(entity->getWorld(), controller->pickedEntity, cameraForward))
+            auto viewMatrix = glm::inverse(cameraMatrix);
+            auto windowSize = app->getWindowSize();
+            glm::vec2 viewPortSize = glm::vec2(windowSize.x, windowSize.y);
+            glm::mat4 projectionMatrix = entity->getComponent<CameraComponent>()->getProjectionMatrix(viewPortSize);
+
+            if (WeaponsSystem::getInstance().fireWeapon(entity->getWorld(), controller->pickedEntity, cameraForward, viewMatrix, projectionMatrix))
                 weapon->fireCooldown = weapon->fireRate;
         } else if (app->getKeyboard().justPressed(GLFW_KEY_R)) {
             WeaponsSystem::getInstance().reloadWeapon(entity->getWorld(), controller->pickedEntity);
@@ -359,10 +325,7 @@ public:
     void enter(Application *app) {
         this->app = app;
         app->getMouse().lockMouse(app->getWindow());
-    }
-
-    void setCollisionSystem(CollisionSystem *collisionSystem) {
-        this->collisionSystem = collisionSystem;
+        mouseLocked = true;
     }
 
     float getSpeedMagnitude() {
@@ -396,7 +359,7 @@ public:
         glm::vec3 horizontalVelocity = glm::vec3(currentVelocity.x, 0.0f, currentVelocity.z);
         glm::vec3 totalMovement = horizontalVelocity * deltaTime;
 
-        collisionSystem->moveGhost(entity, totalMovement, deltaTime);
+        CollisionSystem::getInstance().moveGhost(entity, totalMovement, deltaTime);
 
         updateTimeScaleVelocity(controller);
         handleRotation(controller);

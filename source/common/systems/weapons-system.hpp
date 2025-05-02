@@ -4,6 +4,8 @@
 #include <ecs/world.hpp>
 #include <unordered_map>
 #include <unordered_set>
+#include <asset-loader.hpp>
+#include <model/model.hpp>
 
 namespace our {
 
@@ -43,7 +45,7 @@ class WeaponsSystem {
 
     Component *_addCollisionComponent(Entity* entity);
 
-    Entity *_createProjectile(World* world, Entity* owner, glm::vec3 direction, float speed);
+    Entity *_createProjectile(World* world, Entity* owner, glm::vec3 direction, float speed, glm::mat4 viewMatrix, glm::mat4 projectionMatrix);
 
 public:
     static WeaponsSystem& getInstance() {
@@ -59,7 +61,7 @@ public:
 
     bool reloadWeapon(World* world, Entity* entity);
 
-    bool fireWeapon(World* world, Entity* entity, glm::vec3 direction);
+    bool fireWeapon(World* world, Entity* entity, glm::vec3 direction, glm::mat4 viewMatrix, glm::mat4 projectionMatrix);
 
     bool pickupWeapon(World* world, Entity* entity, Entity* weaponEntity);
 
