@@ -25,6 +25,7 @@ class Playstate : public our::State {
     our::AudioSystem& audioSystem = our::AudioSystem::getInstance();
 
     void initializeGame() {
+        //Only initialize the game one time
         if (initialized) return; 
         initialized = true;
         

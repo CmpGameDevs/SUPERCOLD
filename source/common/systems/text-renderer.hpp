@@ -119,7 +119,56 @@ public:
         return glm::vec2(width, height);
     }
 
+    void renderTextWithBackground(const std::string& text, float x, float y, float scale, 
+        glm::vec4 textColor, glm::vec4 backgroundColor) {
+        glm::vec2 textSize = getTextSize(text, scale);
+
+        float padding = 10.0f;
+        float boxWidth = textSize.x + padding * 2.0f;
+        float boxHeight = textSize.y + padding * 2.0f;
+        float skewAmount = -15.0f;
+
+        float boxX = x - padding;
+        float boxY = screenHeight - y - textSize.y - padding; 
+
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glDisable(GL_DEPTH_TEST);
+
+        textShader->use();
+        textShader->set("textColor", backgroundColor);
+        textShader->set("projection", projection);
+        textShader->set("useTexture", false);
+
+        float vertices[6][4] = {
+            { boxX - skewAmount, boxY + boxHeight,   0.0f, 1.0f }, 
+            { boxX,              boxY,               0.0f, 0.0f },  
+            { boxX + boxWidth,   boxY,               1.0f, 0.0f }, 
+        
+            { boxX - skewAmount, boxY + boxHeight,   0.0f, 1.0f }, 
+            { boxX + boxWidth,   boxY,               1.0f, 0.0f },  
+            { boxX + boxWidth - skewAmount, boxY + boxHeight, 1.0f, 1.0f }  
+        };
+
+        glBindVertexArray(VAO);
+        glBindBuffer(GL_ARRAY_BUFFER, VBO);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+
+        textShader->set("useTexture", true);
+        renderText(text, x - skewAmount/2, screenHeight - y - textSize.y, scale, textColor);
+
+        glBindVertexArray(0);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glEnable(GL_DEPTH_TEST);
+        glDisable(GL_BLEND);
+    }
+
     void renderText(const std::string& text, float x, float y, float scale, glm::vec4 color) {
+        if (x < 0 || x > screenWidth || y < 0 || y > screenHeight) {
+            std::cout << "[text renderer]: Text position out of bounds: (" << x << ", " << y << ")" << std::endl;
+            return;
+        }
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glDisable(GL_DEPTH_TEST);
@@ -221,6 +270,7 @@ public:
         glm::vec2 size = getTextSize(fadeText, fadeScale);
         float x = (screenWidth - size.x) / 2.0f;
         float y = (screenHeight - size.y) / 2.0f;
+        
         renderText(fadeText, x, y, fadeScale, glm::vec4(fadeColor, alpha));
     }
 

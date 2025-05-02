@@ -21,6 +21,13 @@
                 "enable": true,
                 "hdr_texture": "circus_backstage",
                 "maxMipLevels": 5
+            },
+            "crosshair": {
+                "lineLength": 0.05,
+                "lineThickness": 0.0035,
+                "gapSize": 0.02,
+                "dotSize": 0.004,
+                "color": [1, 1, 1, 1]
             }
         },
         "assets":{

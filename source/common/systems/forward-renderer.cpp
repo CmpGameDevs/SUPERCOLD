@@ -72,6 +72,11 @@ namespace our
             postprocess->init(windowSize, config["postprocess"]); 
         }
 
+        if(config.contains("crosshair"))
+        {
+            crosshair = Crosshair::getInstance();
+            crosshair->initialize(config["crosshair"]);
+        }
     }
     
     void ForwardRenderer::destroy()
@@ -273,6 +278,11 @@ namespace our
         if (postprocess)
         {           
             postprocess->renderPostProcess();   
+        }
+
+        if(crosshair->isVisible())
+        {
+            crosshair->render();
         }
         
     }

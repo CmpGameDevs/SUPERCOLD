@@ -1,5 +1,6 @@
 #pragma once
 #include <application.hpp>
+#include <components/crosshair.hpp>
 #include <components/camera.hpp>
 #include <components/fps-controller.hpp>
 #include <components/collision.hpp>
@@ -370,6 +371,7 @@ public:
         if (mouseLocked) {
             mouseLocked = false;
             app->getMouse().unlockMouse(app->getWindow());
+            Crosshair::getInstance()->setVisiblity(false);
         }
     }
 };
