@@ -130,6 +130,8 @@ namespace our {
 
         [[nodiscard]] const nlohmann::json& getLevelConfig() const { return levels_configs[current_level_index - 1]; }
 
+        [[nodiscard]] int getLevelIndex() const { return current_level_index; }
+
         void goToNextLevel() {
             //TODO: handle Game Over and Win conditions
             if(current_level_index == levels_configs.size()) {

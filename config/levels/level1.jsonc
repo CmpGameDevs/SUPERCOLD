@@ -191,6 +191,41 @@
                         "material": "sun"
                     }
                 ]
+            },
+            {
+                "position": [4, 3, -7],
+                "scale": [0.005, 0.005, 0.005],
+                "name": "gun leonel",
+                "components": [
+                    {
+                        "type": "Collision",
+                        "shape": "model",
+                        "model": "gun",
+                        "mass": 1,
+                        "isKinematic": false
+                    },
+                    {
+                        "type": "Weapon",
+                        "damage": 10,
+                        "range": 100,
+                        "fireRate": 0.3,
+                        "reloadTime": 2,
+                        "ammoCapacity": 10,
+                        "automatic": false,
+                        "throwForce": 2,
+                        "bulletSize": 2,
+                        "rotation": [180, 0, 0],
+                        "bulletScale": [0.05, 0.05, 0.05],
+                        "muzzleForwardOffset": 0.15,
+                        "muzzleRightOffset": -0.4,
+                        "bulletRotation": [180, 0, 0],
+                        "model": "bullet"
+                    },
+                    {
+                        "type": "Model Renderer",
+                        "model": "gun"
+                    }
+                ]
             }
         ]
 }

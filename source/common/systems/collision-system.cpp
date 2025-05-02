@@ -262,11 +262,11 @@ namespace our {
         }
 
 
-        // shape->setLocalScaling(btVector3(
-        //     transform->scale.x,
-        //     transform->scale.y,
-        //     transform->scale.z
-        // ));
+        shape->setLocalScaling(btVector3(
+            transform->scale.x,
+            transform->scale.y,
+            transform->scale.z
+        ));
 
         btTransform btTrans;
         btTrans.setIdentity();

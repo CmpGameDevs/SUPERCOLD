@@ -9,6 +9,7 @@
 #include <systems/movement.hpp>
 #include <core/time-scale.hpp>
 #include <btBulletDynamicsCommon.h>
+#include <systems/audio-system.hpp>
 
 class PhysicsTestState : public our::State {
 
@@ -18,6 +19,7 @@ class PhysicsTestState : public our::State {
     our::CollisionSystem &collisionSystem = our::CollisionSystem::getInstance();
     our::WeaponsSystem &weaponsSystem = our::WeaponsSystem::getInstance();
     our::MovementSystem movementSystem;
+    our::AudioSystem& audioSystem = our::AudioSystem::getInstance();
     game::TimeScaler timeScaler;
     float timeScale;
 
@@ -53,6 +55,8 @@ class PhysicsTestState : public our::State {
         );
         collisionSystem.initialize(size, physicsWorld);
         timeScale = 1.0f;
+
+        audioSystem.initialize(getApp()->getAudioContext());
     }
 
     void raycast() {
@@ -151,6 +155,9 @@ class PhysicsTestState : public our::State {
     }
 
     void onDraw(double deltaTime) override {
+        audioSystem.playBackgroundMusic("intro", 0.2f);
+        audioSystem.update(&world, deltaTime);
+
         if (getApp()->getKeyboard().justPressed(GLFW_KEY_L)) {
             collisionSystem.toggleDebugMode();
         }

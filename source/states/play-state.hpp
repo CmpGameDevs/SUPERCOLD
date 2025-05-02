@@ -7,6 +7,8 @@
 #include <systems/fps-controller.hpp>
 #include <core/time-scale.hpp>
 #include <systems/text-renderer.hpp>
+#include <systems/audio-system.hpp>
+#include <systems/movement.hpp>
 
 
 class Playstate : public our::State {
@@ -14,10 +16,13 @@ class Playstate : public our::State {
     our::World world;
     our::CollisionSystem& collisionSystem = our::CollisionSystem::getInstance();
     our::ForwardRenderer& renderer = our::ForwardRenderer::getInstance();
+    our::WeaponsSystem &weaponsSystem = our::WeaponsSystem::getInstance();
+    our::MovementSystem movementSystem;
     our::FPSControllerSystem fpsController;
     game::TimeScaler timeScaler;
     float timeScale;
     our::TextRenderer& textRenderer = our::TextRenderer::getInstance();  
+    our::AudioSystem& audioSystem = our::AudioSystem::getInstance();
 
     void initializeGame() {
         if (initialized) return; 
@@ -53,6 +58,8 @@ class Playstate : public our::State {
         collisionSystem.initialize(size, physicsWorld);
         auto windowSize = getApp()->getWindowSize();
         textRenderer.initialize(windowSize.x, windowSize.y);  
+
+        audioSystem.initialize(getApp()->getAudioContext());
     }
 
     void onInitialize() override {
@@ -75,6 +82,9 @@ class Playstate : public our::State {
     }
 
     void onDraw(double deltaTime) override {
+        std::string backgroundTrack = "level_" + std::to_string(getApp()->getLevelIndex());
+        audioSystem.playBackgroundMusic(backgroundTrack, 0.2f, "music");
+
         // Update FPS Controller
         fpsController.update(&world, (float)deltaTime);
         
@@ -88,13 +98,25 @@ class Playstate : public our::State {
         timeScale = timeScaler.getTimeScale();
 
         // Apply the time scale to the delta time
-        float scaledDeltaTime = (float)deltaTime * timeScale;
+        float scaledDeltaTime = (float)deltaTime;
+        
+        // Update the audio system
+        audioSystem.update(&world, scaledDeltaTime);
+
+        // Update the movement system
+        movementSystem.update(&world, scaledDeltaTime);
 
         // Update the collision system
         collisionSystem.update(&world, scaledDeltaTime);
 
+        // Update the weapons system
+        weaponsSystem.update(&world, scaledDeltaTime);
+
         // Render the world using the renderer system
         renderer.render(&world);
+
+        // Debug draw the collision world
+        collisionSystem.debugDrawWorld(&world);
 
         // Render some test text
         textRenderer.renderCenteredText();
@@ -104,6 +126,8 @@ class Playstate : public our::State {
         
         if (keyboard.justPressed(GLFW_KEY_ESCAPE)) {
             getApp()->goToNextLevel();
+        } else if (keyboard.justPressed(GLFW_KEY_L)) {
+            collisionSystem.toggleDebugMode();
         }
     }
 
