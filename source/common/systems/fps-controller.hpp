@@ -39,7 +39,6 @@ class FPSControllerSystem {
 
   private:
     Application *app = nullptr;
-    CollisionSystem *collisionSystem = nullptr;
     bool mouseLocked = true;
     float jumpTimer = 0.0f;
     glm::vec3 currentVelocity = glm::vec3(0.0f);
@@ -120,6 +119,7 @@ class FPSControllerSystem {
 
     bool checkGrounded(FPSControllerComponent *controller, Entity* entity) {
         bool isGrounded = false;
+        CollisionSystem *collisionSystem = &CollisionSystem::getInstance();
         if (collisionSystem != nullptr) {
             CollisionComponent* collision = entity->getComponent<CollisionComponent>();
             if (collision) {
@@ -272,7 +272,7 @@ class FPSControllerSystem {
                     t.getOrigin().setY(bottomY + halfHeight);
                     collision->ghostObject->setWorldTransform(t);
 
-                    auto* world = collisionSystem->getPhysicsWorld();
+                    auto* world = CollisionSystem::getInstance().getPhysicsWorld();
                     world->getBroadphase()->getOverlappingPairCache()->cleanProxyFromPairs(
                     collision->ghostObject->getBroadphaseHandle(),
                     world->getDispatcher()
@@ -293,8 +293,8 @@ class FPSControllerSystem {
     }
 
     void handlePickup(FPSControllerComponent *controller, Entity *entity) {
+        CollisionSystem *collisionSystem = &CollisionSystem::getInstance();
         if (app->getKeyboard().justPressed(GLFW_KEY_E)) {
-            if (collisionSystem == nullptr) return;
             CollisionComponent *collision = entity->getComponent<CollisionComponent>();
             if (!collision || !collision->ghostObject) return;
             btTransform transform;
@@ -367,10 +367,6 @@ public:
         mouseLocked = true;
     }
 
-    void setCollisionSystem(CollisionSystem *collisionSystem) {
-        this->collisionSystem = collisionSystem;
-    }
-
     float getSpeedMagnitude() {
         return glm::length(timeScaleVelocity);
     }
@@ -402,7 +398,7 @@ public:
         glm::vec3 horizontalVelocity = glm::vec3(currentVelocity.x, 0.0f, currentVelocity.z);
         glm::vec3 totalMovement = horizontalVelocity * deltaTime;
 
-        collisionSystem->moveGhost(entity, totalMovement, deltaTime);
+        CollisionSystem::getInstance().moveGhost(entity, totalMovement, deltaTime);
 
         updateTimeScaleVelocity(controller);
         handleRotation(controller);

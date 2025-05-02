@@ -1,6 +1,17 @@
 #include "fps-controller.hpp"
+#include <systems/collision-system.hpp>
+
 
 namespace our {
+
+FPSControllerComponent::~FPSControllerComponent() {
+    if (characterController) {
+        CollisionSystem::getInstance().getPhysicsWorld()->removeAction(characterController);
+        delete characterController;
+        characterController = nullptr;
+    }
+}
+    
 // Reads configuration from the given json object
 void FPSControllerComponent::deserialize(const nlohmann::json &data) {
     if (!data.is_object())

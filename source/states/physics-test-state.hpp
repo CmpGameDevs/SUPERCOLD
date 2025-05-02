@@ -52,7 +52,6 @@ class PhysicsTestState : public our::State {
             collisionConfig
         );
         collisionSystem.initialize(size, physicsWorld);
-        fpsController.setCollisionSystem(&collisionSystem);
         timeScale = 1.0f;
     }
 

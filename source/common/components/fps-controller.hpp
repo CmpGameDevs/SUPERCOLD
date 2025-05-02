@@ -67,6 +67,8 @@ class FPSControllerComponent : public Component {
     // Inventory parameters
     Entity *pickedEntity = nullptr;
 
+    ~FPSControllerComponent();
+
     // Deserialize from JSON
     void deserialize(const nlohmann::json &data);
 

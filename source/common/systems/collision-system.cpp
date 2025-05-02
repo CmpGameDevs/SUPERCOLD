@@ -231,7 +231,6 @@ namespace our {
     void CollisionSystem::createRigidBody(Entity* entity, CollisionComponent* collision, const Transform* transform) {
         btCollisionShape* shape = nullptr;
         if (collision->isKinematic) collision->mass = 0.0f;
-        printf("[CollisionSystem] Creating rigid body with kinematic: %s\n", collision->isKinematic ? "true" : "false");
                     
         // Create shape based on component data
         switch(collision->shape) {

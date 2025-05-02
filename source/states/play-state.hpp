@@ -69,7 +69,6 @@ class Playstate : public our::State {
 
         // Set up the FPS controller system and assign the collision system
         fpsController.enter(getApp());
-        fpsController.setCollisionSystem(&collisionSystem);
         
         // Set default time scale
         timeScale = 1.0f;
@@ -110,7 +109,7 @@ class Playstate : public our::State {
 
     void onDestroy() override {
         // Uncomment to clean up the world and prevent memory leaks, but ensure collision system is intact
-        // world.clear();
+        world.clear();
     }
 };
 
