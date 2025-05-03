@@ -178,8 +178,7 @@ namespace our {
         }
 
         movement->linearVelocity = bulletDirection * speed;
-        printf("Velocity: %f %f %f\n", movement->linearVelocity.x, movement->linearVelocity.y, movement->linearVelocity.z);
-
+        
         CollisionComponent* collision = projectileEntity->addComponent<CollisionComponent>();
         if(weapon->model){
             ModelComponent* modelRenderer = projectileEntity->addComponent<ModelComponent>();
