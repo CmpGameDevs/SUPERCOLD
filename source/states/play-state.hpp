@@ -77,6 +77,9 @@ class Playstate : public our::State {
 
         fpsController.enter(getApp());
         
+        // Quick fix, I will fix it later
+        fpsController.update(&world, 0.0f);
+        
         timeScale = 1.0f;
     }
 
