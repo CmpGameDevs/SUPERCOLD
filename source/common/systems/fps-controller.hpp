@@ -412,6 +412,10 @@ public:
         handleRotation(controller);
     }
 
+    void turnOffCrosshair() {
+        Crosshair::getInstance()->setVisiblity(false);
+    }
+
     // Unlocks the mouse when the state exits
     void exit() {
         if (mouseLocked) {
