@@ -120,6 +120,8 @@ set(COMMON_SOURCES
         source/common/components/free-camera-controller.cpp
         source/common/components/fps-controller.hpp
         source/common/components/fps-controller.cpp
+        source/common/components/enemy-controller.hpp
+        source/common/components/enemy-controller.cpp
         source/common/components/movement.hpp
         source/common/components/movement.cpp
         source/common/components/collision.cpp

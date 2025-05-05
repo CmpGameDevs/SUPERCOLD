@@ -6,9 +6,8 @@ namespace our {
 
 FPSControllerComponent::~FPSControllerComponent() {
     if (characterController) {
-        CollisionSystem::getInstance().getPhysicsWorld()->removeAction(characterController);
-        delete characterController;
-        characterController = nullptr;
+        CollisionSystem::getInstance().getPhysicsWorld()->removeAction(characterController.get());
+        characterController.reset();
     }
 }
     

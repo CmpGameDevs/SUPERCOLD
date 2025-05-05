@@ -7,7 +7,8 @@
 namespace our {
 class FPSControllerComponent : public Component {
   public:
-    btKinematicCharacterController *characterController = nullptr;
+    std::unique_ptr<btKinematicCharacterController> characterController = nullptr;
+    float stepHeight = 0.35f;
   
     // Basic parameters
     float height = 1.8f; // Default height of the player

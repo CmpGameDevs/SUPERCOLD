@@ -131,12 +131,16 @@ class CollisionSystem {
     btCollisionShape* _createCompoundShape(CollisionComponent* collision, const Transform* transform);
     // Create ghost object for the entity based on its collision component and transform
     void _createGhostObject(Entity* entity, CollisionComponent* collision, const Transform* transform);
+    // Create a pair caching ghost object for the entity based on its collision component and transform
+    void _createDetectionArea(Entity* entity);
     // Clear previous collisions for the entity
     void _clearPreviousCollisions(World* world);
     // Push overlapping objects away from the ghost object
     void _pushOverlappingObjects(btPairCachingGhostObject* ghost, const glm::vec3& position, float deltaTime);
     // Detect collisions between entities and update their collision components
     void _detectCollisions();
+    // Detect the presence of entities inside the detection area
+    void _detectPresence(World* world);
     // Process the detected collisions and call the appropriate callbacks
     void _processCollisions(World* world);
     // Free the Bullet physics world and its components

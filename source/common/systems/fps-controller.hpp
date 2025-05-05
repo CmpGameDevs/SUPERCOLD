@@ -120,7 +120,7 @@ class FPSControllerSystem {
 
     // Handles jumping mechanics
     void handleJump(FPSControllerComponent *controller, float deltaTime) {
-        btKinematicCharacterController *characterController = controller->characterController;
+        btKinematicCharacterController* characterController = controller->characterController.get();
         if (app->getKeyboard().justPressed(GLFW_KEY_SPACE) && isGrounded) {
             float jumpHeight = controller->currentGhostHeight + controller->jumpHeight;
             verticalVelocity = sqrt(2.0f * controller->gravity * jumpHeight);
@@ -373,11 +373,9 @@ class FPSControllerSystem {
     // Updates the FPS controller every frame
     void update(World *world, float deltaTime) {
         auto [camera, controller] = findControlledEntity(world);
-        if (!(camera && controller))
-            return;
-        auto characterController = controller->characterController;
-        if (!characterController)
-            return;
+        if (!(camera && controller)) return;
+        auto characterController = controller->characterController.get();
+        if (!characterController) return;
 
         Entity *entity = camera->getOwner();
         glm::vec3 &position = entity->localTransform.position;
