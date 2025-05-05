@@ -196,13 +196,12 @@ namespace our {
         collision->ghostObject = ghost;
         if (isEnemy) {
             enemyController->characterController = std::move(characterController);
-            _createDetectionArea(entity);
         } else {
             playerController->characterController = std::move(characterController);
         }
     }
 
-    void CollisionSystem::_createDetectionArea(Entity* entity) {
+    void CollisionSystem::createDetectionArea(Entity* entity) {
         auto* enemyController = entity->getComponent<EnemyControllerComponent>();
         auto* collision = entity->getComponent<CollisionComponent>();
         if (!enemyController || !collision->ghostObject) return;
@@ -426,30 +425,6 @@ namespace our {
         }
     }
 
-    void CollisionSystem::_detectPresence(World* world) {
-        for(auto entity : world->getEntities()) {
-            auto enemyController = entity->getComponent<EnemyControllerComponent>();
-            if (!enemyController || !enemyController->detectionArea) continue;
-
-            int numObjects = enemyController->detectionArea->getNumOverlappingObjects();
-            for(int i = 0; i < numObjects; ++i) {
-                btCollisionObject* other = enemyController->detectionArea->getOverlappingObject(i);
-                
-                if (Entity* otherEntity = static_cast<Entity*>(other->getUserPointer())) {
-                    if (otherEntity->getComponent<FPSControllerComponent>()) {
-                        printf("Player detected!\n");
-                        // Handle detection logic
-                    } else if (otherEntity->getComponent<EnemyControllerComponent>()) {
-                        printf("Another enemy detected!\n");
-                        // Handle enemy detection logic
-                    } else {
-                        printf("Unknown entity detected!\n");
-                    }
-                }
-            }
-        }
-    }
-
     void CollisionSystem::_processCollisions(World* world) {
         for(auto entity : world->getEntities()) {
             if(auto collision = entity->getComponent<CollisionComponent>()) {
@@ -521,7 +496,6 @@ namespace our {
         _clearPreviousCollisions(world);
         _processEntities(world);
         _detectCollisions();
-        _detectPresence(world);
         _processCollisions(world);
     }
 

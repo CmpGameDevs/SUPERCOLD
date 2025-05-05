@@ -145,6 +145,8 @@ set(COMMON_SOURCES
         source/common/systems/collision-system.cpp
         source/common/systems/weapons-system.hpp
         source/common/systems/weapons-system.cpp
+        source/common/systems/enemy-system.hpp
+        source/common/systems/enemy-system.cpp
         source/common/systems/forward-renderer.hpp
         source/common/systems/forward-renderer.cpp
         source/common/systems/free-camera-controller.hpp

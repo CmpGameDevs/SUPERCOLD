@@ -4,6 +4,15 @@
 namespace our {
 
     EnemyControllerComponent::~EnemyControllerComponent() {
+        freeDetectionArea();
+
+        if (characterController) {
+            CollisionSystem::getInstance().getPhysicsWorld()->removeAction(characterController.get());
+            characterController.reset();
+        }
+    }
+
+    void EnemyControllerComponent::freeDetectionArea() {
         if (detectionArea) {
             CollisionSystem::getInstance().getPhysicsWorld()->removeCollisionObject(detectionArea.get());
             btCollisionShape* shape = detectionArea->getCollisionShape();
@@ -11,11 +20,6 @@ namespace our {
                 delete shape;
             }
             detectionArea.reset();
-        }
-
-        if (characterController) {
-            CollisionSystem::getInstance().getPhysicsWorld()->removeAction(characterController.get());
-            characterController.reset();
         }
     }
 
