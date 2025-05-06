@@ -132,6 +132,8 @@ namespace our {
 
         [[nodiscard]] int getLevelIndex() const { return current_level_index; }
 
+        void resetLevelIndex() { current_level_index = 0; }
+
         void goToNextLevel() {
             //TODO: handle Game Over and Win conditions
             if(current_level_index == levels_configs.size()) {

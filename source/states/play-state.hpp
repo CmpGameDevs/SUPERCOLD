@@ -1,18 +1,16 @@
 #pragma once
 
 #include <asset-loader.hpp>
+#include <components/crosshair.hpp>
 #include <core/time-scale.hpp>
 #include <ecs/world.hpp>
 #include <systems/audio-system.hpp>
 #include <systems/collision-system.hpp>
+#include <systems/enemy-system.hpp>
 #include <systems/forward-renderer.hpp>
 #include <systems/fps-controller.hpp>
 #include <systems/movement.hpp>
 #include <systems/text-renderer.hpp>
-#include <systems/audio-system.hpp>
-#include <systems/movement.hpp>
-#include <systems/enemy-system.hpp>
-
 
 class Playstate : public our::State {
     static bool initialized;
@@ -27,10 +25,12 @@ class Playstate : public our::State {
     our::TextRenderer &textRenderer = our::TextRenderer::getInstance();
     our::AudioSystem &audioSystem = our::AudioSystem::getInstance();
     our::EnemySystem &enemySystem = our::EnemySystem::getInstance();
+    bool gameEnded = false;
 
     void initializeGame() {
-        //Only initialize the game one time
-        if (initialized) return; 
+        // Only initialize the game one time
+        if (initialized)
+            return;
 
         initialized = true;
 
@@ -68,9 +68,8 @@ class Playstate : public our::State {
     void onInitialize() override {
         initializeGame();
 
+        auto &levelConfig = getApp()->getLevelConfig();
 
-        auto& levelConfig = getApp()->getLevelConfig();
-        
         if (levelConfig.contains("world")) {
             world.deserialize(levelConfig["world"]);
         }
@@ -81,6 +80,26 @@ class Playstate : public our::State {
         fpsController.enter(getApp());
 
         timeScale = 1.0f;
+    }
+
+    void handleGameEnd() {
+        // Handle winning the game
+        if (enemySystem.getEnemyCount() == 0 && !gameEnded) {
+            textRenderer.showCenteredText("SUPER", "game");
+            textRenderer.showCenteredText("HOT", "game");
+            textRenderer.showCenteredText("SUPER", "game");
+            textRenderer.showCenteredText("HOT", "game");
+            textRenderer.showCenteredText("SUPER", "game");
+            textRenderer.showCenteredText("HOT", "game");
+            audioSystem.playSfx("SUPERHOT", false, 8.0f);
+            gameEnded = true;
+        }
+
+        if (gameEnded) {
+            auto windowSize = getApp()->getWindowSize();
+            textRenderer.renderText("Press ENTER to continue", "game", windowSize.x / 2.0f - 150.0f, 50.0f,
+                                    0.011f, glm::vec4(1.0f));
+        }
     }
 
     void onDraw(double deltaTime) override {
@@ -97,8 +116,8 @@ class Playstate : public our::State {
         timeScale = timeScaler.getTimeScale();
 
         // Apply the time scale to the delta time
-        float scaledDeltaTime = (float)deltaTime ;
-        
+        float scaledDeltaTime = (float)deltaTime * (!gameEnded ? timeScale : 1.0f);
+
         // Update the audio system
         audioSystem.update(&world, scaledDeltaTime);
 
@@ -140,17 +159,24 @@ class Playstate : public our::State {
 
         textRenderer.renderCenteredText();
 
-        fpsController.update(&world, (float)deltaTime);
+        // Handle game ending
+        handleGameEnd();
+
+        fpsController.update(&world, scaledDeltaTime);
         // Handle keyboard input (escape key to transition between levels)
         auto &keyboard = getApp()->getKeyboard();
 
-        if (keyboard.justPressed(GLFW_KEY_ESCAPE)) {
+        if (gameEnded && keyboard.justPressed(GLFW_KEY_ENTER)) {
+            textRenderer.clearTextQueue();
             getApp()->goToNextLevel();
         } else if (keyboard.justPressed(GLFW_KEY_L)) {
             collisionSystem.toggleDebugMode();
+        } else if (keyboard.justPressed(GLFW_KEY_ESCAPE)) {
+            textRenderer.clearTextQueue();
+            getApp()->changeState("menu");
         }
     }
-    
+
     void onDestroy() override {
         fpsController.turnOffCrosshair();
         world.clear();

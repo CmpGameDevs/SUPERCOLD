@@ -16,7 +16,8 @@ void EnemySystem::update(World *world, float deltaTime) {
             }
         }
     }
-
+    
+    unsigned int enemyCount = 0;
     for (auto entity : world->getEntities()) {
         if (auto weapon = entity->getComponent<WeaponComponent>()) {
             _setEnemyWeapon(entity->parent, entity);
@@ -29,12 +30,13 @@ void EnemySystem::update(World *world, float deltaTime) {
 
         Transform transform = entity->localTransform;
         auto collision = entity->getComponent<CollisionComponent>();
-
         if (!collision) continue;
 
+        enemyCount++;
         _updateAIState(entity, deltaTime);
         _handleMovement(entity, deltaTime);
     }
+    this->enemyCount = enemyCount;
 }
 
 void EnemySystem::_setEnemyWeapon(Entity *entity, Entity *weaponEntity) {
@@ -54,6 +56,7 @@ void EnemySystem::_setCollisionCallbacks(Entity *entity) {
     if (!collision) return;
 
     collision->callbacks.onEnter = [enemy, entity](Entity *other) {
+        if (enemy->currentState == EnemyState::DEAD) return;
         if (other->name == "Projectile") { 
             AudioSystem::getInstance().playSpatialSound("killing", entity, entity->localTransform.position, "sfx", false, 1.0f, 100.0f);
             enemy->currentState = EnemyState::DEAD;

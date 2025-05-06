@@ -7,6 +7,7 @@ namespace our {
 class EnemySystem {
     Entity *playerEntity = nullptr;
     CollisionSystem *collisionSystem = nullptr;
+    unsigned int enemyCount = 0;
 
     // Private constructor to prevent instantiation
     EnemySystem() = default;
@@ -48,6 +49,10 @@ public:
 
     void setCollisionSystem() {
         collisionSystem = &CollisionSystem::getInstance();
+    }
+
+    unsigned int getEnemyCount() const {
+        return enemyCount;
     }
 
     void update(World *world, float deltaTime);
