@@ -70,6 +70,9 @@ namespace our {
             glBindVertexArray(0);
         }
 
+        // Get the vertex array object of the mesh
+        unsigned int getVertexArray() const { return VAO; }
+
         // this function should render the mesh
         void draw() 
         {

@@ -48,6 +48,7 @@ class FPSControllerSystem {
     float verticalVelocity = 0.0f;
     bool isGrounded = true;
     float timeStandingStill = 0.0f;
+    bool moved = false;
 
     // Helper function to find the controlled entity
     std::pair<CameraComponent *, FPSControllerComponent *> findControlledEntity(World *world) {
@@ -120,7 +121,7 @@ class FPSControllerSystem {
 
     // Handles jumping mechanics
     void handleJump(FPSControllerComponent *controller, float deltaTime) {
-        btKinematicCharacterController* characterController = controller->characterController.get();
+        btKinematicCharacterController *characterController = controller->characterController.get();
         if (app->getKeyboard().justPressed(GLFW_KEY_SPACE) && isGrounded) {
             float jumpHeight = controller->currentGhostHeight + controller->jumpHeight;
             verticalVelocity = sqrt(2.0f * controller->gravity * jumpHeight);
@@ -137,7 +138,7 @@ class FPSControllerSystem {
     }
 
     // Handles movement based on input
-    glm::vec3 handleMovement(const FPSControllerComponent *controller, const float deltaTime) const {
+    glm::vec3 handleMovement(const FPSControllerComponent *controller, const float deltaTime) {
         glm::vec3 movementDirection(0.0f);
 
         glm::mat4 matrix = controller->getOwner()->localTransform.toMat4();
@@ -159,6 +160,7 @@ class FPSControllerSystem {
             movementDirection -= right;
 
         if (glm::length(movementDirection) > NEAR_ZERO) {
+            moved = true;
             movementDirection = glm::normalize(movementDirection);
         }
 
@@ -204,6 +206,7 @@ class FPSControllerSystem {
         }
 
         if (controller->isCrouchTransitioning) {
+            std::cout << "Crouch lerp progress: " << controller->crouchLerpProgress << std::endl;
             controller->crouchLerpProgress += deltaTime / controller->crouchTransitionTime;
             if (controller->crouchLerpProgress >= 1.0f) {
                 controller->crouchLerpProgress = 1.0f;
@@ -236,7 +239,69 @@ class FPSControllerSystem {
                         collision->ghostObject->getBroadphaseHandle(), world->getDispatcher());
                     world->updateSingleAabb(collision->ghostObject);
                     controller->currentGhostHeight = newHeight;
+                    std::cout << "New ghost height: " << controller->currentGhostHeight << std::endl;
+                    std::cout << "Is Crouching" << controller->isCrouching << std::endl;
                 }
+            }
+        }
+    }
+
+    void handleHeadBob(FPSControllerComponent *controller, Entity *entity, float deltaTime, bool isMoving) {
+        // Update the bob timer
+        controller->bobTimer +=
+            deltaTime * (isMoving
+                             ? (controller->isSprinting ? controller->headBobFrequency * controller->sprintBobMultiplier
+                                                        : controller->headBobFrequency)
+                             : controller->idleBobFrequency);
+
+        // Don't apply effects while jumping
+        if (controller->isJumping || controller->isCrouchTransitioning || controller->isCrouching)
+            return;
+
+        // Calculate base height from crouch state
+        float baseHeight =
+            controller->isCrouching ? controller->height * controller->crouchHeightModifier : controller->height;
+
+        float verticalOffset = 0.0f;
+        if (!controller->isCrouchTransitioning) {
+            if (isMoving) {
+                float amplitude =
+                    controller->headBobAmplitude * (controller->isSprinting ? controller->sprintBobMultiplier : 1.0f);
+                verticalOffset = sin(controller->bobTimer) * amplitude;
+            } else {
+                verticalOffset = sin(controller->bobTimer) * controller->idleBobAmplitude;
+            }
+        }
+
+        // Apply the height and bob offset to the character controller and ghost object
+        if (auto collision = entity->getComponent<CollisionComponent>()) {
+            if (collision->ghostObject) {
+                btCapsuleShape *capsule = static_cast<btCapsuleShape *>(collision->ghostObject->getCollisionShape());
+
+                btTransform currentTransform = collision->ghostObject->getWorldTransform();
+                btVector3 currentPosition = currentTransform.getOrigin();
+                float currentBottom = currentPosition.y() - (controller->currentGhostHeight * 0.5f);
+
+                float finalHeight = baseHeight + verticalOffset;
+
+                // Update the capsule shape
+                float halfHeight = finalHeight * 0.5f;
+                collision->halfExtents.y = halfHeight;
+                capsule->setLocalScaling(btVector3(1.0f, finalHeight / controller->height, 1.0f));
+
+                // Update the ghost object position to maintain the same bottom position
+                currentPosition.setY(currentBottom + halfHeight);
+                currentTransform.setOrigin(currentPosition);
+                collision->ghostObject->setWorldTransform(currentTransform);
+
+                // Update the physics world
+                auto *world = CollisionSystem::getInstance().getPhysicsWorld();
+                world->getBroadphase()->getOverlappingPairCache()->cleanProxyFromPairs(
+                    collision->ghostObject->getBroadphaseHandle(), world->getDispatcher());
+                world->updateSingleAabb(collision->ghostObject);
+
+                // Update the current ghost height
+                controller->currentGhostHeight = finalHeight;
             }
         }
     }
@@ -252,6 +317,8 @@ class FPSControllerSystem {
     }
 
     void updateStillTimer(const glm::vec3 &movementDirection, float deltaTime) {
+        if (!moved)
+            return;
         if (glm::length(movementDirection) < NEAR_ZERO) {
             timeStandingStill += deltaTime;
         } else {
@@ -301,18 +368,23 @@ class FPSControllerSystem {
             if (!hasWeapon)
                 return;
 
-            if (controller->pickedEntity && WeaponsSystem::getInstance().dropWeapon(controller->pickedEntity))
+            if (controller->pickedEntity && WeaponsSystem::getInstance().dropWeapon(controller->pickedEntity)) {
                 controller->pickedEntity = nullptr;
+                Crosshair::getInstance()->setWeaponHeld(false);
+            }
 
-            if (weapon && WeaponsSystem::getInstance().pickupWeapon(entity, weapon->getOwner()))
+            if (weapon && WeaponsSystem::getInstance().pickupWeapon(entity, weapon->getOwner())) {
                 controller->pickedEntity = weapon->getOwner();
-
+                Crosshair::getInstance()->setWeaponHeld(true);
+            }
         } else if (app->getKeyboard().justPressed(GLFW_KEY_Q)) {
             if (controller->pickedEntity) {
                 auto cameraMatrix = entity->getLocalToWorldMatrix();
                 glm::vec3 cameraForward = -glm::normalize(glm::vec3(cameraMatrix[2]));
-                if (WeaponsSystem::getInstance().throwWeapon(controller->pickedEntity, cameraForward))
+                if (WeaponsSystem::getInstance().throwWeapon(controller->pickedEntity, cameraForward)) {
                     controller->pickedEntity = nullptr;
+                    Crosshair::getInstance()->setWeaponHeld(false);
+                }
             }
         }
 
@@ -351,7 +423,8 @@ class FPSControllerSystem {
         if (isShooting) {
             glm::vec3 cameraForward = -glm::normalize(glm::vec3(entity->getLocalToWorldMatrix()[2]));
 
-            WeaponsSystem::getInstance().fireWeapon(entity->getWorld(), controller->pickedEntity, cameraForward, viewMatrix, projectionMatrix);
+            WeaponsSystem::getInstance().fireWeapon(entity->getWorld(), controller->pickedEntity, cameraForward,
+                                                    viewMatrix, projectionMatrix);
 
         } else if (app->getKeyboard().justPressed(GLFW_KEY_R)) {
             WeaponsSystem::getInstance().reloadWeapon(controller->pickedEntity);
@@ -364,6 +437,7 @@ class FPSControllerSystem {
         this->app = app;
         app->getMouse().lockMouse(app->getWindow());
         mouseLocked = true;
+        moved = false;
     }
 
     float getSpeedMagnitude() { return glm::length(timeScaleVelocity); }
@@ -371,9 +445,11 @@ class FPSControllerSystem {
     // Updates the FPS controller every frame
     void update(World *world, float deltaTime) {
         auto [camera, controller] = findControlledEntity(world);
-        if (!(camera && controller)) return;
+        if (!(camera && controller))
+            return;
         auto characterController = controller->characterController.get();
-        if (!characterController) return;
+        if (!characterController)
+            return;
 
         Entity *entity = camera->getOwner();
         glm::vec3 &position = entity->localTransform.position;
@@ -381,7 +457,6 @@ class FPSControllerSystem {
         auto [viewMatrix, projectionMatrix] = getViewAndProjectionMatrix(entity);
 
         // Handle crouch toggling with C key
-        handleCrouching(controller, entity, deltaTime);
         handlePickup(controller, entity, viewMatrix, projectionMatrix);
         handleShooting(controller, entity, deltaTime, viewMatrix, projectionMatrix);
 
@@ -401,18 +476,23 @@ class FPSControllerSystem {
 
         updateTimeScaleVelocity(controller);
         handleRotation(controller);
+
+        handleCrouching(controller, entity, deltaTime);
+        if (controller->bobEnabled)
+            handleHeadBob(controller, entity, deltaTime, glm::length(movementDirection) > NEAR_ZERO);
     }
 
     float getTimeStandingStill() const { return timeStandingStill; }
-    void turnOffCrosshair() { Crosshair::getInstance()->setVisiblity(false); }
+    void turnOffCrosshair() { Crosshair::getInstance()->setWeaponHeld(false); }
 
     // Unlocks the mouse when the state exits
     void exit() {
         if (mouseLocked) {
             mouseLocked = false;
             app->getMouse().unlockMouse(app->getWindow());
-            Crosshair::getInstance()->setVisiblity(false);
+            Crosshair::getInstance()->setWeaponHeld(false);
         }
     }
 };
 } // namespace our
+

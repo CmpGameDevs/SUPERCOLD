@@ -36,8 +36,8 @@
                 "gammaCorrectionFactor": 1,
                 "bloomBrightnessCutoff": 0.1,
 
-                "motionBlurEnabled": false,
-                "motionBlurStrength": 0.4,
+                "motionBlurEnabled": true,
+                "motionBlurStrength": 0.1,
                 "motionBlurSamples": 8,
                 "motionDirection": [0.7, 0.7]
             },
@@ -97,6 +97,7 @@
                 "level_1": "assets/audio/music/start_of_level.wav",
                 "level_2": "assets/audio/music/level.wav",
                 "level_3": "assets/audio/music/level_2.wav",
+                "SUPERHOT": "assets/audio/sfx/SUPERHOT.wav",
                 "SUPERCOLD": "assets/audio/sfx/SUPERCOLD.wav",
                 "shutter": "assets/audio/sfx/shutter.wav",
                 "shutter_1": "assets/audio/sfx/shutter_1.wav",

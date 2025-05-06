@@ -126,6 +126,8 @@ class Menustate: public our::State {
             our::AssetLoader<our::AudioBuffer>::deserialize(config["assets"]["audio"]);
         }
         audioSystem.initialize(getApp()->getAudioContext());
+
+        getApp()->resetLevelIndex();
     }
 
     void onDraw(double deltaTime) override {

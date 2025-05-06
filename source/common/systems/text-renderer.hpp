@@ -130,7 +130,12 @@ public:
         glBindVertexArray(0);
     }
 
-
+    void clearTextQueue() {
+        while (!textQueue.empty()) {
+            textQueue.pop();
+        }
+        isQueueActive = false;
+    }
 
     glm::vec2 getTextSize(const std::string& text, const std::string& fontName, float scale) {
         if (fonts.find(fontName) == fonts.end()) {
