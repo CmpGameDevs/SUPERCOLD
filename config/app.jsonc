@@ -131,7 +131,9 @@
             "models":{
                 "city": "assets/models/city/scene.gltf",
                 "gun": "assets/models/gun_leonel/scene.gltf",
-                "bullet": "assets/models/bullet/scene.gltf"
+                "bullet": "assets/models/bullet/scene.gltf",
+                "ace_pistol": "assets/models/ace_pistol/scene.gltf",
+                "cyber_revolver": "assets/models/cyber_revolver/scene.gltf"
             },
             "meshes":{
                 "helmet": "assets/models/helmet/DamagedHelmet.gltf",
