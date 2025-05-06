@@ -301,18 +301,17 @@ class FPSControllerSystem {
             if (!hasWeapon)
                 return;
 
-            if (controller->pickedEntity)
-                WeaponsSystem::getInstance().dropWeapon(entity->getWorld(), controller->pickedEntity);
+            if (controller->pickedEntity && WeaponsSystem::getInstance().dropWeapon(controller->pickedEntity))
+                controller->pickedEntity = nullptr;
 
-            if (weapon && WeaponsSystem::getInstance().pickupWeapon(entity->getWorld(), entity, weapon->getOwner()))
+            if (weapon && WeaponsSystem::getInstance().pickupWeapon(entity, weapon->getOwner()))
                 controller->pickedEntity = weapon->getOwner();
 
         } else if (app->getKeyboard().justPressed(GLFW_KEY_Q)) {
             if (controller->pickedEntity) {
                 auto cameraMatrix = entity->getLocalToWorldMatrix();
                 glm::vec3 cameraForward = -glm::normalize(glm::vec3(cameraMatrix[2]));
-                if (WeaponsSystem::getInstance().throwWeapon(entity->getWorld(), controller->pickedEntity,
-                                                             cameraForward))
+                if (WeaponsSystem::getInstance().throwWeapon(controller->pickedEntity, cameraForward))
                     controller->pickedEntity = nullptr;
             }
         }
@@ -352,11 +351,10 @@ class FPSControllerSystem {
         if (isShooting) {
             glm::vec3 cameraForward = -glm::normalize(glm::vec3(entity->getLocalToWorldMatrix()[2]));
 
-            if (WeaponsSystem::getInstance().fireWeapon(entity->getWorld(), controller->pickedEntity, cameraForward,
-                                                        viewMatrix, projectionMatrix))
-                weapon->fireCooldown = weapon->fireRate;
+            WeaponsSystem::getInstance().fireWeapon(entity->getWorld(), controller->pickedEntity, cameraForward, viewMatrix, projectionMatrix);
+
         } else if (app->getKeyboard().justPressed(GLFW_KEY_R)) {
-            WeaponsSystem::getInstance().reloadWeapon(entity->getWorld(), controller->pickedEntity);
+            WeaponsSystem::getInstance().reloadWeapon(controller->pickedEntity);
         }
     }
 

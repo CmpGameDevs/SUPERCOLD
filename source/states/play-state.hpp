@@ -99,9 +99,8 @@ class Playstate : public our::State {
         timeScale = timeScaler.getTimeScale();
 
         // Apply the time scale to the delta time
-
         float scaledDeltaTime = (float)deltaTime * timeScale;
-
+        
         // Update the audio system
         audioSystem.update(&world, scaledDeltaTime);
 

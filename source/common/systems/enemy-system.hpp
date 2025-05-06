@@ -1,7 +1,5 @@
 #pragma once
 #include "collision-system.hpp"
-#include <components/enemy-controller.hpp>
-#include <components/fps-controller.hpp>
 #include <ecs/transform.hpp>
 
 namespace our {
@@ -17,6 +15,9 @@ class EnemySystem {
     EnemySystem(EnemySystem&&) = delete; // Prevent moving
     EnemySystem& operator=(EnemySystem&&) = delete; // Prevent moving assignment
 
+    void _setEnemyWeapon(Entity *entity, Entity *weaponEntity);
+
+    void _setCollisionCallbacks(Entity *entity);
 
     void _updateAIState(Entity *entity, float deltaTime);
 
@@ -38,6 +39,7 @@ class EnemySystem {
 
     void _handleSearching(Entity *entity, float deltaTime);
 
+    void _handleDeath(Entity *entity);
 public:
     static EnemySystem& getInstance() {
         static EnemySystem instance;
