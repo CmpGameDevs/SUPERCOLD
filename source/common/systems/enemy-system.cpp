@@ -3,6 +3,7 @@
 #include <components/fps-controller.hpp>
 #include <systems/weapons-system.hpp>
 #include <systems/audio-system.hpp>
+#include <components/model-renderer.hpp>
 #include "enemy-system.hpp"
 namespace our {
 
@@ -21,6 +22,11 @@ void EnemySystem::update(World *world, float deltaTime) {
         if (auto weapon = entity->getComponent<WeaponComponent>()) {
             _setEnemyWeapon(entity->parent, entity);
             continue;
+        }
+
+        if(auto model = entity->getComponent<ModelComponent>()) {
+           _setEnemyModel(entity->parent, entity);
+           continue;
         }
 
         auto enemy = entity->getComponent<EnemyControllerComponent>();
@@ -45,6 +51,14 @@ void EnemySystem::_setEnemyWeapon(Entity *entity, Entity *weaponEntity) {
     enemy->weapon = weaponEntity;
     weaponEntity->localTransform.position = glm::vec3(0.6f, -0.2f, -0.4f);
     weaponEntity->localTransform.rotation = weapon->weaponRotation;
+}
+
+void EnemySystem::_setEnemyModel(Entity *entity, Entity *modelEntity) {
+    ModelComponent* model = modelEntity->getComponent<ModelComponent>();
+    if (!entity || !model) return;
+    auto enemy = entity->getComponent<EnemyControllerComponent>();
+    if (!enemy || enemy->model) return;
+    enemy->model = modelEntity;
 }
 
 void EnemySystem::_setCollisionCallbacks(Entity *entity) {
@@ -281,6 +295,10 @@ void EnemySystem::_handleDeath(Entity *entity) {
         if (WeaponsSystem::getInstance().throwWeapon(weaponEntity, weaponForward)) {
             enemy->weapon = nullptr;
         }
+    }
+    auto modelEntity = enemy->model;
+    if(modelEntity){
+        modelEntity->getWorld()->markForRemoval(modelEntity);
     }
     enemy->moveDirection = glm::vec3(0.0f);
     if (enemy->stateTimer >= 1.5f) {

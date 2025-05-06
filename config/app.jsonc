@@ -30,13 +30,13 @@
 
                 "bloomEnabled": true,
                 "bloomIntensity": 2,
-                "bloomIterations": 50,
+                "bloomIterations": 70,
                 "bloomDirection": 0,
                 "tonemappingEnabled": false,
                 "gammaCorrectionFactor": 1,
                 "bloomBrightnessCutoff": 0.1,
 
-                "motionBlurEnabled": true,
+                "motionBlurEnabled": false,
                 "motionBlurStrength": 0.4,
                 "motionBlurSamples": 8,
                 "motionDirection": [0.7, 0.7]
@@ -133,7 +133,8 @@
                 "gun": "assets/models/gun_leonel/scene.gltf",
                 "bullet": "assets/models/bullet/scene.gltf",
                 "ace_pistol": "assets/models/ace_pistol/scene.gltf",
-                "cyber_revolver": "assets/models/cyber_revolver/scene.gltf"
+                "cyber_revolver": "assets/models/cyber_revolver/scene.gltf",
+                "bot": "assets/models/cylinder-bot/scene.gltf"
             },
             "meshes":{
                 "helmet": "assets/models/helmet/DamagedHelmet.gltf",

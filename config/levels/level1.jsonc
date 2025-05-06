@@ -249,7 +249,7 @@
                         "automatic": false,
                         "throwForce": 4,
                         "bulletSize": 2,
-                        "rotation": [180, 0, 0],
+                        "rotation": [0, 180, 0],
                         "bulletScale": [0.05, 0.05, 0.05],
                         "muzzleForwardOffset": 0.15,
                         "muzzleRightOffset": -0.4,
@@ -284,10 +284,11 @@
                         "automatic": false,
                         "throwForce": 2,
                         "bulletSize": 2,
-                        "rotation": [180, 0, 0],
+                        "rotation": [0, 30, 30],
+                        "position": [-0.5, -0.5,-1],
                         "bulletScale": [0.05, 0.05, 0.05],
                         "muzzleForwardOffset": 0.15,
-                        "muzzleRightOffset": -0.4,
+                        "muzzleRightOffset": 1.5,
                         "bulletRotation": [180, 0, 0],
                         "model": "bullet"
                     },
@@ -304,7 +305,8 @@
                     {
                         "type": "Collision",
                         "shape": "ghost",
-                        "mass": 100
+                        "mass": 100,
+                        "halfExtents": [0.5, 0.5, 0.5]
                     },
                     {
                         "type": "Enemy Controller"
@@ -338,7 +340,19 @@
                                 "model": "ace_pistol"
                             }
                         ]
+                    },
+                    {
+                        "position": [0, -1, 0],
+                        "scale": [0.3, 0.3, 0.3],
+                        "rotation": [0, 180, 0],
+                        "components": [
+                            {
+                                "type": "Model Renderer",
+                                "model": "bot"
+                            }
+                        ]
                     }
+
                 ]
             },
             {
@@ -353,7 +367,21 @@
                     {
                         "type": "Enemy Controller"
                     }
+                ],
+                "children":[
+                    {
+                        "position": [0, -1, 0],
+                        "scale": [0.3, 0.3, 0.3],
+                        "rotation": [0, 180, 0],
+                        "components": [
+                            {
+                                "type": "Model Renderer",
+                                "model": "bot"
+                            }
+                        ]
+                    }
                 ]
+
             }
         ]
 }
