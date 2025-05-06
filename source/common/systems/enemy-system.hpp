@@ -7,7 +7,7 @@ namespace our {
 class EnemySystem {
     Entity *playerEntity = nullptr;
     CollisionSystem *collisionSystem = nullptr;
-    unsigned int enemyCount = 0;
+    unsigned int enemyCount = 1;
 
     // Private constructor to prevent instantiation
     EnemySystem() = default;
@@ -20,7 +20,11 @@ class EnemySystem {
 
     void _setEnemyModel(Entity *entity, Entity *modelEntity);
 
+    void _setPlayerCollisionCallbacks();
+
     void _setCollisionCallbacks(Entity *entity);
+
+    void _syncDetectionArea(Entity *entity);
 
     void _updateAIState(Entity *entity, float deltaTime);
 
@@ -59,6 +63,7 @@ public:
 
     void update(World *world, float deltaTime);
 
+    void onDestroy();
 };
 
 }

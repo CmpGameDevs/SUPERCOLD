@@ -10,11 +10,14 @@ namespace our {
     
     CollisionComponent::~CollisionComponent() {
         freeBulletBody();
+        freeGhostObject();
 
         if (triangleMesh) {
             delete triangleMesh;
         }
-
+    }
+    
+    void CollisionComponent::freeGhostObject() {
         if (ghostObject) {
             CollisionSystem::getInstance().getPhysicsWorld()->removeCollisionObject(ghostObject);
             btCollisionShape* shape = ghostObject->getCollisionShape();
@@ -24,7 +27,7 @@ namespace our {
             delete ghostObject;
         }
     }
-    
+
     void CollisionComponent::freeBulletBody() {
         if (bulletBody) {
             // Remove the body from the physics world if it exists

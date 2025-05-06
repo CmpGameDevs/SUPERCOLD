@@ -49,6 +49,8 @@ class FPSControllerSystem {
     bool isGrounded = true;
     float timeStandingStill = 0.0f;
     bool moved = false;
+    FPSControllerComponent *controller = nullptr;
+    CameraComponent *camera = nullptr;
 
     // Helper function to find the controlled entity
     std::pair<CameraComponent *, FPSControllerComponent *> findControlledEntity(World *world) {
@@ -407,11 +409,17 @@ class FPSControllerSystem {
     }
 
     std::pair<glm::mat4, glm::mat4> getViewAndProjectionMatrix(Entity *entity) {
+        if (!camera || !entity)
+            return {glm::mat4(1.0f), glm::mat4(1.0f)};
         auto cameraMatrix = entity->getLocalToWorldMatrix();
         auto viewMatrix = glm::inverse(cameraMatrix);
+        printf("Camera matrix: %f %f %f %f\n", cameraMatrix[0][0], cameraMatrix[1][0], cameraMatrix[2][0],
+               cameraMatrix[3][0]);
         auto windowSize = app->getWindowSize();
+        printf("Window size: %f %f\n", windowSize.x, windowSize.y);
         glm::vec2 viewPortSize = glm::vec2(windowSize.x, windowSize.y);
-        auto projectionMatrix = entity->getComponent<CameraComponent>()->getProjectionMatrix(viewPortSize);
+        printf("View port size: %f %f\n", viewPortSize.x, viewPortSize.y);
+        auto projectionMatrix = camera->getProjectionMatrix(viewPortSize);
         return {viewMatrix, projectionMatrix};
     }
 
@@ -443,22 +451,39 @@ class FPSControllerSystem {
         app->getMouse().lockMouse(app->getWindow());
         mouseLocked = true;
         moved = false;
+        camera = nullptr;
+        controller = nullptr;
     }
 
     float getSpeedMagnitude() { return glm::length(timeScaleVelocity); }
 
+    bool isPlayerDead() { return controller && controller->isDead; }
+
     // Updates the FPS controller every frame
     void update(World *world, float deltaTime, float originalDeltaTime) {
-        auto [camera, controller] = findControlledEntity(world);
-        if (!(camera && controller))
+        if (!(camera && controller)) {
+            auto [camera, controller] = findControlledEntity(world);
+            if (!(camera && controller))
+                return;
+            this->camera = camera;
+            this->controller = controller;
+        }
+
+        if (isPlayerDead()) {
+            controller->isSprinting = false;
+            controller->isCrouching = false;
+            controller->isJumping = false;
+            glm::vec3 zeroVelocity = glm::vec3(0.0f);
+            CollisionSystem::getInstance().moveGhost(camera->getOwner(), zeroVelocity, deltaTime);
             return;
+        }
         auto characterController = controller->characterController.get();
         if (!characterController)
             return;
 
         Entity *entity = camera->getOwner();
 
-        glm::vec3 &position = entity->localTransform.position * deltaTime;
+        glm::vec3 &position = entity->localTransform.position;
         isGrounded = characterController->onGround();
         auto [viewMatrix, projectionMatrix] = getViewAndProjectionMatrix(entity);
 

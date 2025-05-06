@@ -216,6 +216,11 @@ namespace our {
             btBroadphaseProxy::SensorTrigger,
             btBroadphaseProxy::CharacterFilter
         );
+        // clean up the previous detection area if it exists
+        if (enemyController->detectionArea) {
+            physicsWorld->removeCollisionObject(enemyController->detectionArea.get());
+            enemyController->detectionArea.reset();
+        }
         enemyController->detectionArea.reset(ghost);
     }
 

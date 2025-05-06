@@ -77,6 +77,9 @@ class FPSControllerComponent : public Component {
     // Inventory parameters
     Entity *pickedEntity = nullptr;
 
+    // Game Progression parameters
+    bool isDead = false;
+
     ~FPSControllerComponent();
 
     // Deserialize from JSON

@@ -16,6 +16,8 @@ void EnemySystem::update(World *world, float deltaTime) {
                 break;
             }
         }
+        if (!playerEntity) return;
+        _setPlayerCollisionCallbacks();
     }
     
     unsigned int enemyCount = 0;
@@ -41,8 +43,10 @@ void EnemySystem::update(World *world, float deltaTime) {
         enemyCount++;
         _updateAIState(entity, deltaTime);
         _handleMovement(entity, deltaTime);
+        _syncDetectionArea(entity);
     }
     this->enemyCount = enemyCount;
+    world->deleteMarkedEntities();
 }
 
 void EnemySystem::_setEnemyWeapon(Entity *entity, Entity *weaponEntity) {
@@ -63,6 +67,21 @@ void EnemySystem::_setEnemyModel(Entity *entity, Entity *modelEntity) {
     enemy->model = modelEntity;
 }
 
+void EnemySystem::_setPlayerCollisionCallbacks() {
+    if (!playerEntity) return;
+    auto collision = playerEntity->getComponent<CollisionComponent>();
+    if (!collision) return;
+
+    collision->callbacks.onEnter = [this](Entity *other) {
+        auto player = this->playerEntity->getComponent<FPSControllerComponent>();
+        if (other->name == "EnemyProjectile" && !player->isDead) {
+            AudioSystem::getInstance().playSpatialSound("death_sound", this->playerEntity, this->playerEntity->localTransform.position, "sfx", false, 1.0f, 100.0f);
+            player->isDead = true;
+        }
+    };
+
+}
+
 void EnemySystem::_setCollisionCallbacks(Entity *entity) {
     auto enemy = entity->getComponent<EnemyControllerComponent>();
     if (enemy->initialized) return;
@@ -79,6 +98,17 @@ void EnemySystem::_setCollisionCallbacks(Entity *entity) {
     };
 
     enemy->initialized = true;
+}
+
+void EnemySystem::_syncDetectionArea(Entity *entity) {
+    auto enemy = entity->getComponent<EnemyControllerComponent>();
+    if (!enemy->detectionArea) return;
+    auto collision = entity->getComponent<CollisionComponent>();
+    if (!collision) return;
+
+    // Update the detection area position and rotation to match the enemy
+    btTransform transform = collision->ghostObject->getWorldTransform();
+    enemy->detectionArea->setWorldTransform(transform);
 }
 
 void EnemySystem::_updateAIState(Entity *entity, float deltaTime) {
@@ -103,6 +133,7 @@ void EnemySystem::_updateAIState(Entity *entity, float deltaTime) {
 
     case EnemyState::SEARCHING:
         _handleSearching(entity, deltaTime);
+        _checkPlayerLoss(entity);
         break;
     
     case EnemyState::DEAD:
@@ -134,7 +165,6 @@ void EnemySystem::_handlePatrolling(Entity *entity) {
     auto enemy = entity->getComponent<EnemyControllerComponent>();
     // If there is no detection area, update it.
     if (!enemy->detectionArea) {
-        printf("Creating detection area of radius %f\n", enemy->detectionRadius);
         collisionSystem->createDetectionArea(entity);
     }
 }
@@ -213,7 +243,10 @@ void EnemySystem::_checkAttackRange(Entity *entity) {
     Transform* playerTransform = &playerEntity->localTransform;
 
     float distance = glm::distance(transform->position, playerTransform->position);
-    if (distance <= enemy->attackRange && enemy->stateTimer >= enemy->attackCooldown) {
+
+    // Create random number between 0 and 1
+    float randomValue = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+    if (distance <= enemy->attackRange && enemy->stateTimer >= enemy->attackCooldown && randomValue < 0.2f) {
         enemy->currentState = EnemyState::ATTACKING;
         enemy->stateTimer = 0.0f;
     }
@@ -228,8 +261,18 @@ void EnemySystem::_handleAttacking(Entity *entity, float deltaTime) {
         auto viewMatrix = glm::inverse(worldMatrix);
         auto projectionMatrix = glm::perspective(glm::radians(45.0f), 1.0f, 0.1f, 100.0f);
         auto weapon = weaponEntity->getComponent<WeaponComponent>();
+        // Apply some kind of noise to the direction of the bullet
+        glm::vec3 noise = glm::vec3(0.0f);
+        noise.x = static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * 1.4f - 0.05f;
+        noise.y = static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * 1.4f - 0.05f;
+        noise.z = static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * 1.4f - 0.05f;
+        weaponForward += noise;
+        weaponForward = glm::normalize(weaponForward);
         weapon->fireCooldown -= deltaTime;
-        if (weapon->currentAmmo <= 0) {
+        
+        // Generate random number between 0 and 1W
+        float randomValue = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+        if (weapon->currentAmmo <= 0 && randomValue < 0.8f) {
             WeaponsSystem::getInstance().reloadWeapon(weaponEntity);
         } else {
             WeaponsSystem::getInstance().fireWeapon(entity->getWorld(), weaponEntity, weaponForward, viewMatrix, projectionMatrix);
@@ -259,8 +302,11 @@ void EnemySystem::_checkPlayerLoss(Entity *entity) {
         }
     }
 
-    if (!playerInSight) {
+    if (!playerInSight && enemy->currentState == EnemyState::CHASING) {
         enemy->currentState = EnemyState::SEARCHING;
+        enemy->stateTimer = 0.0f;
+    } else if (playerInSight && enemy->currentState == EnemyState::SEARCHING) {
+        enemy->currentState = EnemyState::CHASING;
         enemy->stateTimer = 0.0f;
     }
 }
@@ -299,14 +345,20 @@ void EnemySystem::_handleDeath(Entity *entity) {
             enemy->weapon = nullptr;
         }
     }
-    auto modelEntity = enemy->model;
-    if(modelEntity){
-        modelEntity->getWorld()->markForRemoval(modelEntity);
-    }
+
     enemy->moveDirection = glm::vec3(0.0f);
     if (enemy->stateTimer >= 1.5f) {
+        if(auto modelEntity = enemy->model){
+            modelEntity->getWorld()->markForRemoval(modelEntity);
+            modelEntity->parent = nullptr;
+        }
         entity->getWorld()->markForRemoval(entity);
     }
+}
+
+void EnemySystem::onDestroy() {
+    playerEntity = nullptr;
+    enemyCount = 1;
 }
 
 }

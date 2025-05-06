@@ -27,5 +27,8 @@ namespace our {
         movementSpeed = data.value("movementSpeed", movementSpeed);
         stepHeight = data.value("stepHeight", stepHeight);
         detectionRadius = data.value("detectionRadius", detectionRadius);
+        attackRange = data.value("attackRange", attackRange);
+        attackCooldown = data.value("attackCooldown", attackCooldown);
+        distanceToKeep = data.value("distanceToKeep", distanceToKeep);
     }
 }

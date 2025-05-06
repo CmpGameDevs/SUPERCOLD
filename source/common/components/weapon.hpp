@@ -21,8 +21,8 @@ namespace our {
         bool automatic = false;
         float throwForce = 1.0f;
         float bulletSize = 0.2f;
-        float muzzleForwardOffset = 0.15f; 
-        float muzzleRightOffset = -0.4f;  
+        float muzzleForwardOffset = 0.15f;
+        float muzzleRightOffset = -0.4f;
         glm::vec3 weaponPosition = glm::vec3(0.6f, -0.2f, -0.4f);
         glm::quat weaponRotation = glm::identity<glm::quat>();
         glm::quat bulletRotation = glm::identity<glm::quat>();

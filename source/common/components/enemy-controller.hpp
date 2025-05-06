@@ -23,9 +23,9 @@ namespace our {
         std::unique_ptr<btPairCachingGhostObject> detectionArea = nullptr;
         Entity *weapon = nullptr;
         Entity *model = nullptr;
-        float attackRange = 12.0f;
+        float attackRange = 30.0f;
         float attackCooldown = 1.0f;
-        float distanceToKeep = 5.0f;
+        float distanceToKeep = 15.0f;
         EnemyState currentState = EnemyState::PATROLLING;
         glm::vec3 moveDirection = glm::vec3(0.0f);
         glm::vec3 lastKnownPosition = glm::vec3(0.0f);
