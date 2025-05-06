@@ -24,8 +24,8 @@ namespace our {
     }
 
     void EnemyControllerComponent::deserialize(const nlohmann::json& data) {
-        movementSpeed = data.value("movementSpeed", 5.0f);
-        stepHeight = data.value("stepHeight", 0.35f);
-        detectionRadius = data.value("detectionRadius", 5.0f);
+        movementSpeed = data.value("movementSpeed", movementSpeed);
+        stepHeight = data.value("stepHeight", stepHeight);
+        detectionRadius = data.value("detectionRadius", detectionRadius);
     }
 }

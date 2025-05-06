@@ -24,13 +24,13 @@ void EnemySystem::update(World *world, float deltaTime) {
         if (!collision)
             continue;
 
-        _updateAIState(enemy, deltaTime);
-        _handleMovement(enemy, deltaTime);
+        _updateAIState(entity, deltaTime);
+        _handleMovement(entity, deltaTime);
     }
 }
 
 void EnemySystem::_updateAIState(Entity *entity, float deltaTime) {
-
+    auto enemy = entity->getComponent<EnemyControllerComponent>();
     enemy->stateTimer += deltaTime;
 
     switch (enemy->currentState) {
@@ -46,11 +46,11 @@ void EnemySystem::_updateAIState(Entity *entity, float deltaTime) {
         break;
 
     case EnemyState::ATTACKING:
-        _handleAttacking(entity);
+        _handleAttacking(entity, deltaTime);
         break;
 
     case EnemyState::SEARCHING:
-        _handleSearching(entity);
+        _handleSearching(entity, deltaTime);
         break;
     }
 }
@@ -58,15 +58,20 @@ void EnemySystem::_updateAIState(Entity *entity, float deltaTime) {
 void EnemySystem::_handleMovement(Entity *entity, float deltaTime) {
     auto collision = entity->getComponent<CollisionComponent>();
     auto enemy = entity->getComponent<EnemyControllerComponent>();
-    if (!playerEntity || !collision->ghostObject)
+    if (!playerEntity || !collision->ghostObject) return;
 
     glm::vec3 moveDirection = enemy->moveDirection;
 
     // Apply movement through collision system
-    if (glm::length(moveDirection) > 0) {
-        glm::vec3 velocity = moveDirection * enemy->movementSpeed;
-        collisionSystem->moveGhost(entity, velocity, deltaTime);
+    float slowdownFactor = 0.1f;
+    if (enemy->currentState == EnemyState::PATROLLING) {
+        slowdownFactor = 0.05f;
+    } else if (enemy->currentState == EnemyState::CHASING) {
+        slowdownFactor = 0.2f;
     }
+
+    glm::vec3 velocity = moveDirection * enemy->movementSpeed * slowdownFactor;
+    collisionSystem->moveGhost(entity, velocity, deltaTime);
 }
 
 void EnemySystem::_handlePatrolling(Entity *entity) {
@@ -90,7 +95,7 @@ void EnemySystem::_checkPlayerDetection(Entity *entity) {
             if (e == playerEntity && _checkDirectSight(entity)) {
                 // Make the detection area bigger
                 enemy->freeDetectionArea();
-                enemy->detectionArea *= 5.0;
+                enemy->detectionRadius *= 5.0;
                 collisionSystem->createDetectionArea(entity);
 
                 enemy->currentState = EnemyState::CHASING;
@@ -109,7 +114,6 @@ bool EnemySystem::_checkDirectSight(Entity *entity) {
     glm::vec3 rayEnd = playerPosition;
     CollisionComponent *hitComponent = nullptr;
     glm::vec3 hitPoint, hitNormal;
-
     if (collisionSystem->raycast(rayStart, rayEnd, hitComponent, hitPoint, hitNormal)) {
         auto otherEntity = hitComponent->getOwner();
         if (otherEntity != playerEntity) return false;
@@ -124,7 +128,10 @@ void EnemySystem::_handleChasing(Entity *entity) {
     float distance = glm::distance(transform->position, playerTransform->position);
 
     // Don't want the enemy to kiss the player yk
-    if (distance < enemy->distanceToKeep) return;
+    if (distance < enemy->distanceToKeep) {
+        enemy->moveDirection = glm::vec3(0.0f);
+        return;
+    }
 
     glm::vec3 moveDirection = playerTransform->position - transform->position;
     moveDirection.y = 0;
@@ -135,12 +142,13 @@ void EnemySystem::_handleChasing(Entity *entity) {
 }
 
 void EnemySystem::_checkAttackRange(Entity *entity) {
-    if (!playerEntity)
-        return;
+    if (!playerEntity) return;
 
-    auto playerTransform = playerEntity->localTransform;
+    auto enemy = entity->getComponent<EnemyControllerComponent>();
+    Transform* transform = &entity->localTransform;
+    Transform* playerTransform = &playerEntity->localTransform;
 
-    float distance = glm::distance(transform->position, playerTransform.position);
+    float distance = glm::distance(transform->position, playerTransform->position);
     if (distance <= enemy->attackRange) {
         enemy->currentState = EnemyState::ATTACKING;
         enemy->stateTimer = 0.0f;
@@ -152,7 +160,6 @@ void EnemySystem::_handleAttacking(Entity *entity, float deltaTime) {
 
     // TODO: get the weapon of the enemy and use WeaponsSystem.
     Entity* weapon = enemy->weapon;
-    if (!enemy->weapon) return;
 
     if (enemy->stateTimer >= enemy->attackCooldown) {
         enemy->currentState = EnemyState::CHASING;
@@ -185,6 +192,7 @@ void EnemySystem::_checkPlayerLoss(Entity *entity) {
 
 void EnemySystem::_handleSearching(Entity *entity, float deltaTime) {
     auto enemy = entity->getComponent<EnemyControllerComponent>();
+    Transform* transform = &entity->localTransform;
 
     // Move to last known position
     glm::vec3 toLastKnown = enemy->lastKnownPosition - transform->position;
@@ -194,7 +202,7 @@ void EnemySystem::_handleSearching(Entity *entity, float deltaTime) {
         // Return to patrolling after search duration
         // Make the detection area smaller again
         enemy->freeDetectionArea();
-        enemy->detectionArea /= 5.0;
+        enemy->detectionRadius /= 5.0;
         collisionSystem->createDetectionArea(entity);
 
         enemy->currentState = EnemyState::PATROLLING;

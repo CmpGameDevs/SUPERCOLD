@@ -22,6 +22,8 @@ class EnemySystem {
 
     void _handleMovement(Entity *entity, float deltaTime);
 
+    void _handlePatrolling(Entity *entity);
+
     void _checkPlayerDetection(Entity *entity);
 
     bool _checkDirectSight(Entity *entity);
@@ -38,7 +40,7 @@ class EnemySystem {
 
 public:
     static EnemySystem& getInstance() {
-        static EnemySystem isntance;
+        static EnemySystem instance;
         return instance;
     }
 

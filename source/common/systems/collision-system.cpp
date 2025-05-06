@@ -650,14 +650,17 @@ namespace our {
 
     void CollisionSystem::moveGhost(Entity* entity, const glm::vec3& movement, float deltaTime) {
         CollisionComponent *collision = entity->getComponent<CollisionComponent>();
-        FPSControllerComponent *controller = entity->getComponent<FPSControllerComponent>();
-        if (!collision || !collision->ghostObject || !controller || !controller->characterController) return;
+        FPSControllerComponent *playerController = entity->getComponent<FPSControllerComponent>();
+        EnemyControllerComponent *enemyController = entity->getComponent<EnemyControllerComponent>();
+        if (!collision || !collision->ghostObject) return;
+        if (!playerController && !enemyController) return;
+        bool isEnemy = enemyController != nullptr;
         
         btVector3 walk = btVector3(movement.x, movement.y, movement.z);
-        btKinematicCharacterController* characterController = controller->characterController.get();
+        btKinematicCharacterController* characterController = isEnemy ?
+            enemyController->characterController.get() : playerController->characterController.get();
         characterController->setWalkDirection(walk);
-        _pushOverlappingObjects(collision->ghostObject, movement, deltaTime);    // Currently buggy
-
+        _pushOverlappingObjects(collision->ghostObject, movement, deltaTime);
         Transform transform;
         _syncTransforms(entity, collision, &transform);
         entity->localTransform.position = transform.position;
