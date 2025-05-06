@@ -121,6 +121,7 @@ class FPSControllerSystem {
 
     // Handles jumping mechanics
     void handleJump(FPSControllerComponent *controller, float deltaTime) {
+        if(deltaTime <= 0) return;
         btKinematicCharacterController *characterController = controller->characterController.get();
         if (app->getKeyboard().justPressed(GLFW_KEY_SPACE) && isGrounded) {
             float jumpHeight = controller->currentGhostHeight + controller->jumpHeight;
@@ -140,6 +141,7 @@ class FPSControllerSystem {
     // Handles movement based on input
     glm::vec3 handleMovement(const FPSControllerComponent *controller, const float deltaTime) {
         glm::vec3 movementDirection(0.0f);
+        if(deltaTime <= 0) return movementDirection;
 
         glm::mat4 matrix = controller->getOwner()->localTransform.toMat4();
         glm::vec3 front = glm::vec3(matrix * glm::vec4(0, 0, -1, 0));
@@ -170,6 +172,7 @@ class FPSControllerSystem {
     // Applies movement smoothing
     void applyMovementSmoothing(const FPSControllerComponent *controller, const glm::vec3 &movementDirection,
                                 const float deltaTime) {
+        if(deltaTime <= 0) return;
         // Calculate movement speed based on current state
         glm::vec3 currentSensitivity = glm::vec3(controller->positionSensitivity);
 
@@ -195,6 +198,7 @@ class FPSControllerSystem {
     }
 
     void handleCrouching(FPSControllerComponent *controller, Entity *entity, float deltaTime) {
+        if(deltaTime <= 0) return;
         if (isGrounded && app->getKeyboard().justPressed(GLFW_KEY_C)) {
             controller->isCrouching = !controller->isCrouching;
             controller->isCrouchTransitioning = true;
@@ -306,7 +310,8 @@ class FPSControllerSystem {
         }
     }
 
-    void updateTimeScaleVelocity(FPSControllerComponent *controller) {
+    void updateTimeScaleVelocity(FPSControllerComponent *controller, float deltaTime) {
+        if(deltaTime <= 0) return;
         timeScaleVelocity = glm::vec3(currentVelocity.x, verticalVelocity, currentVelocity.z);
         const float EPSILON = 0.2f;
         bool isMoving = glm::length(timeScaleVelocity) > EPSILON;
@@ -316,11 +321,11 @@ class FPSControllerSystem {
             timeScaleVelocity *= controller->crouchSpeedModifier;
     }
 
-    void updateStillTimer(const glm::vec3 &movementDirection, float deltaTime) {
+    void updateStillTimer(const glm::vec3 &movementDirection, float originalDeltaTime) {
         if (!moved)
             return;
         if (glm::length(movementDirection) < NEAR_ZERO) {
-            timeStandingStill += deltaTime;
+            timeStandingStill += originalDeltaTime;
         } else {
             timeStandingStill = 0.0f;
         }
@@ -443,7 +448,7 @@ class FPSControllerSystem {
     float getSpeedMagnitude() { return glm::length(timeScaleVelocity); }
 
     // Updates the FPS controller every frame
-    void update(World *world, float deltaTime) {
+    void update(World *world, float deltaTime, float originalDeltaTime) {
         auto [camera, controller] = findControlledEntity(world);
         if (!(camera && controller))
             return;
@@ -452,7 +457,8 @@ class FPSControllerSystem {
             return;
 
         Entity *entity = camera->getOwner();
-        glm::vec3 &position = entity->localTransform.position;
+
+        glm::vec3 &position = entity->localTransform.position * deltaTime;
         isGrounded = characterController->onGround();
         auto [viewMatrix, projectionMatrix] = getViewAndProjectionMatrix(entity);
 
@@ -465,7 +471,7 @@ class FPSControllerSystem {
         handleStamina(controller, deltaTime);
 
         glm::vec3 movementDirection = handleMovement(controller, deltaTime);
-        updateStillTimer(movementDirection, deltaTime);
+        updateStillTimer(movementDirection, originalDeltaTime);
         applyMovementSmoothing(controller, movementDirection, deltaTime);
         handleJump(controller, deltaTime);
 
@@ -474,7 +480,7 @@ class FPSControllerSystem {
 
         CollisionSystem::getInstance().moveGhost(entity, totalMovement, deltaTime);
 
-        updateTimeScaleVelocity(controller);
+        updateTimeScaleVelocity(controller, deltaTime);
         handleRotation(controller);
 
         handleCrouching(controller, entity, deltaTime);

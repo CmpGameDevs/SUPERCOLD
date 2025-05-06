@@ -162,11 +162,11 @@ class PhysicsTestState : public our::State {
             collisionSystem.toggleDebugMode();
         }
 
-        fpsController.update(&world, (float)deltaTime);
+        fpsController.update(&world, (float)deltaTime, (float)deltaTime);
 
         float speed = fpsController.getSpeedMagnitude();
-        timeScaler.update(speed);
-        timeScale = timeScaler.getTimeScale();
+        timeScaler.updateWorldTimeScale(speed);
+        timeScale = timeScaler.getWorldTimeScale();
         float scaledDeltaTime = (float)deltaTime *  timeScale;
 
         movementSystem.update(&world, scaledDeltaTime);

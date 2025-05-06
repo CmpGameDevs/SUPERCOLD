@@ -110,10 +110,10 @@ class Playstate : public our::State {
         float speed = fpsController.getSpeedMagnitude();
 
         // Update the time scaler based on the speed
-        timeScaler.update(speed);
+        timeScaler.updateWorldTimeScale(speed);
 
         // Get the current time scale
-        timeScale = timeScaler.getTimeScale();
+        timeScale = timeScaler.getWorldTimeScale();
 
         // Apply the time scale to the delta time
         float scaledDeltaTime = (float)deltaTime * (!gameEnded ? timeScale : 1.0f);
@@ -134,6 +134,7 @@ class Playstate : public our::State {
         enemySystem.update(&world, scaledDeltaTime);
 
         // Render the world using the renderer system
+        float playerDeltaTime = deltaTime;
         if (renderer.postprocess) {
             float timeStill = fpsController.getTimeStandingStill();
             float targetIntensity;
@@ -146,12 +147,21 @@ class Playstate : public our::State {
                 // Player moved again, fade out
                 targetIntensity = 0.0f;
             }
-
+            
             float lerpSpeed = 5.0f * deltaTime; // deltaTime is frame time in seconds
             vignetteIntensity += (targetIntensity - vignetteIntensity) * lerpSpeed;
 
+            // Update the FPS controller with the current time scale
+            timeScaler.updatePlayerTimeScale(vignetteIntensity);
+
+            // Get the current player time scale
+            float playerTimeScale = timeScaler.getPlayerTimeScale();
+
+            playerDeltaTime = deltaTime * playerTimeScale;
+
             renderer.postprocess->setEffectParameter("vignetteIntensity", vignetteIntensity);
         }
+
         renderer.render(&world);
 
         // Debug draw the collision world
@@ -162,7 +172,8 @@ class Playstate : public our::State {
         // Handle game ending
         handleGameEnd();
 
-        fpsController.update(&world, scaledDeltaTime);
+        fpsController.update(&world, (float)playerDeltaTime, (float)deltaTime);
+
         // Handle keyboard input (escape key to transition between levels)
         auto &keyboard = getApp()->getKeyboard();
 
