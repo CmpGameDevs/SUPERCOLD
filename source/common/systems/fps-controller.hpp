@@ -483,7 +483,7 @@ class FPSControllerSystem {
 
         Entity *entity = camera->getOwner();
 
-        glm::vec3 &position = entity->localTransform.position * deltaTime;
+        glm::vec3 &position = entity->localTransform.position;
         isGrounded = characterController->onGround();
         auto [viewMatrix, projectionMatrix] = getViewAndProjectionMatrix(entity);
 

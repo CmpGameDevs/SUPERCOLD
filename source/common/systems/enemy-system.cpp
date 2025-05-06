@@ -73,9 +73,9 @@ void EnemySystem::_setPlayerCollisionCallbacks() {
     if (!collision) return;
 
     collision->callbacks.onEnter = [this](Entity *other) {
+        auto player = this->playerEntity->getComponent<FPSControllerComponent>();
         if (other->name == "EnemyProjectile" && !player->isDead) {
             AudioSystem::getInstance().playSpatialSound("death_sound", this->playerEntity, this->playerEntity->localTransform.position, "sfx", false, 1.0f, 100.0f);
-            auto player = this->playerEntity->getComponent<FPSControllerComponent>();
             player->isDead = true;
         }
     };
