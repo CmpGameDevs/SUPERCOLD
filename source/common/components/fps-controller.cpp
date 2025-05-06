@@ -1,7 +1,6 @@
 #include "fps-controller.hpp"
 #include <systems/collision-system.hpp>
 
-
 namespace our {
 
 FPSControllerComponent::~FPSControllerComponent() {
@@ -10,11 +9,19 @@ FPSControllerComponent::~FPSControllerComponent() {
         characterController.reset();
     }
 }
-    
+
 // Reads configuration from the given json object
 void FPSControllerComponent::deserialize(const nlohmann::json &data) {
     if (!data.is_object())
         return;
+
+    // Head bob parameters
+    headBobFrequency = data.value("headBobFrequency", headBobFrequency);
+    headBobAmplitude = data.value("headBobAmplitude", headBobAmplitude);
+    idleBobFrequency = data.value("idleBobFrequency", idleBobFrequency);
+    idleBobAmplitude = data.value("idleBobAmplitude", idleBobAmplitude);
+    sprintBobMultiplier = data.value("sprintBobMultiplier", sprintBobMultiplier);
+    bobEnabled = data.value("BobEnabled", bobEnabled);
 
     // Basic sensitivity settings
     rotationSensitivityX = data.value("rotationSensitivityX", rotationSensitivityX);
@@ -53,3 +60,4 @@ void FPSControllerComponent::deserialize(const nlohmann::json &data) {
 }
 
 } // namespace our
+
