@@ -33,8 +33,9 @@ namespace our {
         }
     }
     
-    bool WeaponsSystem::throwWeapon(World* world, Entity* entity, glm::vec3 forward) {
-        if (!dropWeapon(world, entity)) return false;
+    bool WeaponsSystem::throwWeapon(Entity* entity, glm::vec3 forward) {
+        printf("Throwing weapon\n");
+        if (!dropWeapon(entity)) return false;
         WeaponComponent* weapon = entity->getComponent<WeaponComponent>();
         glm::vec3 throwDirection = forward * 10.0f * weapon->throwForce;
         CollisionSystem::getInstance().applyVelocity(entity, throwDirection);
@@ -45,7 +46,7 @@ namespace our {
         return true;
     }
     
-    bool WeaponsSystem::dropWeapon(World* world, Entity* entity) {
+    bool WeaponsSystem::dropWeapon(Entity* entity) {
         if (!entity) return false;
         WeaponComponent* weapon = entity->getComponent<WeaponComponent>();
         if (!weapon) return false;
@@ -60,7 +61,7 @@ namespace our {
         return true;
     }
     
-    bool WeaponsSystem::reloadWeapon(World* world, Entity* entity) {
+    bool WeaponsSystem::reloadWeapon(Entity* entity) {
         if (!entity) return false;
         WeaponComponent* weapon = entity->getComponent<WeaponComponent>();
         if (!weapon) return false;
@@ -90,10 +91,11 @@ namespace our {
         weapon->currentAmmo--;
         glm::vec3 globalPosition = entity->getLocalToWorldMatrix()[3];
         AudioSystem::getInstance().playSpatialSound("gunshot", entity, globalPosition, "sfx", false, 1.0f, 100.0f);
+        weapon->fireCooldown = weapon->fireRate;
         return true;
     }
     
-    bool WeaponsSystem::pickupWeapon(World* world, Entity* entity, Entity* weaponEntity) {
+    bool WeaponsSystem::pickupWeapon(Entity* entity, Entity* weaponEntity) {
         if (!entity || !weaponEntity) return false;
         WeaponComponent* weapon = weaponEntity->getComponent<WeaponComponent>();
         if (!weapon) return false;
@@ -119,7 +121,16 @@ namespace our {
     }
 
     Component *WeaponsSystem::_addCollisionComponent(Entity* entity) {
-        CollisionComponent* collision = static_cast<CollisionComponent*>(weaponsMap[entity]);
+        CollisionComponent* collision = nullptr;
+        if (weaponsMap.count(entity)) {
+            collision = static_cast<CollisionComponent*>(weaponsMap[entity]);
+        } else {
+            collision = new CollisionComponent();
+            collision->shape = CollisionShape::COMPOUND;
+            collision->loadModel(entity->name);
+            collision->mass = 1.0f;
+        }
+
         glm::mat4 worldMatrix = entity->getLocalToWorldMatrix();
         Transform transform;
         transform.position = glm::vec3(worldMatrix[3]);
@@ -178,7 +189,7 @@ namespace our {
         }
 
         movement->linearVelocity = bulletDirection * speed;
-        
+
         CollisionComponent* collision = projectileEntity->addComponent<CollisionComponent>();
         if(weapon->model){
             ModelComponent* modelRenderer = projectileEntity->addComponent<ModelComponent>();

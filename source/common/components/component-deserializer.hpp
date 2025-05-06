@@ -10,6 +10,7 @@
 #include "model-renderer.hpp"
 #include "audio.hpp"
 #include "weapon.hpp"
+#include "enemy-controller.hpp"
 
 namespace our {
 
@@ -37,6 +38,8 @@ inline void deserializeComponent(const nlohmann::json &data, Entity *entity) {
         component = entity->addComponent<AudioComponent>();
     } else if (type == WeaponComponent::getID()) {
         component = entity->addComponent<WeaponComponent>();
+    } else if (type == EnemyControllerComponent::getID()) {
+        component = entity->addComponent<EnemyControllerComponent>();
     }
 
     if (component)

@@ -120,7 +120,7 @@ class FPSControllerSystem {
 
     // Handles jumping mechanics
     void handleJump(FPSControllerComponent *controller, float deltaTime) {
-        btKinematicCharacterController *characterController = controller->characterController;
+        btKinematicCharacterController* characterController = controller->characterController.get();
         if (app->getKeyboard().justPressed(GLFW_KEY_SPACE) && isGrounded) {
             float jumpHeight = controller->currentGhostHeight + controller->jumpHeight;
             verticalVelocity = sqrt(2.0f * controller->gravity * jumpHeight);
@@ -301,18 +301,17 @@ class FPSControllerSystem {
             if (!hasWeapon)
                 return;
 
-            if (controller->pickedEntity)
-                WeaponsSystem::getInstance().dropWeapon(entity->getWorld(), controller->pickedEntity);
+            if (controller->pickedEntity && WeaponsSystem::getInstance().dropWeapon(controller->pickedEntity))
+                controller->pickedEntity = nullptr;
 
-            if (weapon && WeaponsSystem::getInstance().pickupWeapon(entity->getWorld(), entity, weapon->getOwner()))
+            if (weapon && WeaponsSystem::getInstance().pickupWeapon(entity, weapon->getOwner()))
                 controller->pickedEntity = weapon->getOwner();
 
         } else if (app->getKeyboard().justPressed(GLFW_KEY_Q)) {
             if (controller->pickedEntity) {
                 auto cameraMatrix = entity->getLocalToWorldMatrix();
                 glm::vec3 cameraForward = -glm::normalize(glm::vec3(cameraMatrix[2]));
-                if (WeaponsSystem::getInstance().throwWeapon(entity->getWorld(), controller->pickedEntity,
-                                                             cameraForward))
+                if (WeaponsSystem::getInstance().throwWeapon(controller->pickedEntity, cameraForward))
                     controller->pickedEntity = nullptr;
             }
         }
@@ -352,11 +351,10 @@ class FPSControllerSystem {
         if (isShooting) {
             glm::vec3 cameraForward = -glm::normalize(glm::vec3(entity->getLocalToWorldMatrix()[2]));
 
-            if (WeaponsSystem::getInstance().fireWeapon(entity->getWorld(), controller->pickedEntity, cameraForward,
-                                                        viewMatrix, projectionMatrix))
-                weapon->fireCooldown = weapon->fireRate;
+            WeaponsSystem::getInstance().fireWeapon(entity->getWorld(), controller->pickedEntity, cameraForward, viewMatrix, projectionMatrix);
+
         } else if (app->getKeyboard().justPressed(GLFW_KEY_R)) {
-            WeaponsSystem::getInstance().reloadWeapon(entity->getWorld(), controller->pickedEntity);
+            WeaponsSystem::getInstance().reloadWeapon(controller->pickedEntity);
         }
     }
 
@@ -373,11 +371,9 @@ class FPSControllerSystem {
     // Updates the FPS controller every frame
     void update(World *world, float deltaTime) {
         auto [camera, controller] = findControlledEntity(world);
-        if (!(camera && controller))
-            return;
-        auto characterController = controller->characterController;
-        if (!characterController)
-            return;
+        if (!(camera && controller)) return;
+        auto characterController = controller->characterController.get();
+        if (!characterController) return;
 
         Entity *entity = camera->getOwner();
         glm::vec3 &position = entity->localTransform.position;

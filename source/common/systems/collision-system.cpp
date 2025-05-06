@@ -2,6 +2,7 @@
 #include "collision-system.hpp"
 #include "../ecs/transform.hpp"
 #include <components/fps-controller.hpp>
+#include <components/enemy-controller.hpp>
 #include <btBulletDynamicsCommon.h>
 #include <BulletCollision/CollisionShapes/btShapeHull.h>
 #include <BulletCollision/CollisionDispatch/btGhostObject.h>
@@ -94,6 +95,14 @@ namespace our {
                 localTransform->rotation = transform.rotation;
                 localTransform->scale = transform.scale;
             }
+
+            if (auto enemy = entity->getComponent<EnemyControllerComponent>()) {
+                if (enemy->detectionArea && collision->ghostObject) {
+                    enemy->detectionArea->setWorldTransform(
+                        collision->ghostObject->getWorldTransform()
+                    );
+                }
+            }
         }
     }
 
@@ -140,8 +149,12 @@ namespace our {
 
     void CollisionSystem::_createGhostObject(Entity* entity, CollisionComponent* collision, const Transform* transform) {
         if (collision->ghostObject) return;
-        FPSControllerComponent *controller = entity->getComponent<FPSControllerComponent>();
-        if (!controller) return;
+        FPSControllerComponent *playerController = entity->getComponent<FPSControllerComponent>();
+        EnemyControllerComponent *enemyController = entity->getComponent<EnemyControllerComponent>();
+        if (!playerController && !enemyController) return;
+
+        bool isEnemy = enemyController != nullptr;
+        btScalar stepHeight = isEnemy ? enemyController->stepHeight : playerController->stepHeight;
 
         btCollisionShape* shape = new btCapsuleShapeZ(
             collision->halfExtents.x,
@@ -165,21 +178,45 @@ namespace our {
             btBroadphaseProxy::CharacterFilter,
             btBroadphaseProxy::DefaultFilter |
             btBroadphaseProxy::StaticFilter |
-            btBroadphaseProxy::KinematicFilter
+            btBroadphaseProxy::KinematicFilter |
+            btBroadphaseProxy::CharacterFilter |
+            btBroadphaseProxy::SensorTrigger
         );
 
-        btScalar stepHeight = 0.35f;
-        auto* characterController = new btKinematicCharacterController(
+        auto characterController = std::make_unique<btKinematicCharacterController>(
             ghost,
             static_cast<btConvexShape*>(shape),
             stepHeight,
             btVector3(0, 1, 0)
         );
 
-        physicsWorld->addAction(characterController);
+        physicsWorld->addAction(characterController.get());
         physicsWorld->updateSingleAabb(ghost);
+        
         collision->ghostObject = ghost;
-        controller->characterController = characterController;
+        if (isEnemy) {
+            enemyController->characterController = std::move(characterController);
+        } else {
+            playerController->characterController = std::move(characterController);
+        }
+    }
+
+    void CollisionSystem::createDetectionArea(Entity* entity) {
+        auto* enemyController = entity->getComponent<EnemyControllerComponent>();
+        auto* collision = entity->getComponent<CollisionComponent>();
+        if (!enemyController || !collision->ghostObject) return;
+
+        btPairCachingGhostObject* ghost = new btPairCachingGhostObject();
+        ghost->setCollisionShape(new btSphereShape(enemyController->detectionRadius));
+        ghost->setUserPointer(entity);
+        ghost->setWorldTransform(collision->ghostObject->getWorldTransform());
+        ghost->setCollisionFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
+        physicsWorld->addCollisionObject(
+            ghost,
+            btBroadphaseProxy::SensorTrigger,
+            btBroadphaseProxy::CharacterFilter
+        );
+        enemyController->detectionArea.reset(ghost);
     }
 
     btCollisionShape* CollisionSystem::_createCompoundShape(CollisionComponent* collision, const Transform* transform) {
@@ -301,7 +338,7 @@ namespace our {
 
         int collisionGroup = collision->isKinematic ? btBroadphaseProxy::KinematicFilter : 
                      (collision->mass > 0 ? btBroadphaseProxy::DefaultFilter : btBroadphaseProxy::StaticFilter);
-        int collisionMask = collision->isKinematic ? (btBroadphaseProxy::StaticFilter | btBroadphaseProxy::DefaultFilter) :
+        int collisionMask = collision->isKinematic ? (btBroadphaseProxy::StaticFilter | btBroadphaseProxy::DefaultFilter | btBroadphaseProxy::CharacterFilter) :
                      (btBroadphaseProxy::AllFilter);
         physicsWorld->addRigidBody(collision->bulletBody, collisionGroup, collisionMask);
     }
@@ -613,14 +650,17 @@ namespace our {
 
     void CollisionSystem::moveGhost(Entity* entity, const glm::vec3& movement, float deltaTime) {
         CollisionComponent *collision = entity->getComponent<CollisionComponent>();
-        FPSControllerComponent *controller = entity->getComponent<FPSControllerComponent>();
-        if (!collision || !collision->ghostObject || !controller || !controller->characterController) return;
+        FPSControllerComponent *playerController = entity->getComponent<FPSControllerComponent>();
+        EnemyControllerComponent *enemyController = entity->getComponent<EnemyControllerComponent>();
+        if (!collision || !collision->ghostObject) return;
+        if (!playerController && !enemyController) return;
+        bool isEnemy = enemyController != nullptr;
         
         btVector3 walk = btVector3(movement.x, movement.y, movement.z);
-        btKinematicCharacterController* characterController = controller->characterController;
+        btKinematicCharacterController* characterController = isEnemy ?
+            enemyController->characterController.get() : playerController->characterController.get();
         characterController->setWalkDirection(walk);
-        _pushOverlappingObjects(collision->ghostObject, movement, deltaTime);    // Currently buggy
-
+        _pushOverlappingObjects(collision->ghostObject, movement, deltaTime);
         Transform transform;
         _syncTransforms(entity, collision, &transform);
         entity->localTransform.position = transform.position;

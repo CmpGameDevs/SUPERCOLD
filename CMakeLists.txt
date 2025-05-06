@@ -120,6 +120,8 @@ set(COMMON_SOURCES
         source/common/components/free-camera-controller.cpp
         source/common/components/fps-controller.hpp
         source/common/components/fps-controller.cpp
+        source/common/components/enemy-controller.hpp
+        source/common/components/enemy-controller.cpp
         source/common/components/movement.hpp
         source/common/components/movement.cpp
         source/common/components/collision.cpp
@@ -143,6 +145,8 @@ set(COMMON_SOURCES
         source/common/systems/collision-system.cpp
         source/common/systems/weapons-system.hpp
         source/common/systems/weapons-system.cpp
+        source/common/systems/enemy-system.hpp
+        source/common/systems/enemy-system.cpp
         source/common/systems/forward-renderer.hpp
         source/common/systems/forward-renderer.cpp
         source/common/systems/free-camera-controller.hpp

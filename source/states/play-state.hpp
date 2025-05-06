@@ -9,6 +9,10 @@
 #include <systems/fps-controller.hpp>
 #include <systems/movement.hpp>
 #include <systems/text-renderer.hpp>
+#include <systems/audio-system.hpp>
+#include <systems/movement.hpp>
+#include <systems/enemy-system.hpp>
+
 
 class Playstate : public our::State {
     static bool initialized;
@@ -22,6 +26,7 @@ class Playstate : public our::State {
     float timeScale;
     our::TextRenderer &textRenderer = our::TextRenderer::getInstance();
     our::AudioSystem &audioSystem = our::AudioSystem::getInstance();
+    our::EnemySystem &enemySystem = our::EnemySystem::getInstance();
 
     void initializeGame() {
         //Only initialize the game one time
@@ -57,6 +62,7 @@ class Playstate : public our::State {
         textRenderer.initialize(windowSize.x, windowSize.y);
 
         audioSystem.initialize(getApp()->getAudioContext());
+        enemySystem.setCollisionSystem();
     }
 
     void onInitialize() override {
@@ -93,9 +99,8 @@ class Playstate : public our::State {
         timeScale = timeScaler.getTimeScale();
 
         // Apply the time scale to the delta time
-
         float scaledDeltaTime = (float)deltaTime * timeScale;
-
+        
         // Update the audio system
         audioSystem.update(&world, scaledDeltaTime);
 
@@ -107,6 +112,9 @@ class Playstate : public our::State {
 
         // Update the weapons system
         weaponsSystem.update(&world, scaledDeltaTime);
+
+        // Update the enemies system
+        enemySystem.update(&world, scaledDeltaTime);
 
         // Render the world using the renderer system
         if (renderer.postprocess) {

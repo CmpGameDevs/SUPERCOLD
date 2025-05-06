@@ -156,7 +156,10 @@ public:
 
     // Create a rigid body for the entity based on its collision component and transform
     void createRigidBody(Entity* entity, CollisionComponent* collision, const Transform* transform);
-    
+
+    // Create a pair caching ghost object for the entity based on its collision component and transform
+    void createDetectionArea(Entity* entity);
+
     // Update entity transforms and physics simulation
     void update(World* world, float deltaTime);
 

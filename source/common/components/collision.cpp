@@ -78,27 +78,7 @@ namespace our {
             }
             else if(shapeStr == "model") {
                 shape = CollisionShape::COMPOUND;
-                Model* model = AssetLoader<Model>::get(data["model"].get<std::string>());
-                // Add each mesh as a child shape
-                for(unsigned int i = 0; i < model->meshRenderers.size(); i++) {
-                    Mesh* mesh = model->meshRenderers[i]->mesh;
-                    glm::mat4 meshWorldMatrix = model->matricesMeshes[i];
-                    
-                    CollisionComponent::ChildShape childShape;
-                    childShape.shape = CollisionShape::MESH;
-                    childShape.vertices.reserve(mesh->cpuVertices.size());
-                    
-                    // Transform vertices to mesh-local space
-                    for(const auto& vertex : mesh->cpuVertices) {
-                        Vertex transformedVertex = vertex;
-                        glm::vec4 transformedPos = meshWorldMatrix * glm::vec4(vertex.position, 1.0f);
-                        transformedVertex.position = glm::vec3(transformedPos);
-                        childShape.vertices.push_back(transformedVertex);
-                    }
-                    
-                    childShape.indices = mesh->cpuIndices;
-                    childShapes.push_back(childShape);
-                }
+                loadModel(data["model"].get<std::string>());
             }
             else if(shapeStr == "ghost") shape = CollisionShape::GHOST;
             else {
@@ -116,6 +96,30 @@ namespace our {
             halfExtents.x = data["halfExtents"][0].get<float>();
             halfExtents.y = data["halfExtents"][1].get<float>();
             halfExtents.z = data["halfExtents"][2].get<float>();
+        }
+    }
+
+    void CollisionComponent::loadModel(const std::string& modelPath) {
+        Model* model = AssetLoader<Model>::get(modelPath);
+        // Add each mesh as a child shape
+        for(unsigned int i = 0; i < model->meshRenderers.size(); i++) {
+            Mesh* mesh = model->meshRenderers[i]->mesh;
+            glm::mat4 meshWorldMatrix = model->matricesMeshes[i];
+            
+            CollisionComponent::ChildShape childShape;
+            childShape.shape = CollisionShape::MESH;
+            childShape.vertices.reserve(mesh->cpuVertices.size());
+            
+            // Transform vertices to mesh-local space
+            for(const auto& vertex : mesh->cpuVertices) {
+                Vertex transformedVertex = vertex;
+                glm::vec4 transformedPos = meshWorldMatrix * glm::vec4(vertex.position, 1.0f);
+                transformedVertex.position = glm::vec3(transformedPos);
+                childShape.vertices.push_back(transformedVertex);
+            }
+            
+            childShape.indices = mesh->cpuIndices;
+            childShapes.push_back(childShape);
         }
     }
     
