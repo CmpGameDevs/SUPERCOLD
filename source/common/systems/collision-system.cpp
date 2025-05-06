@@ -649,6 +649,7 @@ namespace our {
     }
 
     void CollisionSystem::moveGhost(Entity* entity, const glm::vec3& movement, float deltaTime) {
+        if(deltaTime <= 0.0f) return;
         CollisionComponent *collision = entity->getComponent<CollisionComponent>();
         FPSControllerComponent *playerController = entity->getComponent<FPSControllerComponent>();
         EnemyControllerComponent *enemyController = entity->getComponent<EnemyControllerComponent>();
