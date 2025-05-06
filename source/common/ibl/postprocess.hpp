@@ -38,6 +38,16 @@ namespace our{
 
         FullscreenQuad* fullscreenQuad;
 
+        // Vignette effect parameters
+        bool vignetteEnabled = false;
+        float vignetteIntensity = 0.5f;
+        glm::vec3 vignetteColor = glm::vec3(0.0f, 0.0f, 0.0f);
+        Texture2D* freezeFrameTexture = nullptr;
+        Sampler* freezeFrameSampler = nullptr;
+
+        // For dynamic effect control
+        std::unordered_map<std::string, float*> effectParameters;
+
     private:
         void renderBloom();
         void createBloom();
@@ -49,6 +59,10 @@ namespace our{
         void unbind();
         void renderPostProcess();
         float getBloomBrightnessCutoff() const { return bloomBrightnessCutoff; }    
+
+        // Method to get/set effect parameters at runtime
+        void setEffectParameter(const std::string& paramName, float value);
+        float getEffectParameter(const std::string& paramName) const;
 
     };
 }

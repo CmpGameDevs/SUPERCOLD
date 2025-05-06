@@ -18,6 +18,40 @@ namespace our
         gammaCorrectionFactor = config.value("gammaCorrectionFactor", 2.2f);
         bloomBrightnessCutoff = config.value("bloomBrightnessCutoff", 1.0f);
 
+        // Add vignette effect parameters
+        vignetteEnabled = config.value("vignetteEnabled", false);
+        vignetteIntensity = config.value("vignetteIntensity", 0.5f);
+
+        effectParameters["bloomIntensity"] = &bloomIntensity;
+        effectParameters["vignetteIntensity"] = &vignetteIntensity;
+        effectParameters["gammaCorrectionFactor"] = &gammaCorrectionFactor;
+
+        // Parse vignette color if provided
+        if (config.contains("vignetteColor")) {
+            auto colorConfig = config["vignetteColor"];
+            if (colorConfig.is_array() && colorConfig.size() == 3) {
+                vignetteColor = glm::vec3(
+                    colorConfig[0].get<float>(),
+                    colorConfig[1].get<float>(),
+                    colorConfig[2].get<float>()
+                );
+            }
+        }
+
+        // Parse Freeze texture
+        if (config.contains("freezeFrameTexture")) {
+            auto freezeFrameConfig = config["freezeFrameTexture"];
+            if (freezeFrameConfig.is_string()) {
+                freezeFrameTexture = our::AssetLoader<our::Texture2D>::get(freezeFrameConfig.get<std::string>());
+
+                freezeFrameSampler = new Sampler();
+                freezeFrameSampler->set(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                freezeFrameSampler->set(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                freezeFrameSampler->set(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+                freezeFrameSampler->set(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            }
+        }
+
         // Create the bloom shader
         bloomShader = our::AssetLoader<our::ShaderProgram>::get("bloom");
 
@@ -231,6 +265,12 @@ namespace our
         postprocessMaterial->shader->set("bloomIntensity", bloomIntensity);
         postprocessMaterial->shader->set("tonemappingEnabled", tonemappingEnabled);
         postprocessMaterial->shader->set("gammaCorrectionFactor", gammaCorrectionFactor);
+
+        // Vintage
+        postprocessMaterial->shader->set("vignetteEnabled", vignetteEnabled);
+        postprocessMaterial->shader->set("vignetteIntensity", vignetteIntensity);
+        postprocessMaterial->shader->set("vignetteColor", vignetteColor);
+        postprocessMaterial->shader->set("screenSize", glm::vec2(windowSize.x, windowSize.y));
         
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, colorTarget->getOpenGLName());
@@ -241,6 +281,18 @@ namespace our
             glBindTexture(GL_TEXTURE_2D, bloomBuffers[bloomFramebufferResult]->getColorTextureId());
             postprocessMaterial->shader->set("bloomTexture", 1);
         }
+
+       // Bind freeze frame texture if available and enabled
+        if (freezeFrameTexture){
+            glActiveTexture(GL_TEXTURE2);
+            freezeFrameTexture->bind();
+            if(freezeFrameSampler) freezeFrameSampler->bind(2);
+            postprocessMaterial->shader->set("freezeFrameTexture", 2);
+            postprocessMaterial->shader->set("hasFrameTexture", true);
+        } else {
+            postprocessMaterial->shader->set("hasFrameTexture", false);
+        }
+
         
         // ! WE NOW DO THIS IN THE FULLSCREEN QUAD CLASS
         // glBindVertexArray(postProcessVertexArray);
@@ -249,4 +301,23 @@ namespace our
         fullscreenQuad->Draw();
     }
 
+    void PostProcess::setEffectParameter(const std::string& paramName, float value)
+    {
+        auto it = effectParameters.find(paramName);
+        if (it != effectParameters.end()) {
+            *(it->second) = value;
+        }
+    }
+
+    float PostProcess::getEffectParameter(const std::string& paramName) const
+    {
+        auto it = effectParameters.find(paramName);
+        if (it != effectParameters.end()) {
+            return *(it->second);
+        }
+        return 0.0f;
+    }
+
 }
+
+
