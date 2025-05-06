@@ -2,7 +2,7 @@
 #include <fstream>
 #include <flags/flags.h>
 #include <json/json.hpp>
-
+#include <filesystem>
 #include <application.hpp>
 #include <string>
 #include "states/menu-state.hpp"
@@ -18,6 +18,7 @@
 #include "states/renderer-test-state.hpp"
 #include "states/light-test-state.hpp"
 #include "states/physics-test-state.hpp"
+namespace fs = std::filesystem;
 
 std::vector<nlohmann::json> parseLevels(int levels_count) {
     std::vector<nlohmann::json> levels;
@@ -57,7 +58,17 @@ int main(int argc, char** argv) {
 
     file_in.close();
 
-    int levels_count = 3;
+
+    int levels_count = 0;
+    try {
+        for (const auto& entry : fs::directory_iterator("config/levels")) {
+            if (entry.is_regular_file())
+                levels_count++;
+        }
+    } catch (const fs::filesystem_error& e) {
+        std::cerr << "Error accessing directory: " << e.what() << std::endl;
+        return -1;
+    }
 
     std::vector<nlohmann::json> levels_configs = parseLevels(levels_count);
 

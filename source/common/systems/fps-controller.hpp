@@ -413,12 +413,8 @@ class FPSControllerSystem {
             return {glm::mat4(1.0f), glm::mat4(1.0f)};
         auto cameraMatrix = entity->getLocalToWorldMatrix();
         auto viewMatrix = glm::inverse(cameraMatrix);
-        printf("Camera matrix: %f %f %f %f\n", cameraMatrix[0][0], cameraMatrix[1][0], cameraMatrix[2][0],
-               cameraMatrix[3][0]);
         auto windowSize = app->getWindowSize();
-        printf("Window size: %f %f\n", windowSize.x, windowSize.y);
         glm::vec2 viewPortSize = glm::vec2(windowSize.x, windowSize.y);
-        printf("View port size: %f %f\n", viewPortSize.x, viewPortSize.y);
         auto projectionMatrix = camera->getProjectionMatrix(viewPortSize);
         return {viewMatrix, projectionMatrix};
     }

@@ -19,7 +19,7 @@
         "renderer": {
             "hdr": {
                 "enable": true,
-                "hdr_texture": "circus_backstage",
+                "hdr_texture": "green_space",
                 "maxMipLevels": 5
             },
             "postprocess": {
@@ -29,14 +29,14 @@
                 "freezeFrameTexture": "frost",
 
                 "bloomEnabled": true,
-                "bloomIntensity": 2,
-                "bloomIterations": 70,
+                "bloomIntensity": 0.5,
+                "bloomIterations": 50,
                 "bloomDirection": 0,
                 "tonemappingEnabled": false,
                 "gammaCorrectionFactor": 1,
-                "bloomBrightnessCutoff": 0.1,
+                "bloomBrightnessCutoff": 0.5,
 
-                "motionBlurEnabled": true,
+                "motionBlurEnabled": false,
                 "motionBlurStrength": 0.1,
                 "motionBlurSamples": 8,
                 "motionDirection": [0.7, 0.7]
@@ -131,6 +131,9 @@
             },
             "models":{
                 "city": "assets/models/city/scene.gltf",
+                "level2_floor": "assets/models/level2/floor/scene.gltf",
+                "level2_base": "assets/models/level2/tv1/scene.gltf",
+                "level2_ceil": "assets/models/level2/ceil/scene.gltf",
                 "gun": "assets/models/gun_leonel/scene.gltf",
                 "bullet": "assets/models/bullet/scene.gltf",
                 "ace_pistol": "assets/models/ace_pistol/scene.gltf",

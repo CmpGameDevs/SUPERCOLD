@@ -35,7 +35,6 @@ namespace our {
     }
     
     bool WeaponsSystem::throwWeapon(Entity* entity, glm::vec3 forward) {
-        printf("Throwing weapon\n");
         if (!dropWeapon(entity)) return false;
         WeaponComponent* weapon = entity->getComponent<WeaponComponent>();
         glm::vec3 throwDirection = forward * 10.0f * weapon->throwForce;

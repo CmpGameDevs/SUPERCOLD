@@ -1,5 +1,4 @@
 #include "model.hpp"
-
 namespace our {
 
 void Model::draw(CameraComponent* camera, glm::mat4 localToWorld, glm::ivec2 windowSize, float bloomBrightnessCutoff)
@@ -249,12 +248,12 @@ void Model::loadMaterials() {
 
             // Metallic factor
             if (pbr.find("metallicFactor") != pbr.end()) {
-                mat->metallic = pbr["metallicFactor"];
+                mat->metallic = std::max(pbr["metallicFactor"].get<float>(), 0.2f);
             }
 
             // Roughness factor
             if (pbr.find("roughnessFactor") != pbr.end()) {
-                mat->roughness = pbr["roughnessFactor"];
+                mat->roughness = std::max(pbr["roughnessFactor"].get<float>(), 0.2f);
             }
         }
 
@@ -336,7 +335,20 @@ void Model::loadModel(std::string path) {
     // Load the materials
     loadMaterials();
 
-    traverseNode(0, glm::mat4(1.0f));
+    unsigned int sceneIndex = 0;
+    if (JSON.contains("scene")) {
+        sceneIndex = JSON["scene"].get<int>();
+    }
+
+    const json& sceneNodes = JSON["scenes"][sceneIndex]["nodes"];
+
+    for (unsigned int i = 0; i < sceneNodes.size(); i++) {
+        unsigned int nodeIndex = sceneNodes[i];
+        traverseNode(nodeIndex, glm::mat4(1.0f));
+    }
+    
+
+    // traverseNode(0, glm::mat4(1.0f));
 }
 
 void Model::traverseNode(unsigned int nextNode, glm::mat4 matrix) {

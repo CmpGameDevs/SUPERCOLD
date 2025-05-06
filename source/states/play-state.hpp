@@ -107,7 +107,7 @@ class Playstate : public our::State {
     }
 
     void onDraw(double deltaTime) override {
-        std::string backgroundTrack = "level_" + std::to_string(getApp()->getLevelIndex());
+        std::string backgroundTrack = "level_" + std::to_string(getApp()->getLevelIndex() % 3 + 1);
         audioSystem.playBackgroundMusic(backgroundTrack, 0.2f, "music");
 
         // Get speed magnitude from FPS controller
