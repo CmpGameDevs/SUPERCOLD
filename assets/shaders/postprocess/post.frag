@@ -6,6 +6,13 @@ in vec2 tex_coord;
 uniform sampler2D colorTexture;
 uniform sampler2D bloomTexture;
 
+uniform sampler2D previousFrameTexture;  // For motion blur
+
+uniform sampler2D depthTexture;   // Add depth texture sampler
+uniform mat4 viewProjectionMatrix;
+uniform mat4 previousViewProjectionMatrix;
+uniform mat4 viewProjectionInverseMatrix;
+
 // for freeze effect
 uniform sampler2D freezeFrameTexture;
 uniform bool hasFrameTexture = false;
@@ -20,6 +27,13 @@ uniform bool vignetteEnabled = false;
 uniform float vignetteIntensity = 0.5;
 uniform vec3 vignetteColor = vec3(0.0, 0.0, 0.0);
 uniform vec2 screenSize = vec2(800, 600);
+
+// Motion Blue effects
+uniform bool motionBlurEnabled = false;
+uniform float motionBlurStrength = 0.5;
+uniform int motionBlurSamples = 5;
+uniform vec2 motionDirection = vec2(1.0, 0.0);
+
 
 // Apply vignette effect
 vec3 applyVignette(vec3 color, vec2 uv) {
@@ -60,6 +74,53 @@ vec3 applyFreezeEffect(vec3 color) {
     return highlight;
 }
 
+
+// Apply motion blur effect
+vec3 applyMotionBlur(vec3 currentColor) {
+    if (!motionBlurEnabled || motionBlurStrength <= 0.0) return currentColor;
+    
+    // Get the depth buffer value at this pixel
+    float zOverW = texture(depthTexture, tex_coord).r;
+    
+    // Calculate viewport position
+    vec4 H = vec4(tex_coord.x * 2.0 - 1.0, 
+                  (1.0 - tex_coord.y) * 2.0 - 1.0,
+                  zOverW,
+                  1.0);
+                  
+    // Transform by the view-projection inverse to get world position
+    vec4 D = viewProjectionInverseMatrix * H;
+    vec4 worldPos = D / D.w;
+    
+    // Current viewport position
+    vec4 currentPos = H;
+    
+    // Get previous frame position
+    vec4 previousPos = previousViewProjectionMatrix * worldPos;
+    previousPos /= previousPos.w;
+    
+    // Compute velocity vector
+    vec2 velocity = (currentPos.xy - previousPos.xy) * motionBlurStrength * 0.5;
+    
+    // Accumulate samples
+    vec3 color = currentColor;
+    float samples = 1.0;
+    
+    // Sample along velocity vector
+    for(int i = 1; i < motionBlurSamples; ++i) {
+        vec2 offset = velocity * (float(i) / float(motionBlurSamples));
+        vec2 sampleCoord = tex_coord + offset;
+        
+        if(sampleCoord.x >= 0.0 && sampleCoord.x <= 1.0 && 
+           sampleCoord.y >= 0.0 && sampleCoord.y <= 1.0) {
+            color += texture(colorTexture, sampleCoord).rgb;
+            samples += 1.0;
+        }
+    }
+    
+    return color / samples;
+}
+
 void main() {
 	vec3 color = texture(colorTexture, tex_coord).rgb;
 
@@ -72,6 +133,12 @@ void main() {
 
 		color += bloomColor * bloomIntensity;
 	}
+
+    // Apply motion blur
+    // NOTE: keep it before freeze effect.
+    if (motionBlurEnabled) {
+        color = applyMotionBlur(color);
+    }
 
 	if (vignetteEnabled) {
 		color = applyVignette(color, tex_coord); // Apply vignette effect
