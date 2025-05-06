@@ -18,6 +18,8 @@ class EnemySystem {
 
     void _setEnemyWeapon(Entity *entity, Entity *weaponEntity);
 
+    void _setEnemyModel(Entity *entity, Entity *modelEntity);
+
     void _setCollisionCallbacks(Entity *entity);
 
     void _updateAIState(Entity *entity, float deltaTime);
