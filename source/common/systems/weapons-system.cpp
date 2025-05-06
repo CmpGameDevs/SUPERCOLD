@@ -5,7 +5,6 @@
 #include <systems/collision-system.hpp>
 #include <components/model-renderer.hpp>
 #include <systems/movement.hpp>
-#include <components/crosshair.hpp>
 #include <systems/audio-system.hpp>
 
 namespace our {
@@ -42,7 +41,6 @@ namespace our {
         weaponsMap.erase(entity);
         glm::vec3 globalPosition = entity->getLocalToWorldMatrix()[3];
         AudioSystem::getInstance().playSpatialSound("throwing", entity, globalPosition, "sfx", false, 1.0f, 100.0f);
-        Crosshair::getInstance()->setVisiblity(false);
         return true;
     }
     
@@ -57,7 +55,6 @@ namespace our {
         entity->localTransform.scale = glm::vec3(glm::length(worldMatrix[0]), glm::length(worldMatrix[1]), glm::length(worldMatrix[2]));
         CollisionComponent* collision = static_cast<CollisionComponent*>(_addCollisionComponent(entity));
         weaponsMap.erase(entity);
-        Crosshair::getInstance()->setVisiblity(false);
         return true;
     }
     
@@ -103,7 +100,6 @@ namespace our {
         weaponEntity->parent = entity;
         weaponEntity->localTransform.position = weapon->weaponPosition;
         weaponEntity->localTransform.rotation = weapon->weaponRotation;
-        Crosshair::getInstance()->setVisiblity(true);
         return true;
     }
     

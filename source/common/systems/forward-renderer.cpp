@@ -262,8 +262,7 @@ void ForwardRenderer::render(World *world) {
         postprocess->updatePreviousViewProjectionMatrix();
     }
 
-    if(crosshair->isVisible())
-    {
+    if(crosshair) {
         crosshair->render();
     }
 

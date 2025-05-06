@@ -48,6 +48,7 @@ class FPSControllerSystem {
     float verticalVelocity = 0.0f;
     bool isGrounded = true;
     float timeStandingStill = 0.0f;
+    bool moved = false;
 
     // Helper function to find the controlled entity
     std::pair<CameraComponent *, FPSControllerComponent *> findControlledEntity(World *world) {
@@ -137,7 +138,7 @@ class FPSControllerSystem {
     }
 
     // Handles movement based on input
-    glm::vec3 handleMovement(const FPSControllerComponent *controller, const float deltaTime) const {
+    glm::vec3 handleMovement(const FPSControllerComponent *controller, const float deltaTime) {
         glm::vec3 movementDirection(0.0f);
 
         glm::mat4 matrix = controller->getOwner()->localTransform.toMat4();
@@ -159,6 +160,7 @@ class FPSControllerSystem {
             movementDirection -= right;
 
         if (glm::length(movementDirection) > NEAR_ZERO) {
+            moved = true;
             movementDirection = glm::normalize(movementDirection);
         }
 
@@ -315,6 +317,8 @@ class FPSControllerSystem {
     }
 
     void updateStillTimer(const glm::vec3 &movementDirection, float deltaTime) {
+        if (!moved)
+            return;
         if (glm::length(movementDirection) < NEAR_ZERO) {
             timeStandingStill += deltaTime;
         } else {
@@ -364,18 +368,23 @@ class FPSControllerSystem {
             if (!hasWeapon)
                 return;
 
-            if (controller->pickedEntity && WeaponsSystem::getInstance().dropWeapon(controller->pickedEntity))
+            if (controller->pickedEntity && WeaponsSystem::getInstance().dropWeapon(controller->pickedEntity)) {
                 controller->pickedEntity = nullptr;
+                Crosshair::getInstance()->setWeaponHeld(false);
+            }
 
-            if (weapon && WeaponsSystem::getInstance().pickupWeapon(entity, weapon->getOwner()))
+            if (weapon && WeaponsSystem::getInstance().pickupWeapon(entity, weapon->getOwner())) {
                 controller->pickedEntity = weapon->getOwner();
-
+                Crosshair::getInstance()->setWeaponHeld(true);
+            }
         } else if (app->getKeyboard().justPressed(GLFW_KEY_Q)) {
             if (controller->pickedEntity) {
                 auto cameraMatrix = entity->getLocalToWorldMatrix();
                 glm::vec3 cameraForward = -glm::normalize(glm::vec3(cameraMatrix[2]));
-                if (WeaponsSystem::getInstance().throwWeapon(controller->pickedEntity, cameraForward))
+                if (WeaponsSystem::getInstance().throwWeapon(controller->pickedEntity, cameraForward)) {
                     controller->pickedEntity = nullptr;
+                    Crosshair::getInstance()->setWeaponHeld(false);
+                }
             }
         }
 
@@ -428,6 +437,7 @@ class FPSControllerSystem {
         this->app = app;
         app->getMouse().lockMouse(app->getWindow());
         mouseLocked = true;
+        moved = false;
     }
 
     float getSpeedMagnitude() { return glm::length(timeScaleVelocity); }
@@ -473,14 +483,14 @@ class FPSControllerSystem {
     }
 
     float getTimeStandingStill() const { return timeStandingStill; }
-    void turnOffCrosshair() { Crosshair::getInstance()->setVisiblity(false); }
+    void turnOffCrosshair() { Crosshair::getInstance()->setWeaponHeld(false); }
 
     // Unlocks the mouse when the state exits
     void exit() {
         if (mouseLocked) {
             mouseLocked = false;
             app->getMouse().unlockMouse(app->getWindow());
-            Crosshair::getInstance()->setVisiblity(false);
+            Crosshair::getInstance()->setWeaponHeld(false);
         }
     }
 };
