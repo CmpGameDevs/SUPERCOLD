@@ -47,6 +47,8 @@ class FPSControllerSystem {
     glm::vec3 timeScaleVelocity = glm::vec3(0.0f);
     float verticalVelocity = 0.0f;
     bool isGrounded = true;
+    float timeStandingStill = 0.0f;
+
 
     // Helper function to find the controlled entity
     std::pair<CameraComponent *, FPSControllerComponent *> findControlledEntity(World *world) {
@@ -258,6 +260,15 @@ class FPSControllerSystem {
         if (controller->isCrouching) timeScaleVelocity *= controller->crouchSpeedModifier;
     }
 
+  
+    void updateStillTimer(const glm::vec3& movementDirection, float deltaTime) {
+        if (glm::length(movementDirection) < NEAR_ZERO) {
+            timeStandingStill += deltaTime;
+        } else {
+            timeStandingStill = 0.0f;
+        }
+    }
+  
     glm::vec2 worldToScreenPosition(glm::vec3 worldPos, glm::mat4 viewMatrix, glm::mat4 projectionMatrix, glm::vec2 windowSize) {
         //Will only return half the screen size, but I did it in case 
         glm::vec4 clipSpacePos = projectionMatrix * viewMatrix * glm::vec4(worldPos, 1.0f);
@@ -400,6 +411,7 @@ public:
         handleStamina(controller, deltaTime);
 
         glm::vec3 movementDirection = handleMovement(controller, deltaTime);
+        updateStillTimer(movementDirection, deltaTime);
         applyMovementSmoothing(controller, movementDirection, deltaTime);
         handleJump(controller, deltaTime);
 
@@ -412,6 +424,8 @@ public:
         handleRotation(controller);
     }
 
+    float getTimeStandingStill() const {
+        return timeStandingStill;
     void turnOffCrosshair() {
         Crosshair::getInstance()->setVisiblity(false);
     }
