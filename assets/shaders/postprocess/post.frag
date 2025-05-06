@@ -5,6 +5,8 @@ in vec2 tex_coord;
 
 uniform sampler2D colorTexture;
 uniform sampler2D bloomTexture;
+
+// for freeze effect
 uniform sampler2D freezeFrameTexture;
 uniform bool hasFrameTexture = false;
 
@@ -13,7 +15,7 @@ uniform float bloomIntensity;
 uniform bool tonemappingEnabled;
 uniform float gammaCorrectionFactor;
 
-// Vignette effect parameters
+// NOTE: Vignette effect parameters (used for freeze effect) (blue color around the edges)
 uniform bool vignetteEnabled = false;
 uniform float vignetteIntensity = 0.5;
 uniform vec3 vignetteColor = vec3(0.0, 0.0, 0.0);
@@ -30,7 +32,6 @@ vec3 applyVignette(vec3 color, vec2 uv) {
     float dist = length(uv - center) * 1.8; // * 2 to make it reach corners
     
     // Calculate vignette factor (1.0 at center, 0.0 at edges)
-    // float vignette = smoothstep(1.0, 0 * 1.8 * vignetteIntensity, dist);
     float vignette = smoothstep(1.0, 0.9 * vignetteIntensity, dist);
     
     // Mix with vignette color based on intensity
@@ -47,13 +48,13 @@ vec3 applyFreezeEffect(vec3 color) {
     // Skip transparent pixels entirely
     if (alpha <= 0.01) return color;
 
-    // Optional: Luminance of the frost pattern for variation
-    float frostStrength = dot(frameTex.rgb, vec3(0.299, 0.587, 0.114)); // or just use 1.0 for flat frost
+    // Luminance of the frost pattern for variation
+    float frostStrength = dot(frameTex.rgb, vec3(0.299, 0.587, 0.114));
 
     // Apply frost tint color (blueish/white) modulated by frostStrength and intensity
     vec3 frostColor = mix(color, vignetteColor, frostStrength * vignetteIntensity);
 
-    // Add some frosty highlight if desired (makes bright parts pop)
+    // Add some frosty highlight 
     vec3 highlight = mix(frostColor, vec3(1.0), frostStrength * vignetteIntensity * 0.4);
 
     return highlight;
@@ -74,7 +75,7 @@ void main() {
 
 	if (vignetteEnabled) {
 		color = applyVignette(color, tex_coord); // Apply vignette effect
-		color = applyFreezeEffect(color); // Apply freeze effect
+		color = applyFreezeEffect(color);        // Apply freeze effect
 	}
 
 	// tonemapping
@@ -88,10 +89,4 @@ void main() {
 	// color = pow(color, vec3(1.0 / gammaCorrectionFactor)); // gamma correction to account for monitor, raise to the (1 / 2.2)
 
 	FragColor = vec4(color, 1.0);
-
-
-    
-    
-    //  float a = texture(freezeFrameTexture, tex_coord).a;
-    // FragColor = vec4(vec3(a), 1.0); // white = alpha 1, black = alpha 0   
 }
