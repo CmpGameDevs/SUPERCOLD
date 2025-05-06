@@ -1,18 +1,27 @@
 #pragma once
 
+#include "../ecs/component.hpp"
 #include <BulletDynamics/Character/btKinematicCharacterController.h>
 #include <glm/glm.hpp>
-#include "../ecs/component.hpp"
 
 namespace our {
 class FPSControllerComponent : public Component {
   public:
     std::unique_ptr<btKinematicCharacterController> characterController = nullptr;
     float stepHeight = 0.35f;
-  
+
     // Basic parameters
     float height = 1.8f; // Default height of the player
     float speed = 5.0f;  // Default speed of the player
+    // Head bob parameters
+    float headBobFrequency = 1.7f;     // How fast the head bobs
+    float headBobAmplitude = 0.8f;     // How much the head bobs while walking
+    float idleBobFrequency = 1.0f;     // Slower frequency for idle animation
+    float idleBobAmplitude = 0.5f;     // Smaller amplitude for idle animation
+    float sprintBobMultiplier = 1.02f; // Multiplier for head bob while sprinting
+    float bobTimer = 0.0f;             // Timer for the head bob animation
+    bool bobEnabled = false;
+
     // Basic movement parameters
     float pitch = 0.0f;
     float yaw = 0.0f;

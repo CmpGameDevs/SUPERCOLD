@@ -87,8 +87,6 @@ class Playstate : public our::State {
         std::string backgroundTrack = "level_" + std::to_string(getApp()->getLevelIndex());
         audioSystem.playBackgroundMusic(backgroundTrack, 0.2f, "music");
 
-        fpsController.update(&world, (float)deltaTime);
-
         // Get speed magnitude from FPS controller
         float speed = fpsController.getSpeedMagnitude();
 
@@ -99,7 +97,7 @@ class Playstate : public our::State {
         timeScale = timeScaler.getTimeScale();
 
         // Apply the time scale to the delta time
-        float scaledDeltaTime = (float)deltaTime * timeScale;
+        float scaledDeltaTime = (float)deltaTime ;
         
         // Update the audio system
         audioSystem.update(&world, scaledDeltaTime);
@@ -123,8 +121,8 @@ class Playstate : public our::State {
             float vignetteIntensity = renderer.postprocess->getEffectParameter("vignetteIntensity");
 
             if (timeStill > 0.0f) {
-                // Linearly interpolate between 0 and 0.6 over 10 seconds
-                targetIntensity = std::min(timeStill / 10.0f, 1.0f) * 0.6f;
+                // Linearly interpolate between 0 and 0.6 over 15 seconds
+                targetIntensity = std::min((timeStill - 5) / 15.0f, 1.0f) * 0.6f;
             } else {
                 // Player moved again, fade out
                 targetIntensity = 0.0f;
@@ -143,7 +141,6 @@ class Playstate : public our::State {
         textRenderer.renderCenteredText();
 
         fpsController.update(&world, (float)deltaTime);
-
         // Handle keyboard input (escape key to transition between levels)
         auto &keyboard = getApp()->getKeyboard();
 
