@@ -1,36 +1,36 @@
 #pragma once
 
 #include <asset-loader.hpp>
-#include <ecs/world.hpp>
-#include <systems/forward-renderer.hpp>
-#include <systems/collision-system.hpp>
-#include <systems/fps-controller.hpp>
 #include <core/time-scale.hpp>
-#include <systems/text-renderer.hpp>
+#include <ecs/world.hpp>
 #include <systems/audio-system.hpp>
+#include <systems/collision-system.hpp>
+#include <systems/forward-renderer.hpp>
+#include <systems/fps-controller.hpp>
 #include <systems/movement.hpp>
-
+#include <systems/text-renderer.hpp>
 
 class Playstate : public our::State {
     static bool initialized;
     our::World world;
-    our::CollisionSystem& collisionSystem = our::CollisionSystem::getInstance();
-    our::ForwardRenderer& renderer = our::ForwardRenderer::getInstance();
+    our::CollisionSystem &collisionSystem = our::CollisionSystem::getInstance();
+    our::ForwardRenderer &renderer = our::ForwardRenderer::getInstance();
     our::WeaponsSystem &weaponsSystem = our::WeaponsSystem::getInstance();
     our::MovementSystem movementSystem;
     our::FPSControllerSystem fpsController;
     game::TimeScaler timeScaler;
     float timeScale;
-    our::TextRenderer& textRenderer = our::TextRenderer::getInstance();  
-    our::AudioSystem& audioSystem = our::AudioSystem::getInstance();
+    our::TextRenderer &textRenderer = our::TextRenderer::getInstance();
+    our::AudioSystem &audioSystem = our::AudioSystem::getInstance();
 
     void initializeGame() {
-        if (initialized) return; 
+        if (initialized)
+            return;
         initialized = true;
-        
+
         // Retrieve scene configuration from the app config
-        auto& config = getApp()->getConfig()["scene"];
-        
+        auto &config = getApp()->getConfig()["scene"];
+
         // Deserialize all assets from the configuration if present
         if (config.contains("assets")) {
             our::deserializeAllAssets(config["assets"]);
@@ -41,23 +41,19 @@ class Playstate : public our::State {
         renderer.initialize(size, config["renderer"]);
 
         // Initialize Bullet physics system
-        btDefaultCollisionConfiguration* collisionConfig = new btDefaultCollisionConfiguration();
-        btCollisionDispatcher* dispatcher = new btCollisionDispatcher(collisionConfig);
-        btBroadphaseInterface* broadphase = new btDbvtBroadphase();
-        btSequentialImpulseConstraintSolver* solver = new btSequentialImpulseConstraintSolver();
+        btDefaultCollisionConfiguration *collisionConfig = new btDefaultCollisionConfiguration();
+        btCollisionDispatcher *dispatcher = new btCollisionDispatcher(collisionConfig);
+        btBroadphaseInterface *broadphase = new btDbvtBroadphase();
+        btSequentialImpulseConstraintSolver *solver = new btSequentialImpulseConstraintSolver();
 
         // Create the dynamics world
-        btDiscreteDynamicsWorld* physicsWorld = new btDiscreteDynamicsWorld(
-            dispatcher,
-            broadphase,
-            solver,
-            collisionConfig
-        );
+        btDiscreteDynamicsWorld *physicsWorld =
+            new btDiscreteDynamicsWorld(dispatcher, broadphase, solver, collisionConfig);
 
         // Initialize the collision system with the physics world
         collisionSystem.initialize(size, physicsWorld);
         auto windowSize = getApp()->getWindowSize();
-        textRenderer.initialize(windowSize.x, windowSize.y);  
+        textRenderer.initialize(windowSize.x, windowSize.y);
 
         audioSystem.initialize(getApp()->getAudioContext());
     }
@@ -66,8 +62,8 @@ class Playstate : public our::State {
         initializeGame();
 
         // Level-dependent components initialization
-        auto& levelConfig = getApp()->getLevelConfig();
-        
+        auto &levelConfig = getApp()->getLevelConfig();
+
         if (levelConfig.contains("world")) {
             world.deserialize(levelConfig["world"]);
         }
@@ -76,7 +72,7 @@ class Playstate : public our::State {
 
         // Set up the FPS controller system and assign the collision system
         fpsController.enter(getApp());
-        
+
         // Set default time scale
         timeScale = 1.0f;
     }
@@ -87,7 +83,7 @@ class Playstate : public our::State {
 
         // Update FPS Controller
         fpsController.update(&world, (float)deltaTime);
-        
+
         // Get speed magnitude from FPS controller
         float speed = fpsController.getSpeedMagnitude();
 
@@ -99,7 +95,7 @@ class Playstate : public our::State {
 
         // Apply the time scale to the delta time
         float scaledDeltaTime = (float)deltaTime;
-        
+
         // Update the audio system
         audioSystem.update(&world, scaledDeltaTime);
 
@@ -113,6 +109,24 @@ class Playstate : public our::State {
         weaponsSystem.update(&world, scaledDeltaTime);
 
         // Render the world using the renderer system
+        if (renderer.postprocess) {
+            float timeStill = fpsController.getTimeStandingStill();
+            float targetIntensity;
+            float vignetteIntensity = renderer.postprocess->getEffectParameter("vignetteIntensity");
+
+            if (timeStill > 0.0f) {
+                // Linearly interpolate between 0 and 0.6 over 10 seconds
+                targetIntensity = std::min(timeStill / 10.0f, 1.0f) * 0.6f;
+            } else {
+                // Player moved again, fade out
+                targetIntensity = 0.0f;
+            }
+
+            float lerpSpeed = 5.0f * deltaTime; // deltaTime is frame time in seconds
+            vignetteIntensity += (targetIntensity - vignetteIntensity) * lerpSpeed;
+
+            renderer.postprocess->setEffectParameter("vignetteIntensity", vignetteIntensity);
+        }
         renderer.render(&world);
 
         // Debug draw the collision world
@@ -122,8 +136,8 @@ class Playstate : public our::State {
         textRenderer.renderCenteredText();
 
         // Handle keyboard input (escape key to transition between levels)
-        auto& keyboard = getApp()->getKeyboard();
-        
+        auto &keyboard = getApp()->getKeyboard();
+
         if (keyboard.justPressed(GLFW_KEY_ESCAPE)) {
             getApp()->goToNextLevel();
         } else if (keyboard.justPressed(GLFW_KEY_L)) {

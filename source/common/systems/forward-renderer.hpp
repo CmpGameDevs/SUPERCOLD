@@ -46,9 +46,10 @@ namespace our
         TexturedMaterial* skyMaterial;
         HDRSystem* hdrSystem;
         // Objects used for Postprocessing
-        PostProcess* postprocess;    
 
     public:
+        PostProcess* postprocess;    
+
         static ForwardRenderer& getInstance() {
             static ForwardRenderer instance;
             return instance;

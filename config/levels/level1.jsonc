@@ -13,7 +13,7 @@
                         "invertYAxis": false,
                         "fovSensitivity": 0.1,
                         "positionSensitivity": 2.0,
-                        "speedupFactor": 3.0,
+                        "speedupFactor": 4.0,
                         "minVerticalRotation": -85.0,
                         "maxVerticalRotation": 85.0,
                         "gravity": 9.8,

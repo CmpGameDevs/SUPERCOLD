@@ -45,6 +45,8 @@ class FPSControllerSystem {
     glm::vec3 timeScaleVelocity = glm::vec3(0.0f);
     float verticalVelocity = 0.0f;
     bool isGrounded = true;
+    float timeStandingStill = 0.0f;
+
 
     // Helper function to find the controlled entity
     std::pair<CameraComponent *, FPSControllerComponent *> findControlledEntity(World *world) {
@@ -256,6 +258,14 @@ class FPSControllerSystem {
         if (controller->isCrouching) timeScaleVelocity *= controller->crouchSpeedModifier;
     }
 
+    void updateStillTimer(const glm::vec3& movementDirection, float deltaTime) {
+        if (glm::length(movementDirection) < NEAR_ZERO) {
+            timeStandingStill += deltaTime;
+        } else {
+            timeStandingStill = 0.0f;
+        }
+    }
+
     void handlePickup(FPSControllerComponent *controller, Entity *entity) {
         CollisionSystem *collisionSystem = &CollisionSystem::getInstance();
         if (app->getKeyboard().justPressed(GLFW_KEY_E)) {
@@ -353,6 +363,7 @@ public:
         handleStamina(controller, deltaTime);
 
         glm::vec3 movementDirection = handleMovement(controller, deltaTime);
+        updateStillTimer(movementDirection, deltaTime);
         applyMovementSmoothing(controller, movementDirection, deltaTime);
         handleJump(controller, deltaTime);
 
@@ -363,6 +374,10 @@ public:
 
         updateTimeScaleVelocity(controller);
         handleRotation(controller);
+    }
+
+    float getTimeStandingStill() const {
+        return timeStandingStill;
     }
 
     // Unlocks the mouse when the state exits
