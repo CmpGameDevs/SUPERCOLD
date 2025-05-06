@@ -99,7 +99,7 @@ namespace our {
         if (!weapon) return false;
         _removeCollisionComponent(weaponEntity);
         weaponEntity->parent = entity;
-        weaponEntity->localTransform.position = glm::vec3(0.6f, -0.2f, -0.4f);
+        weaponEntity->localTransform.position = weapon->weaponPosition;
         weaponEntity->localTransform.rotation = weapon->weaponRotation;
         Crosshair::getInstance()->setVisiblity(true);
         return true;

@@ -7,7 +7,7 @@
             "width":1280,
             "height":720
         },
-        "fullscreen": true
+        "fullscreen": false
     },
     "screenshots":{
         "directory": "screenshots/play-test",
@@ -29,6 +29,12 @@
                 "freezeFrameTexture": "frost",
 
                 "bloomEnabled": true,
+                "bloomIntensity": 2,
+                "bloomIterations": 50,
+                "bloomDirection": 0,
+                "tonemappingEnabled": false,
+                "gammaCorrectionFactor": 1,
+                "bloomBrightnessCutoff": 0.1,
 
                 "motionBlurEnabled": true,
                 "motionBlurStrength": 0.4,
