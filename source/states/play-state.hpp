@@ -62,7 +62,6 @@ class Playstate : public our::State {
         textRenderer.initialize(windowSize.x, windowSize.y);
 
         audioSystem.initialize(getApp()->getAudioContext());
-        enemySystem.setCollisionSystem();
     }
 
     void onInitialize() override {
@@ -78,13 +77,17 @@ class Playstate : public our::State {
         textRenderer.showCenteredText("COLD", "game");
 
         fpsController.enter(getApp());
+        enemySystem.setCollisionSystem();
 
         timeScale = 1.0f;
+        gameEnded = false;
     }
 
     void handleGameEnd() {
         // Handle winning the game
-        if (enemySystem.getEnemyCount() == 0 && !gameEnded) {
+        if (fpsController.isPlayerDead() && !gameEnded) {
+            gameEnded = true;
+        } else if (enemySystem.getEnemyCount() == 0 && !gameEnded) {
             textRenderer.showCenteredText("SUPER", "game");
             textRenderer.showCenteredText("HOT", "game");
             textRenderer.showCenteredText("SUPER", "game");
@@ -97,7 +100,8 @@ class Playstate : public our::State {
 
         if (gameEnded) {
             auto windowSize = getApp()->getWindowSize();
-            textRenderer.renderText("Press ENTER to continue", "game", windowSize.x / 2.0f - 150.0f, 50.0f,
+            std::string text = fpsController.isPlayerDead() ? "Press R to restart" : "Press ENTER to continue";
+            textRenderer.renderText(text, "game", windowSize.x / 2.0f - 150.0f, 50.0f,
                                     0.011f, glm::vec4(1.0f));
         }
     }
@@ -115,53 +119,58 @@ class Playstate : public our::State {
         // Get the current time scale
         timeScale = timeScaler.getWorldTimeScale();
 
+        bool levelPassed = !fpsController.isPlayerDead() && enemySystem.getEnemyCount() == 0;
+        bool levelFailed = fpsController.isPlayerDead() && gameEnded;
+        
         // Apply the time scale to the delta time
         float scaledDeltaTime = (float)deltaTime * (!gameEnded ? timeScale : 1.0f);
 
         // Update the audio system
         audioSystem.update(&world, scaledDeltaTime);
 
-        // Update the movement system
-        movementSystem.update(&world, scaledDeltaTime);
-
         // Update the collision system
         collisionSystem.update(&world, scaledDeltaTime);
-
-        // Update the weapons system
-        weaponsSystem.update(&world, scaledDeltaTime);
-
-        // Update the enemies system
-        enemySystem.update(&world, scaledDeltaTime);
-
-        // Render the world using the renderer system
+        
         float playerDeltaTime = deltaTime;
-        if (renderer.postprocess) {
-            float timeStill = fpsController.getTimeStandingStill();
-            float targetIntensity;
-            float vignetteIntensity = renderer.postprocess->getEffectParameter("vignetteIntensity");
+        if (!levelFailed) {
+            // Update the movement system
+            movementSystem.update(&world, scaledDeltaTime);
 
-            if (timeStill > 0.0f) {
-                // Linearly interpolate between 0 and 0.6 over 15 seconds
-                targetIntensity = std::min((timeStill - 5) / 15.0f, 1.0f) * 0.6f;
-            } else {
-                // Player moved again, fade out
-                targetIntensity = 0.0f;
-            }
+            // Update the weapons system
+            weaponsSystem.update(&world, scaledDeltaTime);
+
+            // Update the enemies system
+            enemySystem.update(&world, scaledDeltaTime);
+
+            // Render the world using the renderer system
+            if (renderer.postprocess) {
+                float timeStill = fpsController.getTimeStandingStill();
+                float targetIntensity;
+                float vignetteIntensity = renderer.postprocess->getEffectParameter("vignetteIntensity");
+
+                if (timeStill > 0.0f) {
+                    // Linearly interpolate between 0 and 0.6 over 15 seconds
+                    targetIntensity = std::min((timeStill - 5) / 15.0f, 1.0f) * 0.6f;
+                } else {
+                    // Player moved again, fade out
+                    targetIntensity = 0.0f;
+                }
             
-            float lerpSpeed = 5.0f * deltaTime; // deltaTime is frame time in seconds
-            vignetteIntensity += (targetIntensity - vignetteIntensity) * lerpSpeed;
+                float lerpSpeed = 5.0f * deltaTime; // deltaTime is frame time in seconds
+                vignetteIntensity += (targetIntensity - vignetteIntensity) * lerpSpeed;
 
-            // Update the FPS controller with the current time scale
-            timeScaler.updatePlayerTimeScale(vignetteIntensity);
+                // Update the FPS controller with the current time scale
+                timeScaler.updatePlayerTimeScale(vignetteIntensity);
 
-            // Get the current player time scale
-            float playerTimeScale = timeScaler.getPlayerTimeScale();
+                // Get the current player time scale
+                float playerTimeScale = timeScaler.getPlayerTimeScale();
 
-            playerDeltaTime = deltaTime * playerTimeScale;
+                playerDeltaTime = deltaTime * playerTimeScale;
 
-            renderer.postprocess->setEffectParameter("vignetteIntensity", vignetteIntensity);
+                renderer.postprocess->setEffectParameter("vignetteIntensity", vignetteIntensity);
+            }
         }
-
+        
         renderer.render(&world);
 
         // Debug draw the collision world
@@ -177,19 +186,28 @@ class Playstate : public our::State {
         // Handle keyboard input (escape key to transition between levels)
         auto &keyboard = getApp()->getKeyboard();
 
-        if (gameEnded && keyboard.justPressed(GLFW_KEY_ENTER)) {
+        if (gameEnded && levelPassed && keyboard.justPressed(GLFW_KEY_ENTER)) {
+            audioSystem.stopSfx("SUPERHOT");
             textRenderer.clearTextQueue();
             getApp()->goToNextLevel();
+        } else if (gameEnded && !levelPassed && keyboard.justPressed(GLFW_KEY_R)) {
+            textRenderer.clearTextQueue();
+            int currentLevelIndex = getApp()->getLevelIndex();
+            getApp()->changeState("level" + std::to_string(currentLevelIndex));
         } else if (keyboard.justPressed(GLFW_KEY_L)) {
             collisionSystem.toggleDebugMode();
         } else if (keyboard.justPressed(GLFW_KEY_ESCAPE)) {
+            audioSystem.stopSfx("SUPERHOT");
             textRenderer.clearTextQueue();
+            fpsController.exit();
             getApp()->changeState("menu");
         }
     }
 
     void onDestroy() override {
         fpsController.turnOffCrosshair();
+        weaponsSystem.onDestroy();
+        enemySystem.onDestroy();
         world.clear();
     }
 };

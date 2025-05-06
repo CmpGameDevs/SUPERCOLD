@@ -73,6 +73,7 @@ namespace our {
         virtual ~CollisionComponent();
 
         void freeBulletBody();
+        void freeGhostObject();
 
         bool hasCallbacks() const { return callbacks.onEnter || callbacks.onStay || callbacks.onExit; }
         bool wantsEnter() const { return callbacks.onEnter != nullptr; }

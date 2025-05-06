@@ -2,7 +2,9 @@
 #include <components/weapon.hpp>
 #include <components/camera.hpp>
 #include <components/collision.hpp>
+#include <components/enemy-controller.hpp>
 #include <systems/collision-system.hpp>
+#include <systems/fps-controller.hpp>
 #include <components/model-renderer.hpp>
 #include <systems/movement.hpp>
 #include <systems/audio-system.hpp>
@@ -61,9 +63,9 @@ namespace our {
     bool WeaponsSystem::reloadWeapon(Entity* entity) {
         if (!entity) return false;
         WeaponComponent* weapon = entity->getComponent<WeaponComponent>();
-        if (!weapon) return false;
+        if (!weapon || weapon->fireCooldown > 0.0f) return false;
         weapon->currentAmmo = weapon->ammoCapacity;
-        weapon->fireCooldown = 0.3f;
+        weapon->fireCooldown = weapon->reloadTime;
         glm::vec3 globalPosition = entity->getLocalToWorldMatrix()[3];
         AudioSystem::getInstance().playSpatialSound("gun_reloading", entity, globalPosition, "sfx", false, 1.0f, 100.0f);
         return true;
@@ -147,7 +149,8 @@ namespace our {
     
     Entity *WeaponsSystem::_createProjectile(World* world, Entity* owner, glm::vec3 direction, float speed, glm::mat4 viewMatrix, glm::mat4 projectionMatrix) {
         Entity* projectileEntity = world->add();
-        projectileEntity->name = "Projectile";
+        bool isPlayer = owner->parent->getComponent<FPSControllerComponent>() != nullptr;
+        projectileEntity->name = isPlayer ? "Projectile" : "EnemyProjectile";
 
         WeaponComponent* weapon = owner->getComponent<WeaponComponent>();
         glm::mat4 worldMatrix = owner->getLocalToWorldMatrix();
@@ -215,6 +218,11 @@ namespace our {
         collision->isKinematic = true;
         collision->callbacks.onEnter = [this, projectileEntity, world](Entity* other) {
             if (other->name == "Projectile") return;
+            std::string name = projectileEntity->name;
+            std::string otherName = other->name;
+            if (name == otherName) return;
+            if (other->getComponent<EnemyControllerComponent>() != nullptr && name == "EnemyProjectile") return;
+            if (other->getComponent<FPSControllerComponent>() != nullptr && name == "Projectile") return;
             world->markForRemoval(projectileEntity);
         };
         return projectileEntity;

@@ -138,6 +138,7 @@ namespace our {
             //TODO: handle Game Over and Win conditions
             if(current_level_index == levels_configs.size()) {
                 std::cout << "You win!!" << std::endl;
+                changeState("menu");
                 return;
             }
             changeState("level" + std::to_string(++current_level_index));
