@@ -2,6 +2,7 @@
 
 #include "../ecs/world.hpp"
 #include "../components/camera.hpp"
+#include "../components/crosshair.hpp"
 #include "../components/mesh-renderer.hpp"
 #include "../components/model-renderer.hpp"
 #include "../asset-loader.hpp"
@@ -44,6 +45,9 @@ namespace our
         // Objects used for rendering a skybox
         Mesh* skySphere;
         TexturedMaterial* skyMaterial;
+        
+        Crosshair* crosshair = nullptr;
+
         HDRSystem* hdrSystem;
         // Objects used for Postprocessing
         PostProcess* postprocess;    

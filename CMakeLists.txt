@@ -131,6 +131,8 @@ set(COMMON_SOURCES
         source/common/components/audio.cpp
         source/common/components/weapon.hpp
         source/common/components/weapon.cpp
+        source/common/components/crosshair.cpp
+        source/common/components/crosshair.hpp
 
         source/common/model/model.hpp
         source/common/model/model.cpp
