@@ -24,8 +24,9 @@ class Playstate : public our::State {
     our::AudioSystem &audioSystem = our::AudioSystem::getInstance();
 
     void initializeGame() {
-        if (initialized)
-            return;
+        //Only initialize the game one time
+        if (initialized) return; 
+
         initialized = true;
 
         // Retrieve scene configuration from the app config
@@ -61,19 +62,18 @@ class Playstate : public our::State {
     void onInitialize() override {
         initializeGame();
 
-        // Level-dependent components initialization
-        auto &levelConfig = getApp()->getLevelConfig();
 
+        auto& levelConfig = getApp()->getLevelConfig();
+        
         if (levelConfig.contains("world")) {
             world.deserialize(levelConfig["world"]);
         }
-        textRenderer.showCenteredText("SUPER");
-        textRenderer.showCenteredText("COLD");
 
-        // Set up the FPS controller system and assign the collision system
+        textRenderer.showCenteredText("SUPER", "game");
+        textRenderer.showCenteredText("COLD", "game");
+
         fpsController.enter(getApp());
 
-        // Set default time scale
         timeScale = 1.0f;
     }
 
@@ -81,7 +81,6 @@ class Playstate : public our::State {
         std::string backgroundTrack = "level_" + std::to_string(getApp()->getLevelIndex());
         audioSystem.playBackgroundMusic(backgroundTrack, 0.2f, "music");
 
-        // Update FPS Controller
         fpsController.update(&world, (float)deltaTime);
 
         // Get speed magnitude from FPS controller
@@ -94,7 +93,8 @@ class Playstate : public our::State {
         timeScale = timeScaler.getTimeScale();
 
         // Apply the time scale to the delta time
-        float scaledDeltaTime = (float)deltaTime;
+
+        float scaledDeltaTime = (float)deltaTime * timeScale;
 
         // Update the audio system
         audioSystem.update(&world, scaledDeltaTime);
@@ -132,8 +132,9 @@ class Playstate : public our::State {
         // Debug draw the collision world
         collisionSystem.debugDrawWorld(&world);
 
-        // Render some test text
         textRenderer.renderCenteredText();
+
+        fpsController.update(&world, (float)deltaTime);
 
         // Handle keyboard input (escape key to transition between levels)
         auto &keyboard = getApp()->getKeyboard();
@@ -144,9 +145,9 @@ class Playstate : public our::State {
             collisionSystem.toggleDebugMode();
         }
     }
-
+    
     void onDestroy() override {
-        // Uncomment to clean up the world and prevent memory leaks, but ensure collision system is intact
+        fpsController.turnOffCrosshair();
         world.clear();
     }
 };

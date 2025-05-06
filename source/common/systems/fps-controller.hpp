@@ -1,5 +1,6 @@
 #pragma once
 #include <application.hpp>
+#include <components/crosshair.hpp>
 #include <components/camera.hpp>
 #include <components/fps-controller.hpp>
 #include <components/collision.hpp>
@@ -11,6 +12,7 @@
 #include <glm/trigonometric.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/euler_angles.hpp>
+#include <systems/text-renderer.hpp>
 #include "collision-system.hpp"
 #include "weapons-system.hpp"
 
@@ -258,6 +260,7 @@ class FPSControllerSystem {
         if (controller->isCrouching) timeScaleVelocity *= controller->crouchSpeedModifier;
     }
 
+  
     void updateStillTimer(const glm::vec3& movementDirection, float deltaTime) {
         if (glm::length(movementDirection) < NEAR_ZERO) {
             timeStandingStill += deltaTime;
@@ -265,38 +268,54 @@ class FPSControllerSystem {
             timeStandingStill = 0.0f;
         }
     }
-
-    void handlePickup(FPSControllerComponent *controller, Entity *entity) {
-        CollisionSystem *collisionSystem = &CollisionSystem::getInstance();
-        if (app->getKeyboard().justPressed(GLFW_KEY_E)) {
-            CollisionComponent *collision = entity->getComponent<CollisionComponent>();
-            if (!collision || !collision->ghostObject) return;
-            btTransform transform;
-            if (collision->ghostObject) transform = collision->ghostObject->getWorldTransform();
-
-            glm::vec3 ghostPosition(
-                transform.getOrigin().x(),
-                transform.getOrigin().y(),
-                transform.getOrigin().z()
-            );
-
+  
+    glm::vec2 worldToScreenPosition(glm::vec3 worldPos, glm::mat4 viewMatrix, glm::mat4 projectionMatrix, glm::vec2 windowSize) {
+        //Will only return half the screen size, but I did it in case 
+        glm::vec4 clipSpacePos = projectionMatrix * viewMatrix * glm::vec4(worldPos, 1.0f);
+        glm::vec3 ndcSpacePos = glm::vec3(clipSpacePos) / clipSpacePos.w;
+        return glm::vec2(
+            (ndcSpacePos.x + 1.0f) * 0.5f * windowSize.x,
+            (1.0f - ndcSpacePos.y) * 0.5f * windowSize.y
+        );
+    }
+    
+    void handlePickup(FPSControllerComponent* controller, Entity* entity, glm::mat4 viewMatrix, glm::mat4 projectionMatrix) {
+        CollisionSystem* collisionSystem = &CollisionSystem::getInstance();
+        TextRenderer& textRenderer = TextRenderer::getInstance();
+    
+        auto performRaycast = [&]() -> std::tuple<bool, glm::vec3, WeaponComponent*> {
+            CollisionComponent* collision = entity->getComponent<CollisionComponent>();
+            if (!collision || !collision->ghostObject) return {false, {}, nullptr};
+    
+            btTransform transform = collision->ghostObject->getWorldTransform();
+            glm::vec3 ghostPosition(transform.getOrigin().x(), transform.getOrigin().y(), transform.getOrigin().z());
             glm::vec3 rayStart = ghostPosition;
-            // Ray should point forward from the camera
+            
             auto cameraMatrix = entity->getLocalToWorldMatrix();
             glm::vec3 cameraForward = -glm::normalize(glm::vec3(cameraMatrix[2]));
             glm::vec3 rayEnd = rayStart + cameraForward * controller->pickupDistance;
-            CollisionComponent *hitComponent = nullptr;
+            
+            CollisionComponent* hitComponent = nullptr;
             glm::vec3 hitPoint, hitNormal;
-
-            if (collisionSystem->raycast(rayStart, rayEnd, hitComponent, hitPoint, hitNormal)) {
-                auto otherEntity = hitComponent->getOwner();
-                WeaponComponent* weapon = otherEntity->getComponent<WeaponComponent>();
-                if (!weapon) return;
-                if (controller->pickedEntity && WeaponsSystem::getInstance().dropWeapon(entity->getWorld(), controller->pickedEntity))
-                    controller->pickedEntity = nullptr;
-                if (WeaponsSystem::getInstance().pickupWeapon(entity->getWorld(), entity, otherEntity))
-                    controller->pickedEntity = otherEntity;
-            }
+            
+            if (!collisionSystem->raycast(rayStart, rayEnd, hitComponent, hitPoint, hitNormal))
+                return {false, {}, nullptr};
+    
+            auto otherEntity = hitComponent->getOwner();
+            WeaponComponent* weapon = otherEntity->getComponent<WeaponComponent>();
+            return {weapon != nullptr, hitPoint, weapon};
+        };
+    
+        if (app->getKeyboard().justPressed(GLFW_KEY_E)) {
+            auto [hasWeapon, hitPoint, weapon] = performRaycast();
+            if (!hasWeapon) return;
+            
+            if (controller->pickedEntity) 
+                WeaponsSystem::getInstance().dropWeapon(entity->getWorld(), controller->pickedEntity);
+            
+            if (weapon && WeaponsSystem::getInstance().pickupWeapon(entity->getWorld(), entity, weapon->getOwner()))
+                controller->pickedEntity = weapon->getOwner();
+                
         } else if (app->getKeyboard().justPressed(GLFW_KEY_Q)) {
             if (controller->pickedEntity) {
                 auto cameraMatrix = entity->getLocalToWorldMatrix();
@@ -305,9 +324,42 @@ class FPSControllerSystem {
                     controller->pickedEntity = nullptr;
             }
         }
+    
+        if (!controller->pickedEntity) {
+            auto [hasWeapon, hitPoint, weapon] = performRaycast();
+            if (hasWeapon) {
+                glm::vec2 screenPos = worldToScreenPosition(
+                    hitPoint,
+                    viewMatrix,
+                    projectionMatrix,
+                    app->getWindowSize()
+                );
+    
+                textRenderer.renderTextWithBackground(
+                    "E   PICKUP WEAPON",
+                    "window",
+                    screenPos.x,
+                    screenPos.y + 50.0f,
+                    0.011f,
+                    0.008f,
+                    glm::vec4(1.0f),
+                    glm::vec4(0.0f, 0.0f, 0.0f, 0.6f),
+                    true
+                );
+            }
+        }
     }
 
-    void handleShooting(FPSControllerComponent *controller, Entity *entity, float deltaTime) {
+    std::pair<glm::mat4, glm::mat4> getViewAndProjectionMatrix(Entity *entity) {
+        auto cameraMatrix = entity->getLocalToWorldMatrix();
+        auto viewMatrix = glm::inverse(cameraMatrix);
+        auto windowSize = app->getWindowSize();
+        glm::vec2 viewPortSize = glm::vec2(windowSize.x, windowSize.y);
+        auto projectionMatrix = entity->getComponent<CameraComponent>()->getProjectionMatrix(viewPortSize);
+        return {viewMatrix, projectionMatrix};
+    }
+
+    void handleShooting(FPSControllerComponent *controller, Entity *entity, float deltaTime, glm::mat4 viewMatrix, glm::mat4 projectionMatrix) {
         if (!controller->pickedEntity) return;
         auto weapon = controller->pickedEntity->getComponent<WeaponComponent>();
         if (!weapon) return;
@@ -316,12 +368,7 @@ class FPSControllerSystem {
             app->getMouse().isPressed(GLFW_MOUSE_BUTTON_LEFT) && weapon->automatic
         );
         if (isShooting) {
-            auto cameraMatrix = entity->getLocalToWorldMatrix();
-            glm::vec3 cameraForward = -glm::normalize(glm::vec3(cameraMatrix[2]));
-            auto viewMatrix = glm::inverse(cameraMatrix);
-            auto windowSize = app->getWindowSize();
-            glm::vec2 viewPortSize = glm::vec2(windowSize.x, windowSize.y);
-            glm::mat4 projectionMatrix = entity->getComponent<CameraComponent>()->getProjectionMatrix(viewPortSize);
+            glm::vec3 cameraForward = -glm::normalize(glm::vec3(entity->getLocalToWorldMatrix()[2]));
 
             if (WeaponsSystem::getInstance().fireWeapon(entity->getWorld(), controller->pickedEntity, cameraForward, viewMatrix, projectionMatrix))
                 weapon->fireCooldown = weapon->fireRate;
@@ -352,11 +399,12 @@ public:
         Entity *entity = camera->getOwner();
         glm::vec3 &position = entity->localTransform.position;
         isGrounded = characterController->onGround();
+        auto [viewMatrix, projectionMatrix] = getViewAndProjectionMatrix(entity);
 
         // Handle crouch toggling with C key
         handleCrouching(controller, entity, deltaTime);
-        handlePickup(controller, entity);
-        handleShooting(controller, entity, deltaTime);
+        handlePickup(controller, entity, viewMatrix, projectionMatrix);
+        handleShooting(controller, entity, deltaTime, viewMatrix, projectionMatrix);
 
         handleMouseLockToggle();
         handleFov(camera, controller);
@@ -378,6 +426,8 @@ public:
 
     float getTimeStandingStill() const {
         return timeStandingStill;
+    void turnOffCrosshair() {
+        Crosshair::getInstance()->setVisiblity(false);
     }
 
     // Unlocks the mouse when the state exits
@@ -385,6 +435,7 @@ public:
         if (mouseLocked) {
             mouseLocked = false;
             app->getMouse().unlockMouse(app->getWindow());
+            Crosshair::getInstance()->setVisiblity(false);
         }
     }
 };

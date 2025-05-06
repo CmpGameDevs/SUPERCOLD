@@ -28,6 +28,13 @@
                 "vignetteColor":  [0.7, 0.85, 1.0],
                 "bloomEnabled": false,
                 "freezeFrameTexture": "frost"
+            },
+            "crosshair": {
+                "lineLength": 0.05,
+                "lineThickness": 0.0035,
+                "gapSize": 0.02,
+                "dotSize": 0.004,
+                "color": [1, 1, 1, 1]
             }
         },
         "assets":{
