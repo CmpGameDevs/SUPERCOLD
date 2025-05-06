@@ -15,8 +15,8 @@ public:
     Crosshair();
     ~Crosshair();
 
-    bool isVisible() { return visible;}
-    void setVisiblity(bool visible) { this->visible = visible; }
+    bool isWeaponHeld() { return weaponHeld;}
+    void setWeaponHeld(bool weaponHeld) { this->weaponHeld = weaponHeld; }
 
     void parseConfig(const nlohmann::json &config);
     void initialize(const nlohmann::json &config);
@@ -27,7 +27,7 @@ private:
     float lineThickness = 0.005f; 
     float gapSize = 0.008f;
     float dotSize = 0.003f;
-    bool visible = false;
+    bool weaponHeld = false;
     our::Mesh* mesh;
     our::TintedMaterial* material;
     glm::vec4 color;
