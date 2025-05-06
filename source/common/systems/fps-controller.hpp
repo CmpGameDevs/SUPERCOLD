@@ -212,7 +212,6 @@ class FPSControllerSystem {
         }
 
         if (controller->isCrouchTransitioning) {
-            std::cout << "Crouch lerp progress: " << controller->crouchLerpProgress << std::endl;
             controller->crouchLerpProgress += deltaTime / controller->crouchTransitionTime;
             if (controller->crouchLerpProgress >= 1.0f) {
                 controller->crouchLerpProgress = 1.0f;
@@ -245,8 +244,6 @@ class FPSControllerSystem {
                         collision->ghostObject->getBroadphaseHandle(), world->getDispatcher());
                     world->updateSingleAabb(collision->ghostObject);
                     controller->currentGhostHeight = newHeight;
-                    std::cout << "New ghost height: " << controller->currentGhostHeight << std::endl;
-                    std::cout << "Is Crouching" << controller->isCrouching << std::endl;
                 }
             }
         }
