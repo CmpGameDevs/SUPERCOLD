@@ -40,6 +40,8 @@ struct Light {
     vec3 color;
     vec3 direction;
     int type; // 0 = directional, 1 = point, 2 = spot
+    float inner_angle;
+    float outer_angle;
     float attenuation_constant;
     float attenuation_linear;
     float attenuation_quadratic;
