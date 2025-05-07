@@ -262,6 +262,12 @@
                 }
             },
             "lights": {
+                "directional": {
+                    "type": "directional",
+                    "enabled": true,
+                    "color": [1, 1 , 1],
+                    "direction": [0.0, 1.0, -1.0]
+                },
                 "sun1":{
                     "type": "point",
                     "enabled": true,

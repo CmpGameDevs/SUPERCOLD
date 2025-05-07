@@ -38,6 +38,10 @@ struct Material {
 struct Light {
     vec3 position;
     vec3 color;
+    vec3 direction;
+    int type; // 0 = directional, 1 = point, 2 = spot
+    float inner_angle;
+    float outer_angle;
     float attenuation_constant;
     float attenuation_linear;
     float attenuation_quadratic;
@@ -195,11 +199,21 @@ void main() {
 	// Sum up the radiance contributions of each light source.
 	// This loop is essentially the integral of the rendering equation.
     for (int i = 0; i < lightCount; i++) {
-        vec3 L = normalize(lights[i].position - worldCoordinates);
-        vec3 H = normalize(V + L);
+        vec3 L;
+        float attenuation;
+        if (lights[i].type == 0) {
+            // directional light
+            L = -normalize(lights[i].direction);
+            attenuation = 1.0;
+        }
+        else if (lights[i].type == 1) {
+            // point light
+            L = normalize(lights[i].position - worldCoordinates);
+            float distance = length(lights[i].position - worldCoordinates);
+            attenuation = 1.0 / (distance * distance);
+        }
 
-        float distance = length(lights[i].position - worldCoordinates);
-        float attenuation = 1.0 / (distance * distance);
+        vec3 H = normalize(V + L);
         vec3 radiance = lights[i].color * attenuation;
 
         float NDF = distributionGGX(N, H, roughness);

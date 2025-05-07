@@ -151,6 +151,7 @@ namespace our
                 std::string prefix = "lights[" + std::to_string(light_index) + "].";
 
                 shader->set(prefix + "color", light->color);
+                shader->set(prefix + "type", int(light->type));
      
                 switch (light->type)
                 {
