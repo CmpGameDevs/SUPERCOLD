@@ -1,7 +1,7 @@
 {
     "world": [
             {
-                "position": [-196, 3, -34],
+                "position": [-196, 30, -34],
                 "components": [
                     {
                         "type": "Camera"
@@ -40,20 +40,20 @@
                 ]
             },
             {
-                "position": [-80, 1, 100],
-                "scale": [0.01, 0.01, 0.01],
+                "position": [-196, 3, -34],
+                "scale": [3, 3, 3],
                 "components": [
                     {
                         "type": "Collision",
                         "shape": "model",
                         "mass": 0,
-                        "model": "city",
+                        "model": "space",
                         "isKinematic": false
 
                     },
                     {
                         "type": "Model Renderer",
-                        "model": "city"
+                        "model": "space"
                     }
                 ]
             },
@@ -68,7 +68,7 @@
                 ]
             },
             {
-                "position": [10.0,  100.0, -100.0],
+                "position": [-196, 40, -34],
                 "components": [
                     {
                         "type": "Mesh Renderer",
