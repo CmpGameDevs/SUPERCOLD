@@ -166,11 +166,18 @@ namespace our {
         ghost->setUserPointer(entity);
         btTransform btTrans;
         btTrans.setIdentity();
-        btTrans.setOrigin(btVector3(
+        btVector3 position = btVector3(
             transform->position.x,
             transform->position.y,
             transform->position.z
-        ));
+        );
+        // Apply center offset
+        position += btVector3(
+            collision->centerOffset.x,
+            collision->centerOffset.y,
+            collision->centerOffset.z
+        );
+        btTrans.setOrigin(position);
         ghost->setWorldTransform(btTrans);
         ghost->setCollisionFlags(btCollisionObject::CF_CHARACTER_OBJECT);
         physicsWorld->addCollisionObject(
@@ -356,6 +363,11 @@ namespace our {
             if (!collision->ghostObject) return;
             btTransform t = collision->ghostObject->getWorldTransform();
             transform->position = glm::vec3(t.getOrigin().x(), t.getOrigin().y(), t.getOrigin().z());
+            transform->position -= glm::vec3(
+                collision->centerOffset.x,
+                collision->centerOffset.y,
+                collision->centerOffset.z
+            );
         } else if(collision->isKinematic) {
             // Update physics from ECS
             btTransform trans;

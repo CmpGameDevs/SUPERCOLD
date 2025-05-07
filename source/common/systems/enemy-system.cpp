@@ -263,9 +263,9 @@ void EnemySystem::_handleAttacking(Entity *entity, float deltaTime) {
         auto weapon = weaponEntity->getComponent<WeaponComponent>();
         // Apply some kind of noise to the direction of the bullet
         glm::vec3 noise = glm::vec3(0.0f);
-        noise.x = static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * 1.4f - 0.05f;
-        noise.y = static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * 1.4f - 0.05f;
-        noise.z = static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * 1.4f - 0.05f;
+        noise.x = static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * 0.2f - 0.05f;
+        noise.y = static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * 0.2f - 0.05f;
+        noise.z = static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * 0.2f - 0.05f;
         weaponForward += noise;
         weaponForward = glm::normalize(weaponForward);
         weapon->fireCooldown -= deltaTime;

@@ -38,6 +38,7 @@ namespace our {
         glm::vec3 halfExtents {0.5f};
         bool isKinematic = false;
         btRigidBody* bulletBody = nullptr;
+        glm::vec3 centerOffset{0.0f};
 
         // For mesh collision, we need to store the vertices and indices of the mesh
         std::vector<our::Vertex> vertices;

@@ -34,7 +34,8 @@
                         "type": "Collision",
                         "shape": "ghost",
                         "mass": 2,
-                        "halfExtents": [0.2, 0.9, 0]
+                        "halfExtents": [0.2, 0.9, 0],
+                        "centerOffset": [0, -0.5, 0]
                     }
                 ]
             },
@@ -89,8 +90,6 @@
                     }
                 ]
             },
-            
-            //--------------------------------------------------------------------------------------
             {
                 "position": [4, 3, -7],
                 "scale": [0.005, 0.005, 0.005],
@@ -205,10 +204,15 @@
                         "type": "Collision",
                         "shape": "ghost",
                         "mass": 100,
-                        "halfExtents": [0.5, 0.5, 0.5]
+                        "halfExtents": [0.7, 0.9, 0]
                     },
                     {
-                        "type": "Enemy Controller"
+                        "type": "Enemy Controller",
+                        "movementSpeed": 1.5,
+                        "detectionRange": 20,
+                        "attackRange": 45,
+                        "attackCooldown": 3,
+                        "distanceToKeep": 20
                     }
                 ],
                 "children": [
@@ -225,7 +229,69 @@
                                 "reloadTime": 2,
                                 "ammoCapacity": 15,
                                 "automatic": false,
-                                "throwForce": 2,
+                                "throwForce": 6,
+                                "bulletSize": 2,
+                                "rotation": [180, 0, 0],
+                                "bulletScale": [0.05, 0.05, 0.05],
+                                "muzzleForwardOffset": 0.15,
+                                "muzzleRightOffset": -0.4,
+                                "bulletRotation": [180, 0, 0],
+                                "model": "bullet"
+                            },
+                            {
+                                "type": "Model Renderer",
+                                "model": "ace_pistol"
+                            }
+                        ]
+                    },
+                    {
+                        "position": [0, -1, 0],
+                        "scale": [0.3, 0.3, 0.3],
+                        "rotation": [0, 180, 0],
+                        "components": [
+                            {
+                                "type": "Model Renderer",
+                                "model": "bot"
+                            }
+                        ]
+                    }
+
+                ]
+            },
+            {
+                "position": [-5, 1, 6],
+                "scale": [1, 1, 1],
+                "components": [
+                    {
+                        "type": "Collision",
+                        "shape": "ghost",
+                        "mass": 100,
+                        "halfExtents": [0.7, 0.9, 0]
+                    },
+                    {
+                        "type": "Enemy Controller",
+                        "movementSpeed": 1.5,
+                        "detectionRange": 20,
+                        "attackRange": 45,
+                        "attackCooldown": 3,
+                        "distanceToKeep": 20
+                    }
+                ],
+                "children": [
+                    {
+                        "position": [4, 3, -7],
+                        "scale": [0.07, 0.07, 0.07],
+                        "name": "ace_pistol",
+                        "components": [
+                            {
+                                "type": "Weapon",
+                                "damage": 10,
+                                "range": 100,
+                                "fireRate": 1,
+                                "reloadTime": 2,
+                                "ammoCapacity": 15,
+                                "automatic": false,
+                                "throwForce": 6,
                                 "bulletSize": 2,
                                 "rotation": [180, 0, 0],
                                 "bulletScale": [0.05, 0.05, 0.05],
@@ -261,13 +327,47 @@
                     {
                         "type": "Collision",
                         "shape": "ghost",
-                        "mass": 100
+                        "mass": 100,
+                        "halfExtents": [0.7, 0.9, 0]
                     },
                     {
-                        "type": "Enemy Controller"
+                        "type": "Enemy Controller",
+                        "movementSpeed": 0.7,
+                        "detectionRange": 30,
+                        "attackRange": 35,
+                        "attackCooldown": 2,
+                        "distanceToKeep": 15
                     }
                 ],
                 "children":[
+                    {
+                        "position": [4, 3, -7],
+                        "scale": [0.3, 0.3, 0.3],
+                        "name": "cyber_revolver",
+                        "components": [
+                            {
+                                "type": "Weapon",
+                                "damage": 10,
+                                "range": 130,
+                                "fireRate": 0.6,
+                                "reloadTime": 2.1,
+                                "ammoCapacity": 12,
+                                "automatic": true,
+                                "throwForce": 6,
+                                "bulletSize": 1.7,
+                                "rotation": [180, 0, 0],
+                                "bulletScale": [0.05, 0.05, 0.05],
+                                "muzzleForwardOffset": 0.15,
+                                "muzzleRightOffset": -0.4,
+                                "bulletRotation": [180, 0, 0],
+                                "model": "bullet"
+                            },
+                            {
+                                "type": "Model Renderer",
+                                "model": "cyber_revolver"
+                            }
+                        ]
+                    },
                     {
                         "position": [0, -1, 0],
                         "scale": [0.3, 0.3, 0.3],
@@ -281,6 +381,68 @@
                     }
                 ]
 
+            },
+            {
+                "position": [5, 1, 6],
+                "scale": [1, 1, 1],
+                "components": [
+                    {
+                        "type": "Collision",
+                        "shape": "ghost",
+                        "mass": 100,
+                        "halfExtents": [0.7, 0.9, 0]
+                    },
+                    {
+                        "type": "Enemy Controller",
+                        "movementSpeed": 1.0,
+                        "detectionRange": 15,
+                        "attackRange": 25,
+                        "attackCooldown": 3,
+                        "distanceToKeep": 13
+                    }
+                ],
+                "children": [
+                    {
+                        "position": [4, 3, -7],
+                        "scale": [0.07, 0.07, 0.07],
+                        "name": "ace_pistol",
+                        "components": [
+                            {
+                                "type": "Weapon",
+                                "damage": 10,
+                                "range": 100,
+                                "fireRate": 1,
+                                "reloadTime": 2,
+                                "ammoCapacity": 12,
+                                "automatic": false,
+                                "throwForce": 6,
+                                "bulletSize": 2,
+                                "rotation": [180, 0, 0],
+                                "bulletScale": [0.05, 0.05, 0.05],
+                                "muzzleForwardOffset": 0.15,
+                                "muzzleRightOffset": -0.4,
+                                "bulletRotation": [180, 0, 0],
+                                "model": "bullet"
+                            },
+                            {
+                                "type": "Model Renderer",
+                                "model": "ace_pistol"
+                            }
+                        ]
+                    },
+                    {
+                        "position": [0, -1, 0],
+                        "scale": [0.3, 0.3, 0.3],
+                        "rotation": [0, 180, 0],
+                        "components": [
+                            {
+                                "type": "Model Renderer",
+                                "model": "bot"
+                            }
+                        ]
+                    }
+
+                ]
             }
         ]
 }

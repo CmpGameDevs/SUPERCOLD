@@ -100,6 +100,12 @@ namespace our {
             halfExtents.y = data["halfExtents"][1].get<float>();
             halfExtents.z = data["halfExtents"][2].get<float>();
         }
+
+        if (data.contains("centerOffset")) {
+            centerOffset.x = data["centerOffset"][0].get<float>();
+            centerOffset.y = data["centerOffset"][1].get<float>();
+            centerOffset.z = data["centerOffset"][2].get<float>();
+        }
     }
 
     void CollisionComponent::loadModel(const std::string& modelPath) {
