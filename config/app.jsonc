@@ -266,13 +266,13 @@
                     "type": "directional",
                     "enabled": true,
                     "color": [1, 1 , 1],
-                    "direction": [0.0, 1.0, -1.0]
+                    "direction": [0.0, -1.0, 0.0]
                 },
                 "sun1":{
                     "type": "point",
                     "enabled": true,
                     "color": [100, 100 , 100],
-                    "position": [-10.0,  10.0, 10.0],
+                    "position": [-10.0,  100.0, 100.0],
                     "attenuation": {
                         "constant": 0,
                         "linear": 0,
@@ -281,9 +281,9 @@
                 },
                 "sun2":{
                     "type": "point",
-                    "enabled": false,
+                    "enabled": true,
                     "color": [300, 300 , 300],
-                    "position": [10.0,  10.0, 10.0],
+                    "position": [10.0,  100.0, -100.0],
                     "attenuation": {
                         "constant": 0,
                         "linear": 0,
@@ -294,7 +294,7 @@
                     "type": "point",
                     "enabled": true,
                     "color": [300, 300 , 300],
-                    "position": [-10.0,  -10.0, 10.0],
+                    "position": [-10.0,  -100.0, -100.0],
                     "attenuation": {
                         "constant": 0,
                         "linear": 0,
@@ -305,7 +305,7 @@
                     "type": "point",
                     "enabled": false,
                     "color": [300, 300 , 300],
-                    "position": [10.0,  -10.0, 10.0],
+                    "position": [10.0,  -100.0, 100.0],
                     "attenuation": {
                         "constant": 0,
                         "linear": 0,
