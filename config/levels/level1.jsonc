@@ -41,7 +41,7 @@
             },
             {
                 "position": [-196, 3, -34],
-                "scale": [2, 2, 2],
+                "scale": [3, 3, 3],
                 "components": [
                     {
                         "type": "Collision",
