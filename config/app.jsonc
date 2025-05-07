@@ -4,8 +4,8 @@
     {
         "title":"SUPERCOLD",
         "size":{
-            "width":1280,
-            "height":720
+            "width":1920,
+            "height":1080
         },
         "fullscreen": false
     },
@@ -131,6 +131,7 @@
             },
             "models":{
                 "city": "assets/models/city/scene.gltf",
+                "space": "assets/models/space/scene.gltf",
                 "level2_floor": "assets/models/level2/floor/scene.gltf",
                 "level2_base": "assets/models/level2/tv1/scene.gltf",
                 "level2_ceil": "assets/models/level2/ceil/scene.gltf",
@@ -283,7 +284,7 @@
                     "type": "point",
                     "enabled": true,
                     "color": [300, 300 , 300],
-                    "position": [10.0,  100.0, -100.0],
+                    "position": [-196, 40, -34],
                     "attenuation": {
                         "constant": 0,
                         "linear": 0,
