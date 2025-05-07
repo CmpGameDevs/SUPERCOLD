@@ -131,9 +131,7 @@
             },
             "models":{
                 "city": "assets/models/city/scene.gltf",
-                "level2_floor": "assets/models/level2/floor/scene.gltf",
-                "level2_base": "assets/models/level2/tv1/scene.gltf",
-                "level2_ceil": "assets/models/level2/ceil/scene.gltf",
+                "level2": "assets/models/level2/scene.gltf",
                 "gun": "assets/models/gun_leonel/scene.gltf",
                 "bullet": "assets/models/bullet/scene.gltf",
                 "ace_pistol": "assets/models/ace_pistol/scene.gltf",
