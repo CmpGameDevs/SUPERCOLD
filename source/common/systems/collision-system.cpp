@@ -257,7 +257,7 @@ namespace our {
                     CollisionComponent tempCollision;
                     tempCollision.vertices = child.vertices;
                     tempCollision.indices = child.indices;
-                    tempCollision.mass = 1;
+                    tempCollision.mass = 0;
                     tempCollision.isKinematic = collision->isKinematic;
                     
                     // Use existing mesh creation function

@@ -30,11 +30,13 @@ class Model {
     
     std::vector<MeshRendererComponent *> meshRenderers;
     std::vector<glm::mat4> matricesMeshes;
+    Mesh* combinedMesh = nullptr;
     
     ~Model() {
         for (auto &texture : textures) delete texture;
         for (auto &material : materials) delete material;
         for (auto &mesh : meshRenderers) delete mesh;
+        if (combinedMesh) delete combinedMesh;
     }
 
     void draw(CameraComponent* camera, glm::mat4 localToWorld, glm::ivec2 windowSize, float bloomBrightnessCutoff);
@@ -66,6 +68,8 @@ class Model {
 	std::vector<glm::vec2> groupFloatsVec2(std::vector<float> floatVec);
 	std::vector<glm::vec3> groupFloatsVec3(std::vector<float> floatVec);
 	std::vector<glm::vec4> groupFloatsVec4(std::vector<float> floatVec);
+
+    void generateCombinedMesh();
 
 };
 } // namespace our
