@@ -60,7 +60,7 @@
             {
                 "position": [0, 2, 3],
                 "scale": [0.005, 0.005, 0.005],
-                "name": "gun leonel",
+                "name": "Leonel Gun",
                 "components": [
                     {
                         "type": "Collision",

@@ -157,7 +157,13 @@
                     "roughness": 0.99,
                     "metallic": 0.1,
                     "emission": [0.5, 0.5, 0.5],
-                    "ambientOcclusion": 1
+                    "ambientOcclusion": 1,
+                    "textureAlbedo": "grass_albedo",
+                    "textureNormal": "grass_normal",
+                    "textureMetallic": "grass_metallic",
+                    "textureRoughness": "grass_roughness",
+                    "textureAmbientOcclusion": "grass_ambientOcclusion",
+                    "textureEmissive": "grass_metal"
                 }
             },
             "lights": {
