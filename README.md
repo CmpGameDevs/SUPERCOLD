@@ -3,7 +3,7 @@
 
 <p align="center"> 
 
-   <img align="center" height=100% src="./docs/screenshots/menu.png" alt="logo">
+   <img align="center" height=500px src="./docs/screenshots/menu.png" alt="logo">
 
 <br>
 <em>
@@ -34,6 +34,9 @@ The freeze time mechanic in action, showing the distinctive visual effect when t
 </b> 
 </em>
 
+<br>
+<br>
+
    <img align="center" height=300px src="./docs/screenshots/level.png" alt="logo">
 
 <br>
@@ -44,12 +47,15 @@ An overview of the level design, showcasing the environment and layout of the ga
 </em>
 
 
-<br>   <img align="center" height=300px src="./docs/screenshots/gameplay.png" alt="logo">
+<p align=center>
+   <img align="center" height=300px src="./docs/screenshots/gameplay.png" alt="logo">
+<br>
 <em>
 <b>
 Gameplay screenshot demonstrating the core mechanics, including player movement, weapon throwing, and enemy interactions.
 </b> 
 </em>
+</p>
 
 </p>
 
@@ -59,11 +65,14 @@ Gameplay screenshot demonstrating the core mechanics, including player movement,
 
 <p align="center"> 
    <video width="100%" height="100%" controls autoplay>
-      <source src="./docs/SUPERCOLD.mp4" type="video/mp4">
+      <source src="./docs/assets/SUPERCOLD.mp4" type="video/mp4">
       Your browser does not support the video tag.
     </video>
+   <video width=500px src="https://github.com/CmpGameDevs/SUPERCOLD/blob/main/docs/assets/SUPERCOLD.mp4" type="video/mp4">
+   
 <br>
 </p>
+
 
 ---
 
