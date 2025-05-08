@@ -60,7 +60,7 @@
             {
                 "position": [-186, 5, -47],
                 "scale": [0.005, 0.005, 0.005],
-                "name": "gun leonel",
+                "name": "Leonel Gun",
                 "components": [
                     {
                         "type": "Collision",
@@ -77,8 +77,8 @@
                         "reloadTime": 1.5,
                         "ammoCapacity": 5,
                         "automatic": false,
-                        "throwForce": 4,
-                        "bulletSize": 2,
+                        "throwForce": 9,
+                        "bulletSize": 2.5,
                         "rotation": [180, 0, 0],
                         "bulletScale": [0.05, 0.05, 0.05],
                         "muzzleForwardOffset": 0.15,
@@ -105,7 +105,7 @@
                     {
                         "type": "Enemy Controller",
                         "movementSpeed": 3,
-                        "detectionRange": 70,
+                        "detectionRadius": 70,
                         "attackRange": 80,
                         "attackCooldown": 2.5,
                         "distanceToKeep": 70
@@ -115,18 +115,18 @@
                     {
                         "position": [4, 3, -7],
                         "scale": [0.07, 0.07, 0.07],
-                        "name": "ace_pistol",
+                        "name": "Automatic Pistol",
                         "components": [
                             {
                                 "type": "Weapon",
                                 "damage": 10,
                                 "range": 100,
-                                "fireRate": 0.2,
+                                "fireRate": 0.4,
                                 "reloadTime": 1.8,
                                 "ammoCapacity": 8,
                                 "automatic": true,
                                 "throwForce": 6,
-                                "bulletSize": 2,
+                                "bulletSize": 2.5,
                                 "rotation": [180, 0, 0],
                                 "bulletScale": [0.05, 0.05, 0.05],
                                 "muzzleForwardOffset": 0.15,
@@ -167,9 +167,9 @@
                     {
                         "type": "Enemy Controller",
                         "movementSpeed": 3,
-                        "detectionRange": 70,
+                        "detectionRadius": 70,
                         "attackRange": 80,
-                        "attackCooldown": 2.5,
+                        "attackCooldown": 6,
                         "distanceToKeep": 70
                     }
                 ],
@@ -177,18 +177,18 @@
                     {
                         "position": [4, 3, -7],
                         "scale": [0.07, 0.07, 0.07],
-                        "name": "ace_pistol",
+                        "name": "Ace Pistol",
                         "components": [
                             {
                                 "type": "Weapon",
                                 "damage": 10,
                                 "range": 100,
-                                "fireRate": 0.2,
-                                "reloadTime": 1.8,
-                                "ammoCapacity": 8,
-                                "automatic": true,
+                                "fireRate": 0.6,
+                                "reloadTime": 3,
+                                "ammoCapacity": 14,
+                                "automatic": false,
                                 "throwForce": 6,
-                                "bulletSize": 2,
+                                "bulletSize": 2.5,
                                 "rotation": [180, 0, 0],
                                 "bulletScale": [0.05, 0.05, 0.05],
                                 "muzzleForwardOffset": 0.15,
@@ -229,28 +229,28 @@
                     {
                         "type": "Enemy Controller",
                         "movementSpeed": 3,
-                        "detectionRange": 70,
+                        "detectionRadius": 70,
                         "attackRange": 80,
                         "attackCooldown": 2.5,
-                        "distanceToKeep": 70
+                        "distanceToKeep": 50
                     }
                 ],
                 "children": [
                     {
                         "position": [4, 3, -7],
                         "scale": [0.07, 0.07, 0.07],
-                        "name": "ace_pistol",
+                        "name": "Ace Pistol",
                         "components": [
                             {
                                 "type": "Weapon",
                                 "damage": 10,
                                 "range": 100,
-                                "fireRate": 0.2,
-                                "reloadTime": 1.8,
-                                "ammoCapacity": 8,
-                                "automatic": true,
+                                "fireRate": 0.6,
+                                "reloadTime": 3,
+                                "ammoCapacity": 14,
+                                "automatic": false,
                                 "throwForce": 6,
-                                "bulletSize": 2,
+                                "bulletSize": 2.5,
                                 "rotation": [180, 0, 0],
                                 "bulletScale": [0.05, 0.05, 0.05],
                                 "muzzleForwardOffset": 0.15,
@@ -291,28 +291,28 @@
                     {
                         "type": "Enemy Controller",
                         "movementSpeed": 3,
-                        "detectionRange": 70,
+                        "detectionRadius": 70,
                         "attackRange": 80,
-                        "attackCooldown": 2.5,
-                        "distanceToKeep": 70
+                        "attackCooldown": 2,
+                        "distanceToKeep": 40
                     }
                 ],
                 "children": [
                     {
                         "position": [4, 3, -7],
                         "scale": [0.07, 0.07, 0.07],
-                        "name": "ace_pistol",
+                        "name": "Automatic Pistol",
                         "components": [
                             {
                                 "type": "Weapon",
                                 "damage": 10,
                                 "range": 100,
-                                "fireRate": 0.2,
-                                "reloadTime": 1.8,
-                                "ammoCapacity": 8,
+                                "fireRate": 0.3,
+                                "reloadTime": 4,
+                                "ammoCapacity": 20,
                                 "automatic": true,
                                 "throwForce": 6,
-                                "bulletSize": 2,
+                                "bulletSize": 2.5,
                                 "rotation": [180, 0, 0],
                                 "bulletScale": [0.05, 0.05, 0.05],
                                 "muzzleForwardOffset": 0.15,
