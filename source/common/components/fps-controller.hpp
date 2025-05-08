@@ -71,7 +71,7 @@ class FPSControllerComponent : public Component {
     float currentStamina = 100.0f;
 
     // Raycasting parameters
-    float pickupDistance = 2.0f;
+    float pickupDistance = 3.0f;
     float throwDistance = 5.0f;
 
     // Inventory parameters

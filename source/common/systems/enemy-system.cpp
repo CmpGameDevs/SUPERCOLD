@@ -94,6 +94,12 @@ void EnemySystem::_setCollisionCallbacks(Entity *entity) {
             AudioSystem::getInstance().playSpatialSound("killing", entity, entity->localTransform.position, "sfx", false, 1.0f, 100.0f);
             enemy->currentState = EnemyState::DEAD;
             enemy->stateTimer = 0.0f;
+        } else if (auto weapon = other->getComponent<WeaponComponent>()) {
+            if (entity->parent != entity) {
+                AudioSystem::getInstance().playSpatialSound("killing", entity, entity->localTransform.position, "sfx", false, 1.0f, 100.0f);
+                enemy->currentState = EnemyState::DEAD;
+                enemy->stateTimer = 0.0f;
+            }
         }
     };
 
@@ -347,7 +353,7 @@ void EnemySystem::_handleDeath(Entity *entity) {
     }
 
     enemy->moveDirection = glm::vec3(0.0f);
-    if (enemy->stateTimer >= 1.5f) {
+    if (enemy->stateTimer >= 0.6f) {
         if(auto modelEntity = enemy->model){
             modelEntity->getWorld()->markForRemoval(modelEntity);
             modelEntity->parent = nullptr;

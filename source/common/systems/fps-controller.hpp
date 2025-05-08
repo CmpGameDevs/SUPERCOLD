@@ -367,21 +367,7 @@ class FPSControllerSystem {
             return {weapon != nullptr, hitPoint, weapon};
         };
 
-        if (app->getKeyboard().justPressed(GLFW_KEY_E)) {
-            auto [hasWeapon, hitPoint, weapon] = performRaycast();
-            if (!hasWeapon)
-                return;
-
-            if (controller->pickedEntity && WeaponsSystem::getInstance().dropWeapon(controller->pickedEntity)) {
-                controller->pickedEntity = nullptr;
-                Crosshair::getInstance()->setWeaponHeld(false);
-            }
-
-            if (weapon && WeaponsSystem::getInstance().pickupWeapon(entity, weapon->getOwner())) {
-                controller->pickedEntity = weapon->getOwner();
-                Crosshair::getInstance()->setWeaponHeld(true);
-            }
-        } else if (app->getKeyboard().justPressed(GLFW_KEY_Q)) {
+        if (app->getKeyboard().justPressed(GLFW_KEY_Q)) {
             if (controller->pickedEntity) {
                 auto cameraMatrix = entity->getLocalToWorldMatrix();
                 glm::vec3 cameraForward = -glm::normalize(glm::vec3(cameraMatrix[2]));
@@ -392,13 +378,36 @@ class FPSControllerSystem {
             }
         }
 
+        auto [hasWeapon, hitPoint, weapon] = performRaycast();
+        if (app->getKeyboard().justPressed(GLFW_KEY_E)) {
+            if (!hasWeapon)
+                return;
+            glm::vec2 screenPos =
+                worldToScreenPosition(hitPoint, viewMatrix, projectionMatrix, app->getWindowSize());
+            std::string capitalizedName = weapon->getOwner()->name;
+            std::transform(capitalizedName.begin(), capitalizedName.end(), capitalizedName.begin(), ::toupper);
+            textRenderer.renderTextWithBackground("E   PICKUP " + capitalizedName, "window", screenPos.x, screenPos.y + 50.0f,
+                                                    0.011f, 0.008f, glm::vec4(1.0f),
+                                                    glm::vec4(0.0f, 0.0f, 0.0f, 0.6f), true);
+
+            if (controller->pickedEntity && WeaponsSystem::getInstance().dropWeapon(controller->pickedEntity)) {
+                controller->pickedEntity = nullptr;
+                Crosshair::getInstance()->setWeaponHeld(false);
+            }
+
+            if (weapon && WeaponsSystem::getInstance().pickupWeapon(entity, weapon->getOwner())) {
+                controller->pickedEntity = weapon->getOwner();
+                Crosshair::getInstance()->setWeaponHeld(true);
+            }
+        }
+
         if (!controller->pickedEntity) {
-            auto [hasWeapon, hitPoint, weapon] = performRaycast();
             if (hasWeapon) {
                 glm::vec2 screenPos =
                     worldToScreenPosition(hitPoint, viewMatrix, projectionMatrix, app->getWindowSize());
-
-                textRenderer.renderTextWithBackground("E   PICKUP WEAPON", "window", screenPos.x, screenPos.y + 50.0f,
+                std::string capitalizedName = weapon->getOwner()->name;
+                std::transform(capitalizedName.begin(), capitalizedName.end(), capitalizedName.begin(), ::toupper);
+                textRenderer.renderTextWithBackground("E   PICKUP " + capitalizedName, "window", screenPos.x, screenPos.y + 50.0f,
                                                       0.011f, 0.008f, glm::vec4(1.0f),
                                                       glm::vec4(0.0f, 0.0f, 0.0f, 0.6f), true);
             }
