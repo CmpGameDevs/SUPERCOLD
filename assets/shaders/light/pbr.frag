@@ -257,11 +257,17 @@ void main() {
     color = color / (color + vec3(1.0));
     color = pow(color, vec3(1.0 / 2.2));
 
-    FragColor = vec4(color , 1.0);
-
     // bloom color output
 	// use greyscale conversion here because not all colors are equally "bright"
-    float greyscaleBrightness = dot(FragColor.rgb, GREYSCALE_WEIGHT_VECTOR);
-	BloomColor = greyscaleBrightness > bloomBrightnessCutoff ? vec4(emission, 1.0) : vec4(0.0, 0.0, 0.0, 1.0);
+    float greyscaleBrightness = dot(color.rgb, GREYSCALE_WEIGHT_VECTOR);
 
+    if(greyscaleBrightness > bloomBrightnessCutoff){
+        BloomColor = vec4(emission, 1.0);
+        color -= Lo;
+    }
+    else{
+        BloomColor = vec4(0.0, 0.0, 0.0, 1.0);
+    }
+
+    FragColor = vec4(color , 1.0);
 }

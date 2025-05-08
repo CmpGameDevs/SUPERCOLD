@@ -211,7 +211,7 @@ void Model::loadMaterials() {
         mat->useTextureMetallic = false;
         mat->useTextureRoughness = false;
         mat->metallic = 0.95f;
-        mat->roughness = 0.85f;
+        mat->roughness = 0.1f;
 
         // Set alpha mode if available
         if (material.find("alphaMode") != material.end()) {
@@ -248,12 +248,12 @@ void Model::loadMaterials() {
 
             // Metallic factor
             if (pbr.find("metallicFactor") != pbr.end()) {
-                mat->metallic = std::max(pbr["metallicFactor"].get<float>(), 0.2f);
+                mat->metallic = std::max(pbr["metallicFactor"].get<float>(), 0.1f);
             }
 
             // Roughness factor
             if (pbr.find("roughnessFactor") != pbr.end()) {
-                mat->roughness = std::max(pbr["roughnessFactor"].get<float>(), 0.2f);
+                mat->roughness = std::max(pbr["roughnessFactor"].get<float>(), 0.1f);
             }
         }
 
