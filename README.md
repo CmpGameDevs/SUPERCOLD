@@ -3,7 +3,7 @@
 
 <p align="center"> 
 
-   <img align="center" height=300px src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExYWJubDkxNmlvbGo3OTV3aHVkampzMThrdWxoZ3F3dGJsbHFrYW1xaiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/KdrSWXS2JovQjS17fq/giphy.gif" alt="logo">
+   <img align="center" height=100% src="./docs/screenshots/menu.png" alt="logo">
 
 <br>
 <em>
@@ -26,7 +26,7 @@
 ## <img align="center" height=50px src="https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExZG5uc29zYXp1MzhhYnVtYncxcmEybXI0b3RqYWpiMTIzeHV3bXg0eCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/YTXsHaOQECQRISfDpv/giphy.gif"> ScreenShots
 
 <p align="center"> 
-   <img align="center" height=300px src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExYzRsb2d0NnA5M2k5bmttZnM3OTBkMHg0b2c2OW4zc3p2YTBnc2N0ZyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/p5yoOL4u4Rv4Q/giphy.gif" alt="logo">
+   <img align="center" height=300px src="./docs/screenshots/freeze.png" alt="logo">
 <br>
 <em>
 <b>
@@ -34,30 +34,21 @@ The freeze time mechanic in action, showing the distinctive visual effect when t
 </b> 
 </em>
 
-<br>
+   <img align="center" height=300px src="./docs/screenshots/level.png" alt="logo">
 
-   <img align="center" height=300px src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExYzRsb2d0NnA5M2k5bmttZnM3OTBkMHg0b2c2OW4zc3p2YTBnc2N0ZyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/p5yoOL4u4Rv4Q/giphy.gif" alt="logo">
 <br>
 <em>
 <b>
-
 An overview of the level design, showcasing the environment and layout of the game world.
 </b> 
 </em>
 
 
-<br>   <img align="center" height=300px src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExYzRsb2d0NnA5M2k5bmttZnM3OTBkMHg0b2c2OW4zc3p2YTBnc2N0ZyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/p5yoOL4u4Rv4Q/giphy.gif" alt="logo">
-
-<br>
-
+<br>   <img align="center" height=300px src="./docs/screenshots/gameplay.png" alt="logo">
 <em>
-
-
 <b>
 Gameplay screenshot demonstrating the core mechanics, including player movement, weapon throwing, and enemy interactions.
 </b> 
-<br>
-
 </em>
 
 </p>
@@ -67,7 +58,10 @@ Gameplay screenshot demonstrating the core mechanics, including player movement,
 ## <img align="center" height=60px src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExMmc2YzBhbGoxYjNmcGkxOTcwdHAyZDZpcjFqNndqNXFlamY2cGNyOCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/41GcxPlfVrgli/giphy.gif"> GamePlay 
 
 <p align="center"> 
-   <img align="center" height=300px src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExYzRsb2d0NnA5M2k5bmttZnM3OTBkMHg0b2c2OW4zc3p2YTBnc2N0ZyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/p5yoOL4u4Rv4Q/giphy.gif" alt="logo">
+   <video width="100%" height="100%" controls autoplay>
+      <source src="./docs/SUPERCOLD.mp4" type="video/mp4">
+      Your browser does not support the video tag.
+    </video>
 <br>
 </p>
 
