@@ -211,7 +211,7 @@ void Model::loadMaterials() {
         mat->useTextureMetallic = false;
         mat->useTextureRoughness = false;
         mat->metallic = 0.95f;
-        mat->roughness = 0.85f;
+        mat->roughness = 0.1f;
 
         // Set alpha mode if available
         if (material.find("alphaMode") != material.end()) {
@@ -248,12 +248,12 @@ void Model::loadMaterials() {
 
             // Metallic factor
             if (pbr.find("metallicFactor") != pbr.end()) {
-                mat->metallic = std::max(pbr["metallicFactor"].get<float>(), 0.2f);
+                mat->metallic = std::max(pbr["metallicFactor"].get<float>(), 0.1f);
             }
 
             // Roughness factor
             if (pbr.find("roughnessFactor") != pbr.end()) {
-                mat->roughness = std::max(pbr["roughnessFactor"].get<float>(), 0.2f);
+                mat->roughness = std::max(pbr["roughnessFactor"].get<float>(), 0.1f);
             }
         }
 
@@ -347,8 +347,7 @@ void Model::loadModel(std::string path) {
         traverseNode(nodeIndex, glm::mat4(1.0f));
     }
     
-
-    // traverseNode(0, glm::mat4(1.0f));
+    generateCombinedMesh();;
 }
 
 void Model::traverseNode(unsigned int nextNode, glm::mat4 matrix) {
@@ -652,6 +651,60 @@ std::vector<glm::vec4> Model::groupFloatsVec4(std::vector<float> floatVec) {
         }
     }
     return vectors;
+}
+
+void Model::generateCombinedMesh() {
+    // Skip if no meshes were loaded
+    if (meshRenderers.empty()) {
+        std::cout << "No meshes to combine" << std::endl;
+        return;
+    }
+    
+    std::vector<Vertex> combinedVertices;
+    std::vector<GLuint> combinedIndices;
+    
+    // Track the current vertex count for index adjustment
+    GLuint vertexOffset = 0;
+    
+    // Process each mesh
+    for (unsigned int i = 0; i < meshRenderers.size(); i++) {
+        Mesh* mesh = meshRenderers[i]->mesh;
+        const glm::mat4& transform = matricesMeshes[i];
+        
+        // Get a reference to the source vertices and indices
+        const std::vector<Vertex>& srcVertices = mesh->cpuVertices;
+        const std::vector<GLuint>& srcIndices = mesh->cpuIndices;
+        
+        // Transform and add all vertices
+        for (const auto& vertex : srcVertices) {
+            Vertex transformedVertex = vertex;
+            
+            // Transform position by mesh matrix
+            glm::vec4 positionWorld = transform * glm::vec4(vertex.position, 1.0f);
+            transformedVertex.position = glm::vec3(positionWorld);
+            
+            // Transform normal by the rotation part of the matrix
+            // Note: For correct normal transformation, we need the inverse transpose
+            glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(transform)));
+            transformedVertex.normal = normalize(normalMatrix * vertex.normal);
+            
+            combinedVertices.push_back(transformedVertex);
+        }
+        
+        // Add indices with offset adjustment
+        for (GLuint index : srcIndices) {
+            combinedIndices.push_back(index + vertexOffset);
+        }
+        
+        // Update vertex offset for next mesh
+        vertexOffset += srcVertices.size();
+    }
+    
+    std::cout << "Combined mesh created with " << combinedVertices.size() 
+              << " vertices and " << combinedIndices.size() << " indices" << std::endl;
+    
+    // Create the combined mesh
+    combinedMesh = new Mesh(combinedVertices, combinedIndices);
 }
 
 } // namespace our

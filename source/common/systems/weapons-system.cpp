@@ -123,7 +123,7 @@ namespace our {
             collision = static_cast<CollisionComponent*>(weaponsMap[entity]);
         } else {
             collision = new CollisionComponent();
-            collision->shape = CollisionShape::COMPOUND;
+            collision->shape = CollisionShape::MESH;
             collision->loadModel(entity->name);
             collision->mass = 1.0f;
         }

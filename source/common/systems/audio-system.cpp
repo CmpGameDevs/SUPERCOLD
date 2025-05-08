@@ -14,7 +14,7 @@ namespace our {
 
     void AudioSystem::initializeCategories() {
         categories["sfx"] = {1.0f};
-        categories["music"] = {0.3f};
+        categories["music"] = {0.2f};
         categories["voice"] = {1.0f};
         categories["ambient"] = {0.7f};
     }

@@ -23,4 +23,5 @@ CMakeSettings.json
 
 # Screenshots
 screenshots/
+!docs/screenshots/
 errors/

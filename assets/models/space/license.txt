@@ -1,0 +1,11 @@
+Model Information:
+* title:	Space Station Scene HD
+* source:	https://sketchfab.com/3d-models/space-station-scene-hd-854c32b570d8498fa0cca4fe3350ccf9
+* author:	3DHaupt (https://sketchfab.com/dennish2010)
+
+Model License:
+* license type:	CC-BY-NC-4.0 (http://creativecommons.org/licenses/by-nc/4.0/)
+* requirements:	Author must be credited. No commercial use.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Space Station Scene HD" (https://sketchfab.com/3d-models/space-station-scene-hd-854c32b570d8498fa0cca4fe3350ccf9) by 3DHaupt (https://sketchfab.com/dennish2010) licensed under CC-BY-NC-4.0 (http://creativecommons.org/licenses/by-nc/4.0/)

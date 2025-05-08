@@ -116,8 +116,8 @@
           "reloadTime": 1.0,
           "ammoCapacity": 8,
           "automatic": true,
-          "throwForce": 4,
-          "bulletSize": 2,
+          "throwForce": 9,
+          "bulletSize": 2.5,
           "rotation": [180, 0, 0],
           "bulletScale": [0.05, 0.05, 0.05],
           "muzzleForwardOffset": 0.15,
@@ -151,8 +151,8 @@
           "reloadTime": 1.0,
           "ammoCapacity": 8,
           "automatic": true,
-          "throwForce": 4,
-          "bulletSize": 2,
+          "throwForce": 9,
+          "bulletSize": 2.5,
           "rotation": [0, 180, 0],
           "bulletScale": [0.05, 0.05, 0.05],
           "muzzleForwardOffset": 0.15,
@@ -187,7 +187,7 @@
           "ammoCapacity": 8,
           "automatic": true,
           "throwForce": 2,
-          "bulletSize": 2,
+          "bulletSize": 2.5,
           "rotation": [0, 30, 30],
           "position": [-0.5, -0.5, -1],
           "bulletScale": [0.05, 0.05, 0.05],
@@ -215,7 +215,7 @@
         {
           "type": "Enemy Controller",
           "movementSpeed": 3,
-          "detectionRange": 50,
+          "detectionRadius": 50,
           "attackRange": 70,
           "attackCooldown": 3,
           "distanceToKeep": 25
@@ -276,7 +276,7 @@
         {
           "type": "Enemy Controller",
           "movementSpeed": 3,
-          "detectionRange": 50,
+          "detectionRadius": 50,
           "attackRange": 70,
           "attackCooldown": 3,
           "distanceToKeep": 25
@@ -337,7 +337,7 @@
         {
           "type": "Enemy Controller",
           "movementSpeed": 3,
-          "detectionRange": 70,
+          "detectionRadius": 70,
           "attackRange": 70,
           "attackCooldown": 3,
           "distanceToKeep": 25
@@ -358,7 +358,7 @@
               "ammoCapacity": 8,
               "automatic": true,
               "throwForce": 6,
-              "bulletSize": 2,
+              "bulletSize": 2.5,
               "rotation": [180, 0, 0],
               "bulletScale": [0.05, 0.05, 0.05],
               "muzzleForwardOffset": 0.15,
@@ -398,7 +398,7 @@
         {
           "type": "Enemy Controller",
           "movementSpeed": 3,
-          "detectionRange": 40,
+          "detectionRadius": 40,
           "attackRange": 70,
           "attackCooldown": 3,
           "distanceToKeep": 25
@@ -419,7 +419,7 @@
               "ammoCapacity": 8,
               "automatic": true,
               "throwForce": 6,
-              "bulletSize": 2,
+              "bulletSize": 2.5,
               "rotation": [180, 0, 0],
               "bulletScale": [0.05, 0.05, 0.05],
               "muzzleForwardOffset": 0.15,
@@ -459,7 +459,7 @@
         {
           "type": "Enemy Controller",
           "movementSpeed": 3,
-          "detectionRange": 50,
+          "detectionRadius": 50,
           "attackRange": 70,
           "attackCooldown": 3,
           "distanceToKeep": 25
@@ -520,7 +520,7 @@
         {
           "type": "Enemy Controller",
           "movementSpeed": 3,
-          "detectionRange": 70,
+          "detectionRadius": 70,
           "attackRange": 70,
           "attackCooldown": 3,
           "distanceToKeep": 25
@@ -541,7 +541,7 @@
               "ammoCapacity": 8,
               "automatic": true,
               "throwForce": 6,
-              "bulletSize": 2,
+              "bulletSize": 2.5,
               "rotation": [180, 0, 0],
               "bulletScale": [0.05, 0.05, 0.05],
               "muzzleForwardOffset": 0.15,
