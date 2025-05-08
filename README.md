@@ -1,95 +1,238 @@
-# ❄️ SUPERCOLD
+# <img align=center width=75px height=75px  src="https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExODJ3OTR5bmFnYWx3aXA3dXVicjVxdWpiZ2ZqcWx5bTRhOXA2dnlyNyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/wfgAAMHo4FTSWfprhA/giphy.gif"> SUPERCOLD
 
-**⌛ Time may stand still, but the cold never sleeps.**
+
+<p align="center"> 
+
+   <img align="center" height=100% src="./docs/screenshots/menu.png" alt="logo">
+
+<br>
+<em>
+<b> Time may stand still, but the cold never sleeps. </b> <br>
+</em>
+</p>
 
 ---
 
-## 📹 Overview
+## <img align="center" height=50px src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExYzRsb2d0NnA5M2k5bmttZnM3OTBkMHg0b2c2OW4zc3p2YTBnc2N0ZyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/p5yoOL4u4Rv4Q/giphy.gif">  Overview / Game Idea
 
 
 **SUPERCOLD** is a first-person shooter where time moves only when you do. Beware: stand still for too long, and you'll freeze as time slips away.
 
 - **Time only moves when you move.**
-- **Standing still for too long freezed your time, and moves time around you.**
+- **Standing still for too long freezes your time, and moves time around you.**
 
 ---
 
-## Engine parts
+## <img align="center" height=50px src="https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExZG5uc29zYXp1MzhhYnVtYncxcmEybXI0b3RqYWpiMTIzeHV3bXg0eCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/YTXsHaOQECQRISfDpv/giphy.gif"> ScreenShots
 
- :white_check_mark: Shader
- 
- :white_check_mark: Mesh
- 
- :white_check_mark: Transform
- 
- :white_check_mark: Pipeline State
- 
- :white_check_mark: Texture
- 
- :white_check_mark: Sampler
- 
- :white_check_mark: Material
- 
- :white_check_mark: ECS
- 
- :white_check_mark: Forward Renderer
- 
- :white_check_mark: Sky Renderer
+<p align="center"> 
+   <img align="center" height=300px src="./docs/screenshots/freeze.png" alt="logo">
+<br>
+<em>
+<b>
+The freeze time mechanic in action, showing the distinctive visual effect when time slows down during gameplay.
+</b> 
+</em>
 
- :white_check_mark: Postprocessing
+   <img align="center" height=300px src="./docs/screenshots/level.png" alt="logo">
 
- [![](https://mermaid.ink/img/pako:eNqdV1tv6jgQ_itWKsRLWpFwSeBhJS5Fu9oe6ajt7kob9sEQA1ZDHNmmlEP733ds52IC9AYS2PHnz-OZb8bOwVmwmDgDp9E40JTKATo05ZpsSHOAmjHmT00XmQd_Y07xPCECRg5oliLUzDjdYL4fs4Rxhb_yu-oLU-zhEeMx4RWooz9N18Y8khdZIZah-uaIhKakGorb6psPkXhF7vCcJCO8eFpxtk1jYwZW3-YsfXt7azRm6SxdJmy3WGMu0eNITUWo0UBjxgkaZllCF1hSliIsEWwVSZYZjNjOVxxna42MZk59wsz5zwDVB55H1lg-QtLYNMpVH8iCpTFKyDNJ0DXaYJoisReSbERt1dvxAyx6m0oq92DCJmMpSSV60OCjtWPKyUJv4e6-evoP40kc6V8La_gi82c9f-Q4FUvGN1HZskZrrOj6-rdX2IcE68VrzllfQ4PWWKCMCaqse60WOeudcudDIYg0-wQP6B76gVO8Ah2m8hNb11PuGAbhRWa66dj7BcltOflL0kREeQepHphKhAX8QcTaoFTrLOTswnr7CTTBQfZiH4LLBS9J6HFNeaWgRaEMgTAIiwOecJquTjRcwM6ISnzCp2O8IRxH5q_mn3u9KDhbu6jo2SD2rGMXFQ1rbMoJyclVM18IjEslZ0lyxFM3R_ttK4g40VbdtMvISyo0M0sZ3heO_XwGThnfYR6X3sn7Zx2EJZDjJCoa-SoW5CfNiKqGDxIgUdFDumvBHtZa9ubvlEX5xITpZOii4dp3Rli5PouR96cod6NnSnZoydnmNY_ZO_GJOd7lK7yDwqrMqkAWvjp1oxVt44gLEKhhS7qC1ATgkX8v5d6ISck2ZfLRNNvKvH7X5POHGirVo3vod8jQROXmx9r5k-znDBwaFY2jbIKtRfr3fPjKjMojp-tKQfQRTvOepq6GZJwtiNB-PaY79dQPdbKBf1OzOYHmRO4IqZ12cGRqYnX5gKDQX4panzHH47o2IqwqppIUfrWr5zF0o08KoKlJsmbfmDMhro0xtp0GYB1hWEq8WCtCW79nAaepcR6Wu_QdSBUa2-wLJ4Yt8fL0MPqGmEpylFLVTUTulRbRjso1uHQOVVGCI-CqlftgkYC_J2QJD-FsXNIkGVx1Rq1W6LsCSvMTGVz120FrMnL1rMHVUn_ywesdjeV64GcvNTayEDlZq9XphaOSrDMdt6fB18jK466k7HVarZIyGE_H0P0SZS4ywzcK-t1WZeJ0Ogm-ymcd0IYzvO10hpOSc9Ib-rfh1zhN3TF0fd8f-Z5lYm_U-1xISimoi-seCRAEsWOvU0oF336mk9M1onXLo1RF1UbVcs8tqq57VGVdo1xXn0e1m0tuQaV4175FuZXOTbzsSSZxXDsb3SLnXKvoVZGxZxeFzdWF0Lj6TOqQstQXF3f9cFzlin_rDTvBd3LFUMELQKHqod_uet9JFMNkX2VKyvbQm3wnUQyldUfPGduTdstKvS-kSuG5Wp60296wHX4nTwyhdQIXEZm0pq3xd1LFcZ0Vp7EzkHxLXAfkA29u0HUOanzm6HfkmTOApnptnjnw9glzMpz-y9immAbvqKt10dlmMaTAhGIQESCWOBEKokM1hpdZ6Qw8L_Q0iTM4OC_O4Dro3fQ8vx92w9DzPd_vus4eYH5w0w0CH2qfHwZB6HlvrvNLr-vdeL1-0Av7fuD1g67fCd7-B4icMNQ?type=png)](https://mermaid.live/edit#pako:eNqdV1tv6jgQ_itWKsRLWpFwSeBhJS5Fu9oe6ajt7kob9sEQA1ZDHNmmlEP733ds52IC9AYS2PHnz-OZb8bOwVmwmDgDp9E40JTKATo05ZpsSHOAmjHmT00XmQd_Y07xPCECRg5oliLUzDjdYL4fs4Rxhb_yu-oLU-zhEeMx4RWooz9N18Y8khdZIZah-uaIhKakGorb6psPkXhF7vCcJCO8eFpxtk1jYwZW3-YsfXt7azRm6SxdJmy3WGMu0eNITUWo0UBjxgkaZllCF1hSliIsEWwVSZYZjNjOVxxna42MZk59wsz5zwDVB55H1lg-QtLYNMpVH8iCpTFKyDNJ0DXaYJoisReSbERt1dvxAyx6m0oq92DCJmMpSSV60OCjtWPKyUJv4e6-evoP40kc6V8La_gi82c9f-Q4FUvGN1HZskZrrOj6-rdX2IcE68VrzllfQ4PWWKCMCaqse60WOeudcudDIYg0-wQP6B76gVO8Ah2m8hNb11PuGAbhRWa66dj7BcltOflL0kREeQepHphKhAX8QcTaoFTrLOTswnr7CTTBQfZiH4LLBS9J6HFNeaWgRaEMgTAIiwOecJquTjRcwM6ISnzCp2O8IRxH5q_mn3u9KDhbu6jo2SD2rGMXFQ1rbMoJyclVM18IjEslZ0lyxFM3R_ttK4g40VbdtMvISyo0M0sZ3heO_XwGThnfYR6X3sn7Zx2EJZDjJCoa-SoW5CfNiKqGDxIgUdFDumvBHtZa9ubvlEX5xITpZOii4dp3Rli5PouR96cod6NnSnZoydnmNY_ZO_GJOd7lK7yDwqrMqkAWvjp1oxVt44gLEKhhS7qC1ATgkX8v5d6ISck2ZfLRNNvKvH7X5POHGirVo3vod8jQROXmx9r5k-znDBwaFY2jbIKtRfr3fPjKjMojp-tKQfQRTvOepq6GZJwtiNB-PaY79dQPdbKBf1OzOYHmRO4IqZ12cGRqYnX5gKDQX4panzHH47o2IqwqppIUfrWr5zF0o08KoKlJsmbfmDMhro0xtp0GYB1hWEq8WCtCW79nAaepcR6Wu_QdSBUa2-wLJ4Yt8fL0MPqGmEpylFLVTUTulRbRjso1uHQOVVGCI-CqlftgkYC_J2QJD-FsXNIkGVx1Rq1W6LsCSvMTGVz120FrMnL1rMHVUn_ywesdjeV64GcvNTayEDlZq9XphaOSrDMdt6fB18jK466k7HVarZIyGE_H0P0SZS4ywzcK-t1WZeJ0Ogm-ymcd0IYzvO10hpOSc9Ib-rfh1zhN3TF0fd8f-Z5lYm_U-1xISimoi-seCRAEsWOvU0oF336mk9M1onXLo1RF1UbVcs8tqq57VGVdo1xXn0e1m0tuQaV4175FuZXOTbzsSSZxXDsb3SLnXKvoVZGxZxeFzdWF0Lj6TOqQstQXF3f9cFzlin_rDTvBd3LFUMELQKHqod_uet9JFMNkX2VKyvbQm3wnUQyldUfPGduTdstKvS-kSuG5Wp60296wHX4nTwyhdQIXEZm0pq3xd1LFcZ0Vp7EzkHxLXAfkA29u0HUOanzm6HfkmTOApnptnjnw9glzMpz-y9immAbvqKt10dlmMaTAhGIQESCWOBEKokM1hpdZ6Qw8L_Q0iTM4OC_O4Dro3fQ8vx92w9DzPd_vus4eYH5w0w0CH2qfHwZB6HlvrvNLr-vdeL1-0Av7fuD1g67fCd7-B4icMNQ)
+<br>
+<em>
+<b>
+An overview of the level design, showcasing the environment and layout of the game world.
+</b> 
+</em>
+
+
+<br>   <img align="center" height=300px src="./docs/screenshots/gameplay.png" alt="logo">
+<em>
+<b>
+Gameplay screenshot demonstrating the core mechanics, including player movement, weapon throwing, and enemy interactions.
+</b> 
+</em>
+
+</p>
 
 ---
 
-## 🛠️ Building and Running
+## <img align="center" height=60px src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExMmc2YzBhbGoxYjNmcGkxOTcwdHAyZDZpcjFqNndqNXFlamY2cGNyOCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/41GcxPlfVrgli/giphy.gif"> GamePlay 
 
-### Building the Project
+<p align="center"> 
+   <video width="100%" height="100%" controls autoplay>
+      <source src="./docs/SUPERCOLD.mp4" type="video/mp4">
+      Your browser does not support the video tag.
+    </video>
+<br>
+</p>
 
-To build the project on Linux, run:
+---
+
+# <img align="center" height=50px src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExb250bDhuOGRweXU5dzI2dmVqZjZmNW05eGkzZnZzZTl5YW5nOTV6cCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/AV0N3CVEhzemY/giphy.gif">  Game Controls 
+
+- ⌨️ **WASD**: Move
+- 🖱️ **Mouse**: Look around
+- 🖱️ **Left Click**: Shoot
+- ⌨️ **Space**: Jump
+- ⌨️ **Shift**: Sprint
+- ⌨️ **E**: Interact (Pick up items)
+- ⌨️ **Q**: Throw item
+- ⌨️ **R**: Reload
+- ⌨️ **C**: Crouch
+
+---
+
+# <img align="center" height=50px src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExYzRsb2d0NnA5M2k5bmttZnM3OTBkMHg0b2c2OW4zc3p2YTBnc2N0ZyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/p5yoOL4u4Rv4Q/giphy.gif"> Game and Engine Features
+
+
+## <img align="center" height=50px src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExY2R4ZWNkejJtNmoxeDB6eWI4Ymxvb2lnaGlxbDQxNWNydXJnNG44ZSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/3o7WIrwBp1FA3J92SY/giphy.gif"> 1. Rendering Pipeline
+
+- Implemented a custom rendering pipeline using OpenGL.
+- In it we made implementations for:
+  - **Shaders**
+  - **Mesh**
+  - **Textures**
+  - **Materials**
+  - **Pipeline State**
+  - **Transform**
+  - **Sampler**
+  - **Forward Renderer**
+  - **Sky Renderer**
+  - **Postprocessing Effects**
+
+## <img align="center" height=60px src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExamNtNWNscXlmcmg1YTFpMTVlNWJsOGNzbWo0dnJ3MjhtNHQ2OGc5MSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/xUOwG6S7APT47XeaRy/giphy.gif"> 2. ECS (Entity Component System)
+
+- Implemented ECS as a way to keep the game and engine organized following best practices and the recommend architectures.
+- Implemented deserialization of the game objects and components from config files. Using a custom `AssetLoader`.
+
+## <img align="center" height=70px src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExYmliNGprbG1panR0dHczMWxlZGxjZGk5MmI1cHNodHhzZXI4eGExbiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/Art6YZ7HfLhFiHPk2U/giphy.gif"> 3. Lightning
+
+- Implemented the following light types:
+  - **Directional**
+  - **Spot**
+  - **Point**
+- **PBR**
+- Implemented **HDR**.
+- Implemented **Bloom Filter**.
+
+## <img align="center" height=50px src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExcWxyemo0eDA4c2hpbWxnNWt2OGk3eXF0eW9yMmpib2d1eThxemdxMyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/xVQZmKwFcwAwg/giphy.gif"> 4. Model Loading
+
+- For 3D Model Loading we implemented a custom parser in addition to using `tinygltf` and `tinyobj`.
+
+> [!NOTE]
+> For feature work we plan to migrate to `Assimp` to handle more file types and models.
+
+## <img align="center" height=50px src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExMHNvZXZoZWR6eXVibm16aGgwczhrYWJnZDh4enBjYjc0dGdqNnU0dCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/RjpwS3HEFqgdALfARj/giphy.gif"> 5. Postprocessing Effect
+
+- **Freeze Effect**: Controlled Bluish Vignette with frost textures with intensity controlled by game state.
+- **Motion Blur**: blur the current frame based on the prev and speed from the depth buffer to make a blur when moving.
+- **Bloom Filter**: Light Gaussian Blur.
+
+
+## <img align="center" height=50px src="https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExc210bHhkd29vNDBjajA1eGlqZ21lM3l3bGdoaWJvcmZod3pkYnN1cCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/NDqBIAjtA1Z72/giphy.gif"> 5. Physics System (Using Bullet)
+
+- **Collision Detection**
+- **Collision Response**
+- **Forces and torques**
+- **Gravity and friction**
+- **Ray Cast**
+- **Pick and throw**
+- **Full Physics Debugging Mode**: Shows wireframes and collider.
+
+
+## <img align="center" height=50px src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExNmUyNjdieWlubjFheXY4b3FxczdsZnM1ZG5reXJmYjJqaGRhZjUzaiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/cLBlxq3UPzkf7uHVNN/giphy.gif"> 6. Audio System (Using openal)
+
+- Soundtrack for each of the 3 levels and menu.
+- Sound effect for most actions.
+
+## <img align="center" height=50px src="https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExcXg4OHVrdXR6cTJsbDZlZmxibzA5ZTB3NnU5emM0MTBkZXp2M3hpbiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9dHM/Xc3yCprU7fAAbPue4K/giphy.gif"> 7. Text Renderer
+
+- Implemented full text rendering system.
+- Used in:
+  - **SUPER COLD/HOT**: flash screens
+  - **MENU**
+  - **GUN PICKME**
+
+
+## <img align="center" height=50px src="https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExdTludzY3dWUxNnMyNGI4aXh0ZjIzdW02MjBvdDY3aWtvazV1b3NlZSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/ZgPf9DizfjcQscj214/giphy.gif"> 8. FPS (Character) controller
+
+- **Movement**
+- **Movement Smoothing**
+- **Camera Movement Smoothing**
+- **Head Bob**: when idle and when moving
+- **Sprinting**
+- **Crouching**
+- **Jumping**
+- **Stamina/Cooldown**: for jumping and sprinting
+- **Picking/Throwing Guns**
+- **Shooting**
+- **Reloading**
+
+
+## <img align="center" height=50px src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExdG9uaDdvZnY5a3BlOTFzM2t1N3VuZm9nZHZybjYxOXdoeXZvcHF1cSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/xUPGcdVkKb65JURmBW/giphy.gif"> 9. Time Scale Mechanics
+
+- When you stand still everything will move slow around you.
+- When moving it will start to get faster.
+- When sprinting it will get even more faster.
+- If stay still for more than 20 seconds you will freeze and die.
+- If got shot you will die.
+- If you killed all enemies you can move to the next level.
+
+
+
+## <img align="center" height=70px src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExcW95emthMDFnbDl0NXpjNDZndWJqOTk2MWw0ejY5cXNmN2JlaGZvNiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/8LGTzSNEImecGNaa2g/giphy.gif"> 10.  Skeletal Animation System (WIP)
+
+- This is still a work in progress.
+
+
+---
+
+## <img align="center" height=50px src="https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHFlYW52N3lxeXlsdDhxY3dibmV0aXY2bWllbHducXVjOGg4YzV1MiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/jdV1qhKi6H6la/giphy.gif"> Building and running
+
+### Pre-requisites
+
+- Make sure `cmake`, `c++ compiler`, `vcpkg` is installed.
+- Install `openal-soft` with `vcpkg`
+
+### Building
+
+- Build the project for linux or windows.
+
 ```bash
 ./scripts/build_linux.sh
+or
+./scripts/build_windows.bat
 ```
 
-This will:
-1. Create a `build` directory if it doesn't exist
-2. Configure the project with CMake
-3. Build the project using all available CPU cores
-4. The executable will be located in the `bin` directory
-
-### Running Tests
-
-The project includes various test suites that can be run using the `run_all.sh` script:
+### running the game
 
 ```bash
-./scripts/run_all.sh [test-name]
+./bin/GAME_APPLICATION -c ./config/app.jsonc
 ```
 
-Available test suites:
-- `shader-test`: Tests for shader functionality
-- `mesh-test`: Tests for mesh loading and rendering
-- `transform-test`: Tests for transform operations
-- `pipeline-test`: Tests for pipeline states (face culling, depth testing, blending, etc.)
-- `texture-test`: Tests for texture loading and sampling
-- `sampler-test`: Tests for sampler configurations
-- `material-test`: Tests for material system
-- `entity-test`: Tests for entity component system
-- `renderer-test`: Tests for renderer functionality
-- `sky-test`: Tests for sky rendering
-- `postprocess-test`: Tests for post-processing effects
+## <img align="center" width=70px height=55px src="https://media0.giphy.com/media/Xy702eMOiGGPzk4Zkd/giphy.gif?cid=ecf05e475vmf48k83bvzye3w2m2xl03iyem3tkuw2krpkb7k&rid=giphy.gif&ct=s"> Contributors
 
-If no test name is specified, all tests will be run.
+<table>
+  <tr>
+    <td align="center">
+      <a href="https://github.com/marwan2232004"><img src="https://avatars.githubusercontent.com/marwan2232004" width="150px;" alt=""/><br />
+      <sub><b>Marwan Alhameedy</b></sub></a><br />
+    </td>
+    <td align="center">
+      <a href="https://github.com/Mo2Hefny"><img src="https://avatars.githubusercontent.com/Mo2Hefny" width="150px;" alt=""/><br />
+      <sub><b>Moamen Hefny</b></sub></a><br />
+    </td>
+    <td align="center">
+      <a href="https://github.com/YoussefMehany"><img src="https://avatars.githubusercontent.com/YoussefMehany" width="150px;" alt=""/><br />
+      <sub><b>Youssef Mehany</b></sub></a><br />
+    </td>
+    <td align="center">
+      <a href="https://github.com/amir-kedis"><img src="https://avatars.githubusercontent.com/amir-kedis" width="150px;" alt=""/><br />
+      <sub><b>Amir Kedis</b></sub></a><br />
+    </td>
+  </tr>
+</table>
 
-### Running the Game
+## 🔒 License 
 
-After building, you can run the game using:
-```bash
-./bin/GAME_APPLICATION
-```
 
----
-
-## 🤍 Acknowledgements
-
-- Inspired by the innovative gameplay mechanics of SUPERHOT.
-- This game is made as a project for CMP3060 Graphics subject at Cairo University Faculty of Engineering.
+This software is licensed under MIT License. See [License](LICENSE) for more information.
