@@ -70,6 +70,10 @@ Gameplay screenshot demonstrating the core mechanics, including player movement,
     </video>
    <video width=500px src="https://github.com/CmpGameDevs/SUPERCOLD/blob/main/docs/assets/SUPERCOLD.mp4" type="video/mp4">
    
+
+https://github.com/user-attachments/assets/3d723b2c-23df-45a5-bc85-760ffeac7673
+
+
 <br>
 </p>
 
