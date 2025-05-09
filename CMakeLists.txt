@@ -1,17 +1,27 @@
 cmake_minimum_required(VERSION 4.0.0)   # Selects the minimum version of CMake required to run this file
-project(GFX-LAB VERSION 0.1.0)          # Here we select the project name and version
+project(SUPERCOLD VERSION 0.1.0)          # Here we select the project name and version
 
 # Here we select C++17 with all the standards required and all compiler-specific extensions disabled
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# Add compile definitions
+add_compile_definitions(DEBUG_TEXTURES)
+
 find_package(OpenAL CONFIG REQUIRED)
+find_package(TBB REQUIRED)
 
 if(NOT WIN32)
         # Find required packages
-        find_package(OpenGL REQUIRED)
-        find_package(GLEW REQUIRED)
+        # find_package(OpenGL REQUIRED)
+        # find_package(GLEW REQUIRED)
+        set(CMAKE_C_COMPILER   "/usr/bin/gcc"   CACHE PATH "" FORCE)
+        set(CMAKE_CXX_COMPILER "/usr/bin/g++"   CACHE PATH "" FORCE)
+        set(CMAKE_BUILD_TYPE   "Release"        CACHE STRING "" FORCE)
+
+        # set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS}  -I/usr/include"  CACHE STRING "" FORCE)
+        # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I/usr/include"  CACHE STRING "" FORCE)
 endif()
 
 # These are the options we select for building GLFW as a library
@@ -20,6 +30,11 @@ set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)       # Don't build Tests
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)    # Don't build Examples
 set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)           # Don't build Installation Information
 set(GLFW_USE_HYBRID_HPG ON CACHE BOOL "" FORCE)     # Add variables to use High Performance Graphics Card if available
+
+set(GLFW_BUILD_WAYLAND OFF CACHE BOOL "" FORCE)
+
+include_directories(/usr/include /usr/include/X11 /usr/include/wayland)
+
 add_subdirectory(vendor/glfw)                       # Build the GLFW project to use later as a library
 
 # Bullet Physics build options
@@ -76,6 +91,7 @@ set(COMMON_SOURCES
         source/common/texture/sampler.hpp
         source/common/texture/sampler.cpp
         source/common/texture/texture2d.hpp
+        source/common/texture/texture-debug.hpp
         source/common/texture/texture-utils.hpp
         source/common/texture/texture-utils.cpp
         source/common/texture/screenshot.hpp
@@ -133,8 +149,8 @@ set(COMMON_SOURCES
         source/common/components/audio.cpp
         source/common/components/weapon.hpp
         source/common/components/weapon.cpp
-        source/common/components/crosshair.cpp
         source/common/components/crosshair.hpp
+        source/common/components/crosshair.cpp
 
         source/common/model/model.hpp
         source/common/model/model.cpp
@@ -156,6 +172,7 @@ set(COMMON_SOURCES
 add_subdirectory(vendor/freetype-2.13.3 vendor/freetype-2.13.3/build)
 # Define the directories in which to search for the included headers
 include_directories(
+        /usr/include/
         source/common
         source/game
         vendor/glfw/include
@@ -193,13 +210,14 @@ set(STATES_SOURCES
 # For each example, we add an executable target
 # Each target compiles one example source file and the common & vendor source files
 # Then we link GLFW with each target
-add_executable(GAME_APPLICATION source/main.cpp ${STATES_SOURCES} ${COMMON_SOURCES} ${VENDOR_SOURCES})
+add_executable(SUPERCOLD source/main.cpp ${STATES_SOURCES} ${COMMON_SOURCES} ${VENDOR_SOURCES})
 
-target_link_libraries(GAME_APPLICATION 
+target_link_libraries(SUPERCOLD
     PRIVATE
         glfw 
         ${OPENGL_LIBRARIES} 
         ${GLEW_LIBRARIES} 
+        TBB::tbb
         BulletDynamics 
         BulletCollision 
         LinearMath

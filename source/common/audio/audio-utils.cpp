@@ -2,6 +2,7 @@
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
+#include <cstdint>
 #include <vector>
 
 struct RiffHeader {

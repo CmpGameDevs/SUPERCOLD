@@ -1,4 +1,4 @@
-#include "Crosshair.hpp"
+#include "crosshair.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include <iostream>
 
