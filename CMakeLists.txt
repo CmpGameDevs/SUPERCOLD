@@ -1,40 +1,48 @@
-cmake_minimum_required(VERSION 4.0.0)   # Selects the minimum version of CMake required to run this file
-project(SUPERCOLD VERSION 0.1.0)          # Here we select the project name and version
+cmake_minimum_required(VERSION 4.0.0)
+project(SUPERCOLD VERSION 1.0.0)
 
-# Here we select C++17 with all the standards required and all compiler-specific extensions disabled
+# ==============================================================================
+# Global build settings
+# ==============================================================================
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_BUILD_TYPE "Release" CACHE STRING "" FORCE)
 
+# Output directories
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${PROJECT_SOURCE_DIR}/bin)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${PROJECT_SOURCE_DIR}/bin)
+
+# ==============================================================================
+# Platform-specific settings
+# ==============================================================================
+if(NOT WIN32)
+    set(CMAKE_C_COMPILER "/usr/bin/gcc" CACHE PATH "" FORCE)
+    set(CMAKE_CXX_COMPILER "/usr/bin/g++" CACHE PATH "" FORCE)
+endif()
+
+# ==============================================================================
+# Third-party libraries configuration
+# ==============================================================================
+
+# --- Find system packages ---
 find_package(OpenAL CONFIG REQUIRED)
 find_package(TBB REQUIRED)
 
-if(NOT WIN32)
-        # Find required packages
-        # find_package(OpenGL REQUIRED)
-        # find_package(GLEW REQUIRED)
-        set(CMAKE_C_COMPILER   "/usr/bin/gcc"   CACHE PATH "" FORCE)
-        set(CMAKE_CXX_COMPILER "/usr/bin/g++"   CACHE PATH "" FORCE)
-        set(CMAKE_BUILD_TYPE   "Release"        CACHE STRING "" FORCE)
-
-        # set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS}  -I/usr/include"  CACHE STRING "" FORCE)
-        # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I/usr/include"  CACHE STRING "" FORCE)
-endif()
-
-# These are the options we select for building GLFW as a library
-set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)        # Don't build Documentation
-set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)       # Don't build Tests
-set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)    # Don't build Examples
-set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)           # Don't build Installation Information
-set(GLFW_USE_HYBRID_HPG ON CACHE BOOL "" FORCE)     # Add variables to use High Performance Graphics Card if available
-
+# --- GLFW options ---
+set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)
+set(GLFW_USE_HYBRID_HPG ON CACHE BOOL "" FORCE)
 set(GLFW_BUILD_WAYLAND OFF CACHE BOOL "" FORCE)
 
-include_directories(/usr/include /usr/include/X11 /usr/include/wayland)
+# --- Assimp options ---
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 
-add_subdirectory(vendor/glfw)                       # Build the GLFW project to use later as a library
-
-# Bullet Physics build options
+# --- Bullet Physics options ---
 set(BUILD_UNIT_TESTS OFF CACHE BOOL "" FORCE)
 set(BUILD_EXTRAS OFF CACHE BOOL "" FORCE)
 set(BUILD_CPU_DEMOS OFF CACHE BOOL "" FORCE)
@@ -42,181 +50,206 @@ set(BUILD_BULLET2_DEMOS OFF CACHE BOOL "" FORCE)
 set(BUILD_ENET OFF CACHE BOOL "" FORCE)
 set(BUILD_CLSOCKET OFF CACHE BOOL "" FORCE)
 
-# Add Bullet Physics subdirectory
+# ==============================================================================
+# Third-party libraries inclusion
+# ==============================================================================
+add_subdirectory(vendor/glfw)
+add_subdirectory(vendor/assimp)
 add_subdirectory(vendor/bullet3)
+add_subdirectory(vendor/freetype-2.13.3 vendor/freetype-2.13.3/build)
 
-# A variable with all the source files of GLAD
+# Disable array-bounds warnings in Assimp
+target_compile_options(assimp PRIVATE
+    $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>>:-Wno-error=array-bounds>
+    $<$<OR:$<C_COMPILER_ID:GNU>,$<C_COMPILER_ID:Clang>>:-Wno-error=array-bounds>
+    $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>>:-Wno-error>
+    $<$<OR:$<C_COMPILER_ID:GNU>,$<C_COMPILER_ID:Clang>>:-Wno-error>
+)
+
+# ==============================================================================
+# Include directories
+# ==============================================================================
+include_directories(
+    /usr/include/
+    /usr/include/X11
+    /usr/include/wayland
+    source/common
+    source/game
+    vendor/glfw/include
+    vendor/glad/include
+    vendor/glm
+    vendor/imgui
+    vendor/utils
+    vendor/bullet3/src
+    vendor/assimp/include
+    vendor/freetype-2.13.3/include
+)
+
+# ==============================================================================
+# Source files grouping
+# ==============================================================================
+
+# --- Vendor source files ---
 set(GLAD_SOURCE vendor/glad/src/gl.c)
-# A variables with all the source files of Dear ImGui
+
 set(IMGUI_SOURCES
-        vendor/imgui/imgui.cpp
-        vendor/imgui/imgui_demo.cpp
-        vendor/imgui/imgui_draw.cpp
-        vendor/imgui/imgui_widgets.cpp
-        vendor/imgui/imgui_tables.cpp
-        vendor/imgui/imgui_impl/imgui_impl_glfw.cpp
-        vendor/imgui/imgui_impl/imgui_impl_opengl3.cpp
-        )
+    vendor/imgui/imgui.cpp
+    vendor/imgui/imgui_demo.cpp
+    vendor/imgui/imgui_draw.cpp
+    vendor/imgui/imgui_widgets.cpp
+    vendor/imgui/imgui_tables.cpp
+    vendor/imgui/imgui_impl/imgui_impl_glfw.cpp
+    vendor/imgui/imgui_impl/imgui_impl_opengl3.cpp
+)
 
-
-# Combine all vendor source files together into a single variable
 set(VENDOR_SOURCES ${GLAD_SOURCE} ${IMGUI_SOURCES})
 
-# A variable with all our source files that are common between executable targets (examples)
+# --- Common source files ---
 set(COMMON_SOURCES
-        source/common/application.hpp
-        source/common/application.cpp
-        source/common/input/keyboard.hpp
-        source/common/input/mouse.hpp
-
-        source/common/asset-loader.cpp
-        source/common/asset-loader.hpp
-        source/common/deserialize-utils.hpp
-        
-        source/common/shader/shader.hpp
-        source/common/shader/shader.cpp
-
-        source/common/mesh/vertex.hpp
-        source/common/mesh/mesh.hpp
-        source/common/mesh/mesh-utils.hpp
-        source/common/mesh/mesh-utils.cpp
-        
-        source/common/audio/audio-buffer.hpp
-        source/common/audio/audio-utils.hpp
-        source/common/audio/audio-utils.cpp
-
-        source/common/texture/sampler.hpp
-        source/common/texture/sampler.cpp
-        source/common/texture/texture2d.hpp
-        source/common/texture/texture-utils.hpp
-        source/common/texture/texture-utils.cpp
-        source/common/texture/screenshot.hpp
-        source/common/texture/screenshot.cpp
-        source/common/texture/cubemap-texture.hpp
-        source/common/texture/cubemap-texture.cpp
-        source/common/texture/texture-unit.hpp
-
-        source/common/material/pipeline-state.hpp
-        source/common/material/pipeline-state.cpp
-        source/common/material/material.hpp
-        source/common/material/material.cpp
-
-        source/common/ibl/cubemap-buffer.hpp
-        source/common/ibl/cubemap-buffer.cpp
-        source/common/ibl/cubemap.hpp
-        source/common/ibl/cubemap.cpp
-        source/common/ibl/hdr-system.hpp
-        source/common/ibl/hdr-system.cpp
-        source/common/ibl/bloom-buffer.hpp
-        source/common/ibl/bloom-buffer.cpp
-        source/common/ibl/fullscreenquad.hpp
-        source/common/ibl/fullscreenquad.cpp
-        source/common/ibl/postprocess.hpp
-        source/common/ibl/postprocess.cpp
-
-        source/common/ecs/component.hpp
-        source/common/ecs/transform.hpp
-        source/common/ecs/transform.cpp
-        source/common/ecs/entity.hpp
-        source/common/ecs/entity.cpp
-        source/common/ecs/world.hpp
-        source/common/ecs/world.cpp
-        source/common/ecs/lighting.hpp
-        source/common/ecs/lighting.cpp
-
-        source/common/components/camera.hpp
-        source/common/components/camera.cpp
-        source/common/components/mesh-renderer.hpp
-        source/common/components/mesh-renderer.cpp
-        source/common/components/free-camera-controller.hpp
-        source/common/components/free-camera-controller.cpp
-        source/common/components/fps-controller.hpp
-        source/common/components/fps-controller.cpp
-        source/common/components/enemy-controller.hpp
-        source/common/components/enemy-controller.cpp
-        source/common/components/movement.hpp
-        source/common/components/movement.cpp
-        source/common/components/collision.cpp
-        source/common/components/collision.cpp
-        source/common/components/component-deserializer.hpp
-        source/common/components/model-renderer.hpp
-        source/common/components/model-renderer.cpp
-        source/common/components/audio.hpp
-        source/common/components/audio.cpp
-        source/common/components/weapon.hpp
-        source/common/components/weapon.cpp
-        source/common/components/crosshair.hpp
-        source/common/components/crosshair.cpp
-
-        source/common/model/model.hpp
-        source/common/model/model.cpp
-
-        source/common/systems/audio-system.hpp
-        source/common/systems/audio-system.cpp
-        source/common/systems/collision-system.hpp
-        source/common/systems/collision-system.cpp
-        source/common/systems/weapons-system.hpp
-        source/common/systems/weapons-system.cpp
-        source/common/systems/enemy-system.hpp
-        source/common/systems/enemy-system.cpp
-        source/common/systems/forward-renderer.hpp
-        source/common/systems/forward-renderer.cpp
-        source/common/systems/free-camera-controller.hpp
-        source/common/systems/fps-controller.hpp
-        source/common/systems/movement.hpp
-)
-add_subdirectory(vendor/freetype-2.13.3 vendor/freetype-2.13.3/build)
-# Define the directories in which to search for the included headers
-include_directories(
-        /usr/include/
-        source/common
-        source/game
-        vendor/glfw/include
-        vendor/glad/include
-        vendor/glm
-        vendor/imgui
-        vendor/utils
-        vendor/bullet3/src
-        vendor/freetype-2.13.3/include
-        ${OPENGL_INCLUDE_DIR}
-        ${GLEW_INCLUDE_DIRS}
+    # Core
+    source/common/application.hpp
+    source/common/application.cpp
+    source/common/asset-loader.cpp
+    source/common/asset-loader.hpp
+    source/common/deserialize-utils.hpp
+    
+    # Input
+    source/common/input/keyboard.hpp
+    source/common/input/mouse.hpp
+    
+    # Shader
+    source/common/shader/shader.hpp
+    source/common/shader/shader.cpp
+    
+    # Mesh
+    source/common/mesh/vertex.hpp
+    source/common/mesh/mesh.hpp
+    source/common/mesh/mesh-utils.hpp
+    source/common/mesh/mesh-utils.cpp
+    
+    # Audio
+    source/common/audio/audio-buffer.hpp
+    source/common/audio/audio-utils.hpp
+    source/common/audio/audio-utils.cpp
+    
+    # Texture
+    source/common/texture/sampler.hpp
+    source/common/texture/sampler.cpp
+    source/common/texture/texture2d.hpp
+    source/common/texture/texture-utils.hpp
+    source/common/texture/texture-utils.cpp
+    source/common/texture/screenshot.hpp
+    source/common/texture/screenshot.cpp
+    source/common/texture/cubemap-texture.hpp
+    source/common/texture/cubemap-texture.cpp
+    source/common/texture/texture-unit.hpp
+    
+    # Material
+    source/common/material/pipeline-state.hpp
+    source/common/material/pipeline-state.cpp
+    source/common/material/material.hpp
+    source/common/material/material.cpp
+    
+    # IBL
+    source/common/ibl/cubemap-buffer.hpp
+    source/common/ibl/cubemap-buffer.cpp
+    source/common/ibl/cubemap.hpp
+    source/common/ibl/cubemap.cpp
+    source/common/ibl/hdr-system.hpp
+    source/common/ibl/hdr-system.cpp
+    source/common/ibl/bloom-buffer.hpp
+    source/common/ibl/bloom-buffer.cpp
+    source/common/ibl/fullscreenquad.hpp
+    source/common/ibl/fullscreenquad.cpp
+    source/common/ibl/postprocess.hpp
+    source/common/ibl/postprocess.cpp
+    
+    # ECS Core
+    source/common/ecs/component.hpp
+    source/common/ecs/transform.hpp
+    source/common/ecs/transform.cpp
+    source/common/ecs/entity.hpp
+    source/common/ecs/entity.cpp
+    source/common/ecs/world.hpp
+    source/common/ecs/world.cpp
+    source/common/ecs/lighting.hpp
+    source/common/ecs/lighting.cpp
+    
+    # Components
+    source/common/components/camera.hpp
+    source/common/components/camera.cpp
+    source/common/components/mesh-renderer.hpp
+    source/common/components/mesh-renderer.cpp
+    source/common/components/free-camera-controller.hpp
+    source/common/components/free-camera-controller.cpp
+    source/common/components/fps-controller.hpp
+    source/common/components/fps-controller.cpp
+    source/common/components/enemy-controller.hpp
+    source/common/components/enemy-controller.cpp
+    source/common/components/movement.hpp
+    source/common/components/movement.cpp
+    source/common/components/collision.cpp
+    source/common/components/collision.cpp
+    source/common/components/component-deserializer.hpp
+    source/common/components/model-renderer.hpp
+    source/common/components/model-renderer.cpp
+    source/common/components/audio.hpp
+    source/common/components/audio.cpp
+    source/common/components/weapon.hpp
+    source/common/components/weapon.cpp
+    source/common/components/crosshair.hpp
+    source/common/components/crosshair.cpp
+    
+    # Model
+    source/common/model/model.hpp
+    source/common/model/model.cpp
+    
+    # Systems
+    source/common/systems/audio-system.hpp
+    source/common/systems/audio-system.cpp
+    source/common/systems/collision-system.hpp
+    source/common/systems/collision-system.cpp
+    source/common/systems/weapons-system.hpp
+    source/common/systems/weapons-system.cpp
+    source/common/systems/enemy-system.hpp
+    source/common/systems/enemy-system.cpp
+    source/common/systems/forward-renderer.hpp
+    source/common/systems/forward-renderer.cpp
+    source/common/systems/free-camera-controller.hpp
+    source/common/systems/fps-controller.hpp
+    source/common/systems/movement.hpp
 )
 
-# Set output directories
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${PROJECT_SOURCE_DIR}/bin)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${PROJECT_SOURCE_DIR}/bin)
-
+# --- Game state files ---
 set(STATES_SOURCES
-        source/states/play-state.hpp
-        source/states/menu-state.hpp
-        source/states/shader-test-state.hpp
-        source/states/mesh-test-state.hpp
-        source/states/transform-test-state.hpp
-        source/states/pipeline-test-state.hpp
-        source/states/texture-test-state.hpp
-        source/states/sampler-test-state.hpp
-        source/states/material-test-state.hpp
-        source/states/entity-test-state.hpp
-        source/states/renderer-test-state.hpp
-        source/states/light-test-state.hpp
-        source/states/physics-test-state.hpp
+    source/states/play-state.hpp
+    source/states/menu-state.hpp
+    source/states/shader-test-state.hpp
+    source/states/mesh-test-state.hpp
+    source/states/transform-test-state.hpp
+    source/states/pipeline-test-state.hpp
+    source/states/texture-test-state.hpp
+    source/states/sampler-test-state.hpp
+    source/states/material-test-state.hpp
+    source/states/entity-test-state.hpp
+    source/states/renderer-test-state.hpp
+    source/states/light-test-state.hpp
+    source/states/physics-test-state.hpp
 )
 
-# For each example, we add an executable target
-# Each target compiles one example source file and the common & vendor source files
-# Then we link GLFW with each target
+# ==============================================================================
+# Target definition
+# ==============================================================================
 add_executable(SUPERCOLD source/main.cpp ${STATES_SOURCES} ${COMMON_SOURCES} ${VENDOR_SOURCES})
 
 target_link_libraries(SUPERCOLD
     PRIVATE
         glfw 
-        ${OPENGL_LIBRARIES} 
-        ${GLEW_LIBRARIES} 
-        TBB::tbb
         BulletDynamics 
         BulletCollision 
         LinearMath
         freetype
         OpenAL::OpenAL
+        assimp::assimp
+        TBB::tbb
 )
