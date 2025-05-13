@@ -1,5 +1,5 @@
-cmake_minimum_required(VERSION 4.0.0)
-project(SUPERCOLD VERSION 1.0.0)
+cmake_minimum_required(VERSION 3.14)
+project(SUPERCOLD VERSION 1.1.0)
 
 # ==============================================================================
 # Global build settings
@@ -8,6 +8,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_BUILD_TYPE "Release" CACHE STRING "" FORCE)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Output directories
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
@@ -26,9 +27,13 @@ endif()
 # Third-party libraries configuration
 # ==============================================================================
 
-# --- Find system packages ---
+# Include FetchContent for downloading dependencies
+include(FetchContent)
+
+# --- Find system/vcpkg packages ---
 find_package(OpenAL CONFIG REQUIRED)
 find_package(TBB REQUIRED)
+find_package(assimp CONFIG REQUIRED)
 
 # --- GLFW options ---
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
@@ -38,10 +43,6 @@ set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)
 set(GLFW_USE_HYBRID_HPG ON CACHE BOOL "" FORCE)
 set(GLFW_BUILD_WAYLAND OFF CACHE BOOL "" FORCE)
 
-# --- Assimp options ---
-set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
-set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-
 # --- Bullet Physics options ---
 set(BUILD_UNIT_TESTS OFF CACHE BOOL "" FORCE)
 set(BUILD_EXTRAS OFF CACHE BOOL "" FORCE)
@@ -50,29 +51,24 @@ set(BUILD_BULLET2_DEMOS OFF CACHE BOOL "" FORCE)
 set(BUILD_ENET OFF CACHE BOOL "" FORCE)
 set(BUILD_CLSOCKET OFF CACHE BOOL "" FORCE)
 
+# Shared libs setting (might affect Bullet3 if it respects it, or other FetchContent libs)
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+
 # ==============================================================================
 # Third-party libraries inclusion
 # ==============================================================================
+
+# Add GLFW from local source
 add_subdirectory(vendor/glfw)
-add_subdirectory(vendor/assimp)
+
+# Add local libraries
 add_subdirectory(vendor/bullet3)
 add_subdirectory(vendor/freetype-2.13.3 vendor/freetype-2.13.3/build)
-
-# Disable array-bounds warnings in Assimp
-target_compile_options(assimp PRIVATE
-    $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>>:-Wno-error=array-bounds>
-    $<$<OR:$<C_COMPILER_ID:GNU>,$<C_COMPILER_ID:Clang>>:-Wno-error=array-bounds>
-    $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>>:-Wno-error>
-    $<$<OR:$<C_COMPILER_ID:GNU>,$<C_COMPILER_ID:Clang>>:-Wno-error>
-)
 
 # ==============================================================================
 # Include directories
 # ==============================================================================
 include_directories(
-    /usr/include/
-    /usr/include/X11
-    /usr/include/wayland
     source/common
     source/game
     vendor/glfw/include
@@ -81,7 +77,6 @@ include_directories(
     vendor/imgui
     vendor/utils
     vendor/bullet3/src
-    vendor/assimp/include
     vendor/freetype-2.13.3/include
 )
 
@@ -188,8 +183,8 @@ set(COMMON_SOURCES
     source/common/components/enemy-controller.cpp
     source/common/components/movement.hpp
     source/common/components/movement.cpp
-    source/common/components/collision.cpp
-    source/common/components/collision.cpp
+    source/common/components/collision.cpp # Note: Repeated, assuming typo and meant .hpp and .cpp
+    source/common/components/collision.hpp
     source/common/components/component-deserializer.hpp
     source/common/components/model-renderer.hpp
     source/common/components/model-renderer.cpp
@@ -250,6 +245,7 @@ target_link_libraries(SUPERCOLD
         LinearMath
         freetype
         OpenAL::OpenAL
-        assimp::assimp
+        assimp::assimp 
         TBB::tbb
 )
+

@@ -18,6 +18,67 @@
 #include "states/renderer-test-state.hpp"
 #include "states/light-test-state.hpp"
 #include "states/physics-test-state.hpp"
+
+// --- Assimp Sanity Check ---
+#include <assimp/version.h>     // For aiGetVersionMajor/Minor/Revision
+#include <assimp/Importer.hpp>  // For Assimp::Importer
+#include <assimp/scene.h>       // For aiScene
+#include <assimp/postprocess.h> // For aiProcess_xxx flags
+
+void performAssimpSanityCheck() {
+    std::cout << "--- Performing Assimp Sanity Check ---" << std::endl;
+
+    // 1. Attempt to create an Assimp Importer instance
+    std::cout << "Attempting to create Assimp Importer..." << std::endl;
+    try {
+        Assimp::Importer importer;
+
+        // If the above line compiled, let's try a trivial operation.
+        // This also helps confirm basic linking.
+        const aiScene* scene = importer.ReadFile("dummy_non_existent_file.obj", aiProcess_Triangulate);
+        if (scene == nullptr) {
+            std::cout << "  [SUCCESS] Assimp Importer created and ReadFile called (expectedly failed for a dummy file)." << std::endl;
+            std::cout << "  Importer error string: " << importer.GetErrorString() << std::endl;
+        } else {
+            // This should not happen with a non-existent file
+            std::cerr << "  [WARNING] Assimp Importer ReadFile unexpectedly succeeded for a dummy file." << std::endl;
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "  [ERROR] Exception while creating or using Assimp Importer: " << e.what() << std::endl;
+        std::cerr << "  This could indicate a problem with linking or runtime dependencies." << std::endl;
+    } catch (...) {
+        std::cerr << "  [ERROR] Unknown exception while creating or using Assimp Importer." << std::endl;
+    }
+
+
+    // 2. Check and print the linked Assimp version
+    unsigned int major = aiGetVersionMajor();
+    unsigned int minor = aiGetVersionMinor();
+    unsigned int revision = aiGetVersionRevision(); // Also known as patch
+
+    std::cout << "Linked Assimp library version: "
+              << major << "."
+              << minor << "."
+              << revision << std::endl;
+
+    // Compare with the version vcpkg reported installing (5.4.3)
+    unsigned int expectedVcpkgMajor = 5;
+    unsigned int expectedVcpkgMinor = 4;
+
+    if (major == expectedVcpkgMajor && minor == expectedVcpkgMinor) {
+        std::cout << "  [INFO] Linked Assimp version major.minor (" << major << "." << minor
+                  << ") matches expected vcpkg version (" << expectedVcpkgMajor << "." << expectedVcpkgMinor << ".x)." << std::endl;
+    } else {
+        std::cout << "  [WARNING] Linked Assimp version (" << major << "." << minor << "." << revision
+                  << ") does NOT match expected vcpkg major.minor (" << expectedVcpkgMajor << "." << expectedVcpkgMinor << ".x)." << std::endl;
+        std::cout << "  Please ensure your vcpkg Assimp installation (expected "
+                  << expectedVcpkgMajor << "." << expectedVcpkgMinor << ".3) is correctly found by CMake." << std::endl;
+    }
+
+    std::cout << "--- Assimp Sanity Check Complete ---" << std::endl << std::endl;
+}
+
+
 namespace fs = std::filesystem;
 
 std::vector<nlohmann::json> parseLevels(int levels_count) {
@@ -37,6 +98,8 @@ std::vector<nlohmann::json> parseLevels(int levels_count) {
 }
 
 int main(int argc, char** argv) {
+
+    performAssimpSanityCheck();
     
     flags::args args(argc, argv); // Parse the command line arguments
     // config_path is the path to the json file containing the application configuration
