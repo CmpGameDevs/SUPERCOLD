@@ -22,7 +22,7 @@ struct Vertex {
     // --- Skeletal Animation Attributes
     // Bone IDs: Stores the indices of the bones that influence this vertex.
     int bone_ids[MAX_BONE_INFLUENCE];
-    // Weights: Stores the influence of each corresponding bone in bond_ids.
+    // Weights: Stores the influence of each corresponding bone in bone_ids.
     float weights[MAX_BONE_INFLUENCE];
 
     Vertex()
