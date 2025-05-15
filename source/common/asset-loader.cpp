@@ -170,7 +170,7 @@ namespace our
             {
                 std::string path = desc.get<std::string>();
                 Model* model = new Model();
-                model->loadModel(path);
+                model->loadFromFile(path);
                 assets[name] = model;
             }
         }

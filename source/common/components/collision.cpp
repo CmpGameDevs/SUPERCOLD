@@ -130,8 +130,11 @@ namespace our {
         //     childShape.indices = mesh->cpuIndices;
         //     childShapes.push_back(childShape);
         // }
-        vertices = model->combinedMesh->cpuVertices;
-        indices = model->combinedMesh->cpuIndices;
+        Mesh* mesh = model->getCombinedMesh();
+        if (mesh) {
+            vertices = mesh->cpuVertices;
+            indices  = mesh->cpuIndices;
+        }
     }
     
 }

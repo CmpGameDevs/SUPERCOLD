@@ -1,75 +1,72 @@
 #pragma once
-#include <components/mesh-renderer.hpp>
-#include <components/camera.hpp>
-#include <json/json.hpp>
-#include <material/material.hpp>
-#include <mesh/mesh.hpp>
-#include <ecs/entity.hpp>
-#include <string>
-#include <texture/texture-utils.hpp>
-#include <texture/texture2d.hpp>
-#include <vector>
-#include <iostream>
-#include <fstream>
 
-using json = nlohmann::json;
+#include "texture/texture2d.hpp"
+#include <assimp/scene.h>
+#include <components/camera.hpp>
+#include <components/mesh-renderer.hpp>
+#include <glm/glm.hpp>
+#include <map>
+#include <material/material.hpp>
+#include <memory>
+#include <mesh/mesh.hpp>
+#include <string>
+#include <vector>
 
 namespace our {
+
 class Model {
+public:
+  Model() = default;
+  ~Model();
 
-    std::vector<Texture2D *> textures;
-    std::vector<Material *> materials;
-    std::vector<glm::vec3> translationsMeshes;
-    std::vector<glm::quat> rotationsMeshes;
-    std::vector<glm::vec3> scalesMeshes;
-    std::vector<unsigned char> data;
-    json JSON;
-    std::string path;
-    
-    public:
-    
-    std::vector<MeshRendererComponent *> meshRenderers;
-    std::vector<glm::mat4> matricesMeshes;
-    Mesh* combinedMesh = nullptr;
-    
-    ~Model() {
-        for (auto &texture : textures) delete texture;
-        for (auto &material : materials) delete material;
-        for (auto &mesh : meshRenderers) delete mesh;
-        if (combinedMesh) delete combinedMesh;
-    }
+  // Load a model file (fbx, obj, gltf, etc.) using Assimp
+  bool loadFromFile(const std::string &path);
 
-    void draw(CameraComponent* camera, glm::mat4 localToWorld, glm::ivec2 windowSize, float bloomBrightnessCutoff);
-    void loadTextures();
-    void loadMesh(unsigned int indMesh);
-    void loadMaterials();
-    void traverseNode(unsigned int nextNode, glm::mat4 matrix = glm::mat4(1.0f));
-    void loadModel(std::string path);
+  // Draw all meshes in the model
+  void draw(CameraComponent *camera, const glm::mat4 &localToWorld,
+            const glm::ivec2 &windowSize, float bloomCutoff) const;
 
-    // Reads a text file and outputs a string with everything in the text file
-    std::string get_file_contents(std::string path);
-    std::vector<unsigned char> get_file_binary_contents(const std::string& path);
-    std::vector<unsigned char> getData();
+  // Generate a single combined mesh for all submeshes
+  void generateCombinedMesh();
 
-    // Interprets the binary data into floats, indices, and textures
-	std::vector<float> getFloats(json accessor);
-	std::vector<GLuint> getIndices(json accessor);
+  // Access the combined mesh for collision or other purposes
+  Mesh *getCombinedMesh() const { return combinedMesh.get(); }
 
-    // Assembles all the floats into vertices
-	std::vector<Vertex> assembleVertices
-	(
-		std::vector<glm::vec3> positions, 
-		std::vector<glm::vec3> normals, 
-		std::vector<glm::vec2> texUVs
-	);
+private:
+  std::string directory;
+  std::vector<MeshRendererComponent *> meshRenderers;
+  std::unique_ptr<Mesh> combinedMesh;
 
+  // Materials and textures owned by this model.
+  std::vector<std::unique_ptr<Material>> materials;
+  std::map<std::string, std::shared_ptr<Texture2D>>
+      texture_cache; // Key: relative path from model fill
 
-    // Helps with the assembly from above by grouping floats
-	std::vector<glm::vec2> groupFloatsVec2(std::vector<float> floatVec);
-	std::vector<glm::vec3> groupFloatsVec3(std::vector<float> floatVec);
-	std::vector<glm::vec4> groupFloatsVec4(std::vector<float> floatVec);
+  // Assimp import methods
+  void processNode(const aiNode *node, const aiScene *scene,
+                   const glm::mat4 &parentTransform);
+  MeshRendererComponent *processMesh(const aiMesh *mesh, const aiScene *scene,
+                                     const glm::mat4 &transform);
 
-    void generateCombinedMesh();
+  // Material and Texture loading helpers
+  void loadMaterialsFromScene(const aiScene *scene);
+  std::unique_ptr<Material> processMaterial(const aiMaterial *aiMat,
+                                            const aiScene *scene);
 
+  // Loads texture, uses mTextureCache. `texturePathInModel` is relative path as
+  // stored in model file.
+  std::shared_ptr<Texture2D> loadTexture(const std::string &texturePathInModel);
+  // Gets texture path from aiMaterial and then calls loadTexture.
+  std::shared_ptr<Texture2D> loadMaterialTexture(const aiMaterial *aiMat,
+                                                 const aiScene *scene,
+                                                 aiTextureType type,
+                                                 unsigned int index = 0);
+
+  // Helpers
+  static glm::mat4 aiToGlm(const aiMatrix4x4 &m);
+  static glm::vec3 aiToGlm(const aiColor3D &c) { return {c.r, c.g, c.b}; }
+  static glm::vec4 aiToGlm(const aiColor4D &c) { return {c.r, c.g, c.b, c.a}; }
+  static std::string aiToStr(const aiString &s) { return s.C_Str(); }
 };
+
 } // namespace our

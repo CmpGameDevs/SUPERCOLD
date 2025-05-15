@@ -1,710 +1,482 @@
 #include "model.hpp"
+#include <assimp/Importer.hpp>
+#include <assimp/postprocess.h>
+#include <assimp/scene.h>
+#include <glm/gtc/matrix_transform.hpp>
+#include <asset-loader.hpp>
+#include <ecs/entity.hpp>
+#include "material/material.hpp"
+#include "texture/texture-utils.hpp"
+
 namespace our {
 
-void Model::draw(CameraComponent* camera, glm::mat4 localToWorld, glm::ivec2 windowSize, float bloomBrightnessCutoff)
-{
-        // Go over all meshes and draw each one
-        glm::mat4 view = camera->getViewMatrix();
-        glm::mat4 projection = camera->getProjectionMatrix(windowSize);
-        glm::mat4 VP = projection * view;
-        for (unsigned int i = 0; i < meshRenderers.size(); i++)
-        {
-            Material* material = meshRenderers[i]->material;
-            Mesh* mesh = meshRenderers[i]->mesh;
-            glm::mat4 meshWorldMatrix = localToWorld * matricesMeshes[i];
-            glm::mat4 MVP = VP * meshWorldMatrix;
-            material->setup();
-            material->shader->set("transform", MVP);
-            material->shader->set("cameraPosition", camera->getOwner()->localTransform.position);
-            material->shader->set("view", view);
-            material->shader->set("projection", projection);
-            material->shader->set("model", meshWorldMatrix);
-            material->shader->set("bloomBrightnessCutoff", bloomBrightnessCutoff);
-            mesh->draw();
-        }
+Model::~Model() {
+    for (auto* mr : meshRenderers)
+        delete mr;
 }
 
-// Reads a text file and outputs a string with everything in the text file
-std::string Model::get_file_contents(std::string path) {
-    std::ifstream file(path);
-    if (!file) {
-        std::cerr << "Could not open file: " << path << std::endl;
-        return "";
+bool Model::loadFromFile(const std::string& path) {
+    std::cout << "[Model] Loading model from: " << path << std::endl;
+
+    Assimp::Importer importer;
+
+    const aiScene* scene = importer.ReadFile(
+        path, aiProcess_Triangulate | aiProcess_CalcTangentSpace | aiProcess_GenSmoothNormals | aiProcess_FlipUVs |
+                  aiProcess_JoinIdenticalVertices | aiProcess_ImproveCacheLocality | aiProcess_OptimizeMeshes |
+                  aiProcess_OptimizeGraph | aiProcess_SortByPType | aiProcess_PopulateArmatureData);
+
+    if (!scene || !scene->mRootNode && (scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE)) {
+        std::cerr << "[Model] ERROR: Failed to load model: " << path << " (" << importer.GetErrorString() << ")"
+                  << std::endl;
+        return false;
     }
-    std::string contents((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-    file.close();
-    return contents;
+
+    std::cout << "[Model] Successfully loaded scene with " << scene->mNumMeshes << " meshes and "
+              << scene->mNumMaterials << " materials, and " << scene->mNumTextures << " embedded textures."
+              << std::endl;
+
+    directory = path.substr(0, path.find_last_of("/\\") + 1);
+
+    loadMaterialsFromScene(scene);
+
+    processNode(scene->mRootNode, scene, glm::mat4(1.0f));
+
+    generateCombinedMesh();
+    std::cout << "[Model] Generated combined mesh with " << (combinedMesh ? combinedMesh->cpuVertices.size() : 0)
+              << " vertices." << std::endl;
+    return true;
 }
 
-std::vector<unsigned char> Model::get_file_binary_contents(const std::string& path) {
-    // Open file in binary mode with positioning at the end
-    std::ifstream file(path, std::ios::binary | std::ios::ate);
-    if (!file) {
-        std::cerr << "ERROR: Could not open binary file: " << path << std::endl;
-        return {};
+void Model::processNode(const aiNode* node, const aiScene* scene, const glm::mat4& parentTransform) {
+    glm::mat4 nodeTransform = parentTransform * aiToGlm(node->mTransformation);
+
+    for (unsigned int i = 0; i < node->mNumMeshes; ++i) {
+        const aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
+        meshRenderers.push_back(processMesh(mesh, scene, nodeTransform));
     }
 
-    // Get file size
-    std::streamsize size = file.tellg();
-    file.seekg(0, std::ios::beg);
-
-    // Read the data
-    std::vector<unsigned char> buffer(size);
-    if (!file.read(reinterpret_cast<char*>(buffer.data()), size)) {
-        std::cerr << "ERROR: Failed to read binary file: " << path << std::endl;
-        return {};
-    }
-
-    return buffer;
-}
-
-std::vector<unsigned char> Model::getData() {
-    try {
-        // Get the URI of the .bin file
-        if (!JSON.contains("buffers") || JSON["buffers"].empty() || !JSON["buffers"][0].contains("uri")) {
-            std::cerr << "ERROR: Missing buffer URI in GLTF" << std::endl;
-            return {};
-        }
-
-        std::string uri = JSON["buffers"][0]["uri"].get<std::string>();
-        std::string fileDirectory = path.substr(0, path.find_last_of('/') + 1);
-        std::string fullPath = fileDirectory + uri;
-        
-        // Read binary data directly into a byte vector
-        std::vector<unsigned char> binData = get_file_binary_contents(fullPath);
-        
-        return binData;
-    } catch (const std::exception& e) {
-        std::cerr << "ERROR: Failed to load binary data: " << e.what() << std::endl;
-        return {};
+    for (unsigned int i = 0; i < node->mNumChildren; ++i) {
+        processNode(node->mChildren[i], scene, nodeTransform);
     }
 }
 
-void Model::loadTextures() {
-    std::string directory = path.substr(0, path.find_last_of('/') + 1);
+MeshRendererComponent* Model::processMesh(const aiMesh* mesh, const aiScene* scene, const glm::mat4& transform) {
+    std::vector<Vertex> verts;
+    std::vector<unsigned int> inds;
+    verts.reserve(mesh->mNumVertices);
 
-    const auto &images = JSON["images"];
-    const auto &samplers = JSON["samplers"];
-    const auto &texturesJSON = JSON["textures"];
+    for (unsigned int i = 0; i < mesh->mNumVertices; ++i) {
+        Vertex v;
 
-    textures.reserve(texturesJSON.size());
+        v.position = glm::vec3(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z);
 
-    for (size_t i = 0; i < texturesJSON.size(); ++i) {
-        const auto &textureInfo = texturesJSON[i];
+        if (mesh->mNormals)
+            v.normal = glm::vec3(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z);
 
-        // Get image index
-        int sourceIndex = textureInfo.contains("source") ? textureInfo["source"].get<int>() : -1;
-        if (sourceIndex < 0 || sourceIndex >= images.size()) {
-            std::cerr << "Invalid source index for texture " << i << "\n";
-            textures.push_back(nullptr);
-            continue;
-        }
+        if (mesh->mTextureCoords[0])
+            v.tex_coord = glm::vec2(mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y);
 
-        // Get image path
-        std::string uri = images[sourceIndex]["uri"];
-        std::string imagePath = directory + uri;
+        if (mesh->mColors[0])
+            v.color =
+                glm::vec4(mesh->mColors[0][i].r, mesh->mColors[0][i].g, mesh->mColors[0][i].b, mesh->mColors[0][i].a);
 
-        // Load image
-        Texture2D *texture = texture_utils::loadImage(imagePath, true);
-        if (!texture) {
-            std::cerr << "Failed to load texture image: " << imagePath << "\n";
-            textures.push_back(nullptr);
-            continue;
-        }
-
-        // Get sampler index and apply settings if present
-        if (textureInfo.contains("sampler")) {
-            int samplerIndex = textureInfo["sampler"].get<int>();
-            if (samplerIndex >= 0 && samplerIndex < samplers.size()) {
-                const auto &sampler = samplers[samplerIndex];
-
-                GLint minFilter = sampler.contains("minFilter") ? sampler["minFilter"].get<int>() : GL_LINEAR_MIPMAP_LINEAR;
-                GLint magFilter = sampler.contains("magFilter") ? sampler["magFilter"].get<int>() : GL_LINEAR;
-                GLint wrapS = sampler.contains("wrapS") ? sampler["wrapS"].get<int>() : GL_REPEAT;
-                GLint wrapT = sampler.contains("wrapT") ? sampler["wrapT"].get<int>() : GL_REPEAT;
-
-                texture->bind();
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, minFilter);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, magFilter);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrapS);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrapT);
-                texture->unbind();
-            }
-        }
-
-        textures.push_back(texture);
-    }
-}
-
-void Model::loadMesh(unsigned int indMesh) {
-    // Get all accessor indices
-    json primitive = JSON["meshes"][indMesh]["primitives"][0];
-    json attributes = primitive["attributes"];
-    
-    // Check if the truly required attributes exist (position and indices)
-    if (!attributes.contains("POSITION") || !primitive.contains("indices")) {
-        std::cerr << "Mesh #" << indMesh << " missing position or indices" << std::endl;
-        return;  // Skip this mesh - can't render without vertices or indices
+        verts.push_back(v);
     }
 
-    if (!primitive.contains("material")) {
-        std::cerr << "Mesh #" << indMesh << " missing material" << std::endl;
-        return;  // Skip this mesh
-    }
-    
-    unsigned int posAccInd = attributes["POSITION"];
-    unsigned int indAccInd = primitive["indices"];
-    unsigned int matInd = primitive["material"];
-
-    // Load position data (always required)
-    std::vector<float> posVec = getFloats(JSON["accessors"][posAccInd]);
-    std::vector<glm::vec3> positions = groupFloatsVec3(posVec);
-    
-    // Load or create normals
-    std::vector<glm::vec3> normals;
-    if (attributes.contains("NORMAL")) {
-        unsigned int normalAccInd = attributes["NORMAL"];
-        std::vector<float> normalVec = getFloats(JSON["accessors"][normalAccInd]);
-        normals = groupFloatsVec3(normalVec);
-    } else {
-        // Create default normals (all pointing up)
-        normals.resize(positions.size(), glm::vec3(0.0f, 1.0f, 0.0f));
-        std::cout << "Mesh #" << indMesh << " using default normals" << std::endl;
-    }
-    
-    // Load or create texture coordinates
-    std::vector<glm::vec2> texUVs;
-    if (attributes.contains("TEXCOORD_0")) {
-        unsigned int texAccInd = attributes["TEXCOORD_0"];
-        std::vector<float> texVec = getFloats(JSON["accessors"][texAccInd]);
-        texUVs = groupFloatsVec2(texVec);
-    } else {
-        // Create default UV coordinates (all 0,0)
-        texUVs.resize(positions.size(), glm::vec2(0.0f, 0.0f));
-        std::cout << "Mesh #" << indMesh << " using default texture coordinates (0,0)" << std::endl;
+    for (unsigned int f = 0; f < mesh->mNumFaces; ++f) {
+        const aiFace& face = mesh->mFaces[f];
+        for (unsigned int j = 0; j < face.mNumIndices; ++j)
+            inds.push_back(face.mIndices[j]);
     }
 
-    // Combine all the vertex components and also get the indices and textures
-    std::vector<Vertex> vertices = assembleVertices(positions, normals, texUVs);
-    std::vector<GLuint> indices = getIndices(JSON["accessors"][indAccInd]);
+    auto* m = new Mesh(verts, inds);
+    Material* mat = nullptr;
 
-    // Combine the vertices, indices, and textures into a mesh
-    MeshRendererComponent *meshRenderer = new MeshRendererComponent();
-    meshRenderer->mesh = new Mesh(vertices, indices);
-    meshRenderer->material = materials[matInd];
-    meshRenderers.push_back(meshRenderer);
-}
-
-void Model::loadMaterials() {
-    // Go over all materials
-    for (int i = 0; i < JSON["materials"].size(); i++) {
-        // Get the material properties
-        json material = JSON["materials"][i];
-        LitMaterial *mat = new LitMaterial();
-
-        mat->transparent = false; // Default to opaque
-        mat->useTextureAlbedo = false;
-        mat->useTextureMetallicRoughness = false;
-        mat->useTextureNormal = false;
-        mat->useTextureAmbientOcclusion = false;
-        mat->useTextureEmissive = false;
-        mat->useTextureMetallic = false;
-        mat->useTextureRoughness = false;
-        mat->metallic = 0.95f;
-        mat->roughness = 0.1f;
-
-        // Set alpha mode if available
-        if (material.find("alphaMode") != material.end()) {
-            std::string alphaMode = material["alphaMode"].get<std::string>();
-            mat->transparent = (alphaMode == "BLEND" || alphaMode == "MASK");
-        }
-
-        // Handle PBR Metallic Roughness
-        if (material.find("pbrMetallicRoughness") != material.end()) {
-            json pbr = material["pbrMetallicRoughness"];
-            
-            // Base color texture
-            if (pbr.find("baseColorTexture") != pbr.end()) {
-                unsigned int texInd = pbr["baseColorTexture"]["index"];
-                mat->textureAlbedo = textures[texInd];
-                mat->useTextureAlbedo = true;
-            }
-            
-            // Metallic roughness texture
-            if (pbr.find("metallicRoughnessTexture") != pbr.end()) {
-                unsigned int texInd = pbr["metallicRoughnessTexture"]["index"];
-                mat->textureMetallicRoughness = textures[texInd];
-                mat->useTextureMetallicRoughness = true;
-            }
-
-            // Base color factor
-            if (pbr.find("baseColorFactor") != pbr.end()) {
-                glm::vec4 baseColor;
-                for (unsigned int j = 0; j < pbr["baseColorFactor"].size(); j++) {
-                    baseColor[j] = pbr["baseColorFactor"][j];
-                }
-                mat->albedo = glm::vec3(baseColor);
-            }
-
-            // Metallic factor
-            if (pbr.find("metallicFactor") != pbr.end()) {
-                mat->metallic = std::max(pbr["metallicFactor"].get<float>(), 0.1f);
-            }
-
-            // Roughness factor
-            if (pbr.find("roughnessFactor") != pbr.end()) {
-                mat->roughness = std::max(pbr["roughnessFactor"].get<float>(), 0.1f);
-            }
-        }
-
-        // Normal texture
-        if (material.find("normalTexture") != material.end()) {
-            unsigned int texInd = material["normalTexture"]["index"];
-            mat->textureNormal = textures[texInd];
-            mat->useTextureNormal = true;
-        }
-
-        // Occlusion texture
-        if (material.find("occlusionTexture") != material.end()) {
-            unsigned int texInd = material["occlusionTexture"]["index"];
-            mat->textureAmbientOcclusion = textures[texInd];
-            mat->useTextureAmbientOcclusion = true;
-        }
-
-        // Occlusion strength
-        if (material.find("occlusionFactor") != material.end()) {
-            mat->ambientOcclusion = material["occlusionFactor"];
-        }
-
-        // Emissive texture and factor
-        if (material.find("emissiveTexture") != material.end()) {
-            unsigned int texInd = material["emissiveTexture"]["index"];
-            mat->textureEmissive = textures[texInd];
-            mat->useTextureEmissive = true;
-        }
-        
-        if (material.find("emissiveFactor") != material.end()) {
-            glm::vec3 emissive;
-            for (unsigned int j = 0; j < material["emissiveFactor"].size(); j++) {
-                emissive[j] = material["emissiveFactor"][j];
-            }
-            mat->emission = glm::vec4(emissive, 1.0f);
-        }
-
-        mat->shader = AssetLoader<ShaderProgram>::get("pbr");
-        
-
-        if(material.find("doubleSided") != material.end()) {
-            mat->pipelineState.faceCulling.enabled = !material["doubleSided"];
-        } else {
-            mat->pipelineState.faceCulling.enabled = true;
-        }
-        
-
-        mat->pipelineState.depthTesting.enabled = true;
-        mat->pipelineState.depthTesting.function = GL_LEQUAL;
-
-        // add all the lights in the world
-        std::unordered_map<std::string, Light*>lights = AssetLoader<Light>::getAll();
-
-        for (auto& [name, light] : lights) {
-            mat->lights.push_back(light);
-        }
-
-        materials.push_back(mat);
-    }
-}
-
-void Model::loadModel(std::string path) {
-
-    this->path = path;
-
-    std::string text = get_file_contents(this->path);
-
-    // Load the JSON file
-    JSON = json::parse(text);
-    std::cout << "Loaded JSON file: " << this->path << '\n';
-
-    // Get data from bin file
-    data = getData();
-    std::cout << "Loaded binary data from: " << JSON["buffers"][0]["uri"].get<std::string>() << '\n';
-
-    // Load the textures
-    loadTextures();
-
-    // Load the materials
-    loadMaterials();
-
-    unsigned int sceneIndex = 0;
-    if (JSON.contains("scene")) {
-        sceneIndex = JSON["scene"].get<int>();
+    if (mesh->mMaterialIndex >= 0 && static_cast<size_t>(mesh->mMaterialIndex) < materials.size()) {
+        mat = materials[mesh->mMaterialIndex].get();
     }
 
-    const json& sceneNodes = JSON["scenes"][sceneIndex]["nodes"];
-
-    for (unsigned int i = 0; i < sceneNodes.size(); i++) {
-        unsigned int nodeIndex = sceneNodes[i];
-        traverseNode(nodeIndex, glm::mat4(1.0f));
-    }
-    
-    generateCombinedMesh();;
-}
-
-void Model::traverseNode(unsigned int nextNode, glm::mat4 matrix) {
-    // Get the node data
-    json node = JSON["nodes"][nextNode];
-
-    // Get translation
-    glm::vec3 translation = glm::vec3(0.0f, 0.0f, 0.0f);
-    if (node.find("translation") != node.end()) {
-        float transValues[3];
-        for (unsigned int i = 0; i < node["translation"].size(); i++)
-            transValues[i] = (node["translation"][i]);
-        translation = glm::make_vec3(transValues);
-    }
-
-    // Get quaternion rotation
-    glm::quat rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
-    if (node.find("rotation") != node.end()) {
-        float rotValues[4];
-        for (unsigned int i = 0; i < node["rotation"].size(); i++)
-            rotValues[i] = (node["rotation"][i]);
-        rotation = glm::make_quat(rotValues);
-    }
-
-    // Get scale
-    glm::vec3 scale = glm::vec3(1.0f, 1.0f, 1.0f);
-    if (node.find("scale") != node.end()) {
-        float scaleValues[3];
-        for (unsigned int i = 0; i < node["scale"].size(); i++)
-            scaleValues[i] = (node["scale"][i]);
-        scale = glm::make_vec3(scaleValues);
-    }
-
-    // Get matrix
-    glm::mat4 matNode = glm::mat4(1.0f);
-    if (node.find("matrix") != node.end()) {
-        float matValues[16];
-        for (unsigned int i = 0; i < node["matrix"].size(); i++)
-            matValues[i] = (node["matrix"][i]);
-        matNode = glm::make_mat4(matValues);
-    }
-
-
-    // Initialize matrices
-    glm::mat4 trans = glm::mat4(1.0f);
-    glm::mat4 rot = glm::mat4(1.0f);
-    glm::mat4 sca = glm::mat4(1.0f);
-
-    // Use translation, rotation, and scale to change the initialized matrices
-    trans = glm::translate(trans, translation);
-    rot = glm::mat4_cast(rotation);
-    sca = glm::scale(sca, scale);
-
-    // Combine the matrices
-    glm::mat4 matNextNode = matrix * matNode * trans * rot * sca;
-
-    // Check if the node contains a mesh and if it does load it
-    if (node.find("mesh") != node.end()) {
-        translationsMeshes.push_back(translation);
-        rotationsMeshes.push_back(rotation);
-        scalesMeshes.push_back(scale);
-        matricesMeshes.push_back(matNextNode);
-        loadMesh(node["mesh"]);
-    }
-
-    // Check if the node has children, and if it does, apply this function to them with the matNextNode
-    if (node.find("children") != node.end()) {
-        for (unsigned int i = 0; i < node["children"].size(); i++)
-            traverseNode(node["children"][i], matNextNode);
-    }
-}
-
-std::vector<float> Model::getFloats(json accessor)
-{
-	std::vector<float> floatVec;
-
-	// Get properties from the accessor
-	unsigned int buffViewInd = accessor.value("bufferView", 1);
-	unsigned int count = accessor["count"];
-	unsigned int accByteOffset = accessor.value("byteOffset", 0);
-	std::string type = accessor["type"];
-
-	// Get properties from the bufferView
-	json bufferView = JSON["bufferViews"][buffViewInd];
-	unsigned int byteOffset = bufferView["byteOffset"];
-
-	// Interpret the type and store it into numPerVert
-	unsigned int numPerVert;
-	if (type == "SCALAR") numPerVert = 1;
-	else if (type == "VEC2") numPerVert = 2;
-	else if (type == "VEC3") numPerVert = 3;
-	else if (type == "VEC4") numPerVert = 4;
-	else throw std::invalid_argument("Type is invalid (not SCALAR, VEC2, VEC3, or VEC4)");
-
-	// Go over all the bytes in the data at the correct place using the properties from above
-	unsigned int beginningOfData = byteOffset + accByteOffset;
-	unsigned int lengthOfData = count * 4 * numPerVert;
-	for (unsigned int i = beginningOfData; i < beginningOfData + lengthOfData; i += 4)
-	{
-		unsigned char bytes[] = { data[i], data[i + 1], data[i + 2], data[i + 3] };
-		float value;
-		std::memcpy(&value, bytes, sizeof(float));
-		floatVec.push_back(value);
-	}
-
-	return floatVec;
-}
-
-std::vector<GLuint> Model::getIndices(json accessor)
-{
-    std::vector<GLuint> indices;
-
-    // Verify accessor has required fields
-    if (!accessor.contains("count") || !accessor.contains("componentType")) {
-        std::cerr << "ERROR: Accessor missing required fields for indices" << std::endl;
-        return indices;
-    }
-
-    // Get properties from the accessor
-    unsigned int buffViewInd = accessor.value("bufferView", 0);
-    unsigned int count = accessor["count"];
-    unsigned int accByteOffset = accessor.value("byteOffset", 0);
-    unsigned int componentType = accessor["componentType"];
-
-    // Check bufferView exists
-    if (buffViewInd >= JSON["bufferViews"].size()) {
-        std::cerr << "ERROR: Invalid bufferView index: " << buffViewInd << std::endl;
-        return indices;
-    }
-
-    // Get properties from the bufferView
-    json bufferView = JSON["bufferViews"][buffViewInd];
-    unsigned int byteOffset = bufferView.value("byteOffset", 0);
-
-    // Calculate beginning of data and verify it's within bounds
-    unsigned int beginningOfData = byteOffset + accByteOffset;
-    if (beginningOfData >= data.size()) {
-        std::cerr << "ERROR: Data offset out of bounds: " << beginningOfData << " >= " << data.size() << std::endl;
-        return indices;
-    }
-
-    // Process based on component type
-    if (componentType == 5125) // UNSIGNED_INT (4 bytes)
-    {
-        // Check if we have enough data
-        if (beginningOfData + count * 4 > data.size()) {
-            std::cerr << "ERROR: Buffer overrun detected for UNSIGNED_INT indices" << std::endl;
-            count = (data.size() - beginningOfData) / 4; // Adjust count to prevent overrun
-        }
-
-        for (unsigned int i = beginningOfData; i < beginningOfData + count * 4; i += 4)
-        {
-            unsigned char bytes[] = { data[i], data[i + 1], data[i + 2], data[i + 3] };
-            unsigned int value;
-            std::memcpy(&value, bytes, sizeof(unsigned int));
-            indices.push_back((GLuint)value);
-        }
-    }
-    else if (componentType == 5123) // UNSIGNED_SHORT (2 bytes)
-    {
-        // Check if we have enough data
-        if (beginningOfData + count * 2 > data.size()) {
-            std::cerr << "ERROR: Buffer overrun detected for UNSIGNED_SHORT indices" << std::endl;
-            count = (data.size() - beginningOfData) / 2; // Adjust count to prevent overrun
-        }
-
-        for (unsigned int i = beginningOfData; i < beginningOfData + count * 2; i += 2)
-        {
-            unsigned char bytes[] = { data[i], data[i + 1] };
-            unsigned short value;
-            std::memcpy(&value, bytes, sizeof(unsigned short));
-            indices.push_back((GLuint)value);
-        }
-    }
-    else if (componentType == 5122) // SHORT (2 bytes)
-    {
-        // Check if we have enough data
-        if (beginningOfData + count * 2 > data.size()) {
-            std::cerr << "ERROR: Buffer overrun detected for SHORT indices" << std::endl;
-            count = (data.size() - beginningOfData) / 2; // Adjust count to prevent overrun
-        }
-
-        for (unsigned int i = beginningOfData; i < beginningOfData + count * 2; i += 2)
-        {
-            unsigned char bytes[] = { data[i], data[i + 1] };
-            short value;
-            std::memcpy(&value, bytes, sizeof(short));
-            indices.push_back((GLuint)value);
-        }
-    }
-    else if (componentType == 5126) // FLOAT (4 bytes)
-    {
-        // Check if we have enough data
-        if (beginningOfData + count * 4 > data.size()) {
-            std::cerr << "ERROR: Buffer overrun detected for FLOAT indices" << std::endl;
-            count = (data.size() - beginningOfData) / 4; // Adjust count to prevent overrun
-        }
-
-        // Fix: Use beginningOfData + count*4 instead of beginningOfData * 4
-        for (unsigned int i = beginningOfData; i < beginningOfData + count * 4; i += 4)
-        {
-            unsigned char bytes[] = { data[i], data[i + 1], data[i + 2], data[i + 3] };
-            float value;
-            std::memcpy(&value, bytes, sizeof(float));
-            indices.push_back((GLuint)value);
-        }
-    }
-    else if (componentType == 5121) // UNSIGNED_BYTE (1 byte)
-    {
-        // Check if we have enough data
-        if (beginningOfData + count > data.size()) {
-            std::cerr << "ERROR: Buffer overrun detected for UNSIGNED_BYTE indices" << std::endl;
-            count = data.size() - beginningOfData; // Adjust count to prevent overrun
-        }
-
-        // Fix: Use beginningOfData + count instead of just beginningOfData
-        for (unsigned int i = beginningOfData; i < beginningOfData + count; i++)
-        {
-            indices.push_back((GLuint)data[i]);
-        }
-    }
-    else if (componentType == 5120) // BYTE (1 byte)
-    {
-        // Check if we have enough data
-        if (beginningOfData + count > data.size()) {
-            std::cerr << "ERROR: Buffer overrun detected for BYTE indices" << std::endl;
-            count = data.size() - beginningOfData; // Adjust count to prevent overrun
-        }
-
-        // Fix: Use beginningOfData + count instead of just beginningOfData
-        for (unsigned int i = beginningOfData; i < beginningOfData + count; i++)
-        {
-            indices.push_back((GLuint)(char)data[i]);
-        }
-    }
-    else
-    {
-        std::cerr << "Unsupported component type: " << componentType << std::endl;
-    }
-
-    return indices;
-}
-
-std::vector<Vertex> Model::assembleVertices(std::vector<glm::vec3> positions,std::vector<glm::vec3> normals,std::vector<glm::vec2> texUVs)
-{
-	std::vector<Vertex> vertices;
-	for (int i = 0; i < positions.size(); i++)
-	{
-        texUVs[i].y = 1 - texUVs[i].y;
-		vertices.push_back
-		(
-			Vertex
-			{
-				positions[i],
-                glm::vec4(1, 1, 1, 1),
-                texUVs[i],
-                normals[i]
-			}
-		);
-	}
-	return vertices;
-}
-
-std::vector<glm::vec2> Model::groupFloatsVec2(std::vector<float> floatVec) {
-    const unsigned int floatsPerVector = 2;
-
-    std::vector<glm::vec2> vectors;
-    for (unsigned int i = 0; i < floatVec.size(); i += floatsPerVector) {
-        vectors.push_back(glm::vec2(0, 0));
-
-        for (unsigned int j = 0; j < floatsPerVector; j++) {
-            vectors.back()[j] = floatVec[i + j];
-        }
-    }
-    return vectors;
-}
-
-std::vector<glm::vec3> Model::groupFloatsVec3(std::vector<float> floatVec) {
-    const unsigned int floatsPerVector = 3;
-
-    std::vector<glm::vec3> vectors;
-    for (unsigned int i = 0; i < floatVec.size(); i += floatsPerVector) {
-        vectors.push_back(glm::vec3(0, 0, 0));
-
-        for (unsigned int j = 0; j < floatsPerVector; j++) {
-            vectors.back()[j] = floatVec[i + j];
-        }
-    }
-    return vectors;
-}
-
-std::vector<glm::vec4> Model::groupFloatsVec4(std::vector<float> floatVec) {
-    const unsigned int floatsPerVector = 4;
-
-    std::vector<glm::vec4> vectors;
-    for (unsigned int i = 0; i < floatVec.size(); i += floatsPerVector) {
-        vectors.push_back(glm::vec4(0, 0, 0, 0));
-
-        for (unsigned int j = 0; j < floatsPerVector; j++) {
-            vectors.back()[j] = floatVec[i + j];
-        }
-    }
-    return vectors;
+    auto* mr = new MeshRendererComponent();
+    mr->mesh = m;
+    mr->material = mat;
+    mr->localToParent = transform;
+    return mr;
 }
 
 void Model::generateCombinedMesh() {
-    // Skip if no meshes were loaded
-    if (meshRenderers.empty()) {
-        std::cout << "No meshes to combine" << std::endl;
+    if (meshRenderers.empty())
+        return;
+
+    std::vector<Vertex> verts;
+    std::vector<unsigned int> inds;
+    unsigned int offset = 0;
+
+    for (auto* mr : meshRenderers) {
+
+        for (const auto& v : mr->mesh->cpuVertices) {
+            Vertex tv = v;
+            glm::vec4 p = mr->localToParent * glm::vec4(tv.position, 1.0f);
+            tv.position = glm::vec3(p);
+            glm::mat3 nm = glm::transpose(glm::inverse(glm::mat3(mr->localToParent)));
+            tv.normal = glm::normalize(nm * tv.normal);
+            verts.push_back(tv);
+        }
+
+        for (auto i : mr->mesh->cpuIndices)
+            inds.push_back(i + offset);
+        offset += mr->mesh->cpuVertices.size();
+    }
+    combinedMesh = std::make_unique<Mesh>(verts, inds);
+}
+
+void Model::draw(CameraComponent* camera, const glm::mat4& localToWorld, const glm::ivec2& windowSize,
+                 float bloomCutoff) const {
+    if (!camera || !camera->getOwner()) {
+        std::cerr << "[Model] ERROR: Camera or camera owner is null in draw call." << std::endl;
         return;
     }
-    
-    std::vector<Vertex> combinedVertices;
-    std::vector<GLuint> combinedIndices;
-    
-    // Track the current vertex count for index adjustment
-    GLuint vertexOffset = 0;
-    
-    // Process each mesh
-    for (unsigned int i = 0; i < meshRenderers.size(); i++) {
-        Mesh* mesh = meshRenderers[i]->mesh;
-        const glm::mat4& transform = matricesMeshes[i];
-        
-        // Get a reference to the source vertices and indices
-        const std::vector<Vertex>& srcVertices = mesh->cpuVertices;
-        const std::vector<GLuint>& srcIndices = mesh->cpuIndices;
-        
-        // Transform and add all vertices
-        for (const auto& vertex : srcVertices) {
-            Vertex transformedVertex = vertex;
-            
-            // Transform position by mesh matrix
-            glm::vec4 positionWorld = transform * glm::vec4(vertex.position, 1.0f);
-            transformedVertex.position = glm::vec3(positionWorld);
-            
-            // Transform normal by the rotation part of the matrix
-            // Note: For correct normal transformation, we need the inverse transpose
-            glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(transform)));
-            transformedVertex.normal = normalize(normalMatrix * vertex.normal);
-            
-            combinedVertices.push_back(transformedVertex);
+
+    // Calculate View and Projection matrices once
+    glm::mat4 projectionMatrix = camera->getProjectionMatrix(windowSize);
+    glm::mat4 viewMatrix = camera->getViewMatrix();
+    glm::mat4 viewProjectionMatrix = projectionMatrix * viewMatrix; // VP
+
+    // Get camera world position
+    // Assuming getLocalToWorldMatrix() returns the world transformation of the
+    // camera's owner. The 4th column (index 3) of a 4x4 transformation matrix
+    // is the translation vector.
+    glm::vec3 cameraWorldPosition = glm::vec3(camera->getOwner()->getLocalToWorldMatrix()[3]);
+
+    for (const auto& meshRendererUniquePtr : meshRenderers) {
+        // Get the raw pointer from unique_ptr for convenience
+        const MeshRendererComponent* meshRenderer = meshRendererUniquePtr;
+
+        if (!meshRenderer || !meshRenderer->material || !meshRenderer->mesh || !meshRenderer->material->shader) {
+            if (!meshRenderer)
+                std::cerr << "[Model] WARNING: Skipping draw due to null "
+                             "meshRenderer."
+                          << std::endl;
+            else if (!meshRenderer->material)
+                std::cerr << "[Model] WARNING: Skipping draw due to null material." << std::endl;
+            else if (!meshRenderer->mesh)
+                std::cerr << "[Model] WARNING: Skipping draw due to null mesh." << std::endl;
+            else if (!meshRenderer->material->shader)
+                std::cerr << "[Model] WARNING: Skipping draw due to null "
+                             "shader on material."
+                          << std::endl;
+            continue;
         }
-        
-        // Add indices with offset adjustment
-        for (GLuint index : srcIndices) {
-            combinedIndices.push_back(index + vertexOffset);
-        }
-        
-        // Update vertex offset for next mesh
-        vertexOffset += srcVertices.size();
+
+        // Setup material (sets pipeline state and uses shader)
+        meshRenderer->material->setup();
+
+        // Calculate Model matrix for this specific mesh component
+        // mr->localToParent transforms the mesh from its local space to the
+        // model's root local space. localToWorld transforms the model's root
+        // local space to world space.
+        glm::mat4 modelMatrix = localToWorld * meshRenderer->localToParent; // M
+
+        // Calculate other derived matrices
+        glm::mat4 modelViewMatrix = viewMatrix * modelMatrix;                     // MV
+        glm::mat4 modelViewProjectionMatrix = viewProjectionMatrix * modelMatrix; // MVP
+
+        // Set shader uniforms
+        meshRenderer->material->shader->set("cameraPosition", camera->getOwner()->localTransform.position);
+
+        // Standard matrix uniforms
+        meshRenderer->material->shader->set("model",
+                                            modelMatrix);        // Model Matrix
+        meshRenderer->material->shader->set("view", viewMatrix); // View Matrix
+        meshRenderer->material->shader->set("projection",
+                                            projectionMatrix); // Projection Matrix
+        meshRenderer->material->shader->set("MV",
+                                            modelViewMatrix);            // Model-View Matrix
+        meshRenderer->material->shader->set("VP", viewProjectionMatrix); // View-Projection Matrix
+        meshRenderer->material->shader->set("transform",
+                                            modelViewProjectionMatrix); // Commonly used name for MVP
+
+        // Other common uniforms
+        meshRenderer->material->shader->set("cameraPosition", cameraWorldPosition);
+
+        // Application-specific uniforms (like bloom)
+        // Check if the uniform exists before setting to avoid OpenGL errors if
+        // shader doesn't declare it
+        meshRenderer->material->shader->set("bloomCutoff", bloomCutoff);
+        meshRenderer->material->shader->set("bloomBrightnessCutoff", bloomCutoff);
+
+        // Note: If LitMaterial (or other materials) sets its own specific
+        // matrices or camera position in its `setup()` method, there might be
+        // redundancy or overrides. Typically, these common matrices are set in
+        // the Model's draw loop, and material->setup() handles
+        // material-specific properties (textures, colors, lighting params).
+
+        meshRenderer->mesh->draw();
     }
-    
-    std::cout << "Combined mesh created with " << combinedVertices.size() 
-              << " vertices and " << combinedIndices.size() << " indices" << std::endl;
-    
-    // Create the combined mesh
-    combinedMesh = new Mesh(combinedVertices, combinedIndices);
+}
+
+void Model::loadMaterialsFromScene(const aiScene* scene) {
+    materials.reserve(scene->mNumMaterials);
+
+    std::cout << "[Model] Loading " << scene->mNumMaterials << " materials..." << std::endl;
+
+    for (unsigned int i = 0; i < scene->mNumMaterials; ++i) {
+        materials.push_back(processMaterial(scene->mMaterials[i], scene));
+    }
+}
+
+std::unique_ptr<Material> Model::processMaterial(const aiMaterial* aiMat, const aiScene* scene) {
+    // For now, we'll default to LitMaterial as it's the most comprehensive.
+    // You could add logic here to choose different material types based on
+    // aiMaterial properties.
+    auto material = std::make_unique<LitMaterial>();
+
+    aiString matName;
+    if (aiMat->Get(AI_MATKEY_NAME, matName) == AI_SUCCESS) {
+        std::cout << "[Model] Processing material: " << aiToStr(matName) << std::endl;
+    }
+
+    // Assign a default shader (e.g., PBR shader)
+    // This could be made more configurable, e.g., from material properties if
+    // the format supports it.
+    material->shader = AssetLoader<ShaderProgram>::get("pbr");
+    if (!material->shader) {
+        std::cerr << "[Model] WARNING: Default PBR shader not found for material: " << aiToStr(matName) << std::endl;
+        // Fallback or error
+        material->shader = AssetLoader<ShaderProgram>::get("default"); // Try a simpler default
+    }
+
+    // --- Set Material Properties ---
+    // Colors and Factors
+    aiColor4D color(0.0f, 0.0f, 0.0f, 1.0f);
+    float factor = 1.0f;
+
+    if (aiMat->Get(AI_MATKEY_BASE_COLOR, color) == AI_SUCCESS) {
+        material->albedo = glm::vec3(color.r, color.g, color.b);
+        material->tint.a = color.a;                                        // Use base color's alpha for tint's alpha
+    } else if (aiMat->Get(AI_MATKEY_COLOR_DIFFUSE, color) == AI_SUCCESS) { // Fallback for non-PBR
+        material->albedo = glm::vec3(color.r, color.g, color.b);
+        material->tint.a = color.a;
+    }
+
+    if (aiMat->Get(AI_MATKEY_METALLIC_FACTOR, factor) == AI_SUCCESS) {
+        material->metallic = factor;
+    }
+    if (aiMat->Get(AI_MATKEY_ROUGHNESS_FACTOR, factor) == AI_SUCCESS) {
+        material->roughness = factor;
+    }
+
+    aiColor3D emissiveColor(0.0f, 0.0f, 0.0f);
+    if (aiMat->Get(AI_MATKEY_COLOR_EMISSIVE, emissiveColor) == AI_SUCCESS) {
+        material->emission = aiToGlm(emissiveColor);
+    }
+
+    // Opacity and Transparency
+    float opacity = 1.0f;
+    if (aiMat->Get(AI_MATKEY_OPACITY, opacity) == AI_SUCCESS) {
+        material->tint.a *= opacity; // Modulate tint alpha with overall opacity
+    }
+    material->transparent = (material->tint.a < 0.999f);
+
+    // --- Load Textures ---
+    // Albedo / Base Color
+    material->textureAlbedo = loadMaterialTexture(aiMat, scene, aiTextureType_BASE_COLOR).get();
+    if (!material->textureAlbedo)
+        material->textureAlbedo = loadMaterialTexture(aiMat, scene, aiTextureType_DIFFUSE).get(); // Fallback
+    if (material->textureAlbedo)
+        material->useTextureAlbedo = true;
+
+    // Metallic-Roughness or Separate Metallic and Roughness
+    aiString pathMetallicStr, pathRoughnessStr;
+    bool hasMetallicPath = (aiMat->GetTexture(aiTextureType_METALNESS, 0, &pathMetallicStr) == AI_SUCCESS);
+    bool hasRoughnessPath = (aiMat->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, 0, &pathRoughnessStr) == AI_SUCCESS);
+
+    if (hasMetallicPath && hasRoughnessPath &&
+        std::string(pathMetallicStr.C_Str()) == std::string(pathRoughnessStr.C_Str())) {
+        // Same path, likely a combined MetallicRoughness texture (common in
+        // glTF)
+        material->textureMetallicRoughness = loadMaterialTexture(aiMat, scene, aiTextureType_METALNESS).get();
+        if (material->textureMetallicRoughness)
+            material->useTextureMetallicRoughness = true;
+    } else {
+        if (hasMetallicPath) {
+            material->textureMetallic = loadMaterialTexture(aiMat, scene, aiTextureType_METALNESS).get();
+            if (material->textureMetallic)
+                material->useTextureMetallic = true;
+        }
+        if (hasRoughnessPath) {
+            material->textureRoughness = loadMaterialTexture(aiMat, scene, aiTextureType_DIFFUSE_ROUGHNESS).get();
+            if (material->textureRoughness)
+                material->useTextureRoughness = true;
+        }
+    }
+
+    // Normals
+    material->textureNormal = loadMaterialTexture(aiMat, scene, aiTextureType_NORMALS).get();
+    if (!material->textureNormal)
+        material->textureNormal =
+            loadMaterialTexture(aiMat, scene, aiTextureType_HEIGHT).get(); // Some formats use height for bump
+    if (material->textureNormal)
+        material->useTextureNormal = true;
+
+    // Ambient Occlusion
+    material->textureAmbientOcclusion = loadMaterialTexture(aiMat, scene, aiTextureType_AMBIENT_OCCLUSION).get();
+    // Some GLTF files pack AO with MetallicRoughness, Assimp might expose it as
+    // LIGHTMAP too for some reason
+    if (!material->textureAmbientOcclusion)
+        material->textureAmbientOcclusion = loadMaterialTexture(aiMat, scene, aiTextureType_LIGHTMAP).get();
+    if (material->textureAmbientOcclusion)
+        material->useTextureAmbientOcclusion = true;
+
+    // Emissive
+    material->textureEmissive = loadMaterialTexture(aiMat, scene, aiTextureType_EMISSIVE).get();
+    if (material->textureEmissive)
+        material->useTextureEmissive = true;
+
+    // --- Pipeline State ---
+    int twoSided = 0;
+    if (aiMat->Get(AI_MATKEY_TWOSIDED, twoSided) == AI_SUCCESS && twoSided) {
+        material->pipelineState.faceCulling.enabled = false;
+    } else {
+        material->pipelineState.faceCulling.enabled = true; // Default: cull back faces
+    }
+
+    material->pipelineState.depthTesting.enabled = true; // Default true
+    // material->pipelineState.depthTesting.function = GL_LEQUAL; // Default or
+    // from material
+
+    if (material->transparent) {
+        material->pipelineState.blending.enabled = true;
+        // Common alpha blending setup (can be configured further from material
+        // if needed)
+        material->pipelineState.blending.sourceFactor = GL_SRC_ALPHA;
+        material->pipelineState.blending.destinationFactor = GL_ONE_MINUS_SRC_ALPHA;
+        material->pipelineState.blending.equation = GL_FUNC_ADD;
+        material->pipelineState.depthMask = GL_FALSE; // Typically no depth write for alpha blended
+    } else {
+        material->pipelineState.depthMask = GL_TRUE;
+    }
+
+    // Add lights (typically global, from AssetLoader)
+    // This part is retained from your LitMaterial's previous deserialize logic
+    auto lightsFromLoader = AssetLoader<Light>::getAll();
+    for (const auto& [name, light_ptr] : lightsFromLoader) {
+        if (light_ptr)
+            material->lights.push_back(light_ptr);
+    }
+
+    return material;
+}
+
+std::shared_ptr<Texture2D> Model::loadMaterialTexture(const aiMaterial* aiMat, const aiScene* scene, aiTextureType type,
+                                                      unsigned int index) {
+    aiString pathFromAssimp;
+    if (aiMat->GetTexture(type, index, &pathFromAssimp) == AI_SUCCESS) {
+        std::string texturePathStr = aiToStr(pathFromAssimp);
+
+        if (texturePathStr.rfind('*', 0) == 0) { // Starts with '*' indicates embedded texture
+            unsigned int embeddedTextureIndex = 0;
+            try {
+                embeddedTextureIndex = std::stoi(texturePathStr.substr(1));
+            } catch (const std::exception& e) {
+                std::cerr << "[Model] ERROR: Invalid embedded texture index format: " << texturePathStr << " ("
+                          << e.what() << ")" << std::endl;
+                return nullptr;
+            }
+
+            if (scene && embeddedTextureIndex < scene->mNumTextures) {
+                const aiTexture* embTex = scene->mTextures[embeddedTextureIndex];
+                std::cout << "[Model] Found embedded texture: " << texturePathStr
+                          << " (Format hint: " << embTex->achFormatHint << ", Dimensions: " << embTex->mWidth << "x"
+                          << embTex->mHeight << ")" << std::endl;
+
+                // Check cache first for embedded texture (using "*index" as
+                // key)
+                auto it = texture_cache.find(texturePathStr);
+                if (it != texture_cache.end()) {
+                    return it->second;
+                }
+
+                // Loading embedded textures:
+                // Assimp stores compressed formats (jpg, png) with mHeight = 0.
+                // mWidth is the buffer size. Uncompressed (raw pixels like
+                // ARGB8888) have mHeight > 0. This requires AssetLoader to have
+                // a method like loadFromMemory. For example:
+                // std::shared_ptr<Texture2D> embedded_texture =
+                // AssetLoader<Texture2D>::loadFromMemory(
+                //     reinterpret_cast<const unsigned char*>(embTex->pcData),
+                //     embTex->mWidth, // This is the size in bytes of pcData if
+                //     mHeight is 0 embTex->achFormatHint // Hint for stb_image
+                //     or similar
+                // );
+                // if (embedded_texture) {
+                //    mTextureCache[texturePathStr] = embedded_texture; // Cache
+                //    it return embedded_texture;
+                // } else {
+                //    std::cerr << "[Model] WARNING: Failed to load embedded
+                //    texture "
+                //    << texturePathStr << ". AssetLoader may not support it."
+                //    << std::endl; return nullptr;
+                // }
+                std::cerr << "[Model] INFO: Embedded texture loading for '" << texturePathStr
+                          << "' is sketched but likely requires "
+                             "AssetLoader<Texture2D>::loadFromMemory to be "
+                             "implemented."
+                          << std::endl;
+                return nullptr; // Placeholder until embedded loading is fully
+                                // supported via AssetLoader
+
+            } else {
+                std::cerr << "[Model] ERROR: Invalid embedded texture index " << embeddedTextureIndex
+                          << " or scene is null." << std::endl;
+                return nullptr;
+            }
+        } else {
+            // Regular file path (relative to model file)
+            return loadTexture(texturePathStr);
+        }
+    }
+    return nullptr; // No texture of this type found
+}
+
+std::shared_ptr<Texture2D> Model::loadTexture(const std::string& texturePathInModel) {
+    // `texturePathInModel` is the path as it appears in the model file (e.g.,
+    // relative, or *index for embedded)
+    auto it = texture_cache.find(texturePathInModel);
+    if (it != texture_cache.end()) {
+        return it->second; // Already cached
+    }
+
+    std::string fullPath = directory + texturePathInModel;
+    std::cout << "[Model] Attempting to load texture: " << texturePathInModel << " (Full path: " << fullPath << ")"
+              << std::endl;
+
+    // Try loading using AssetLoader. It should be configured to load from file
+    // paths. The AssetLoader should ideally handle caching internally if `get`
+    // is called multiple times with the same path. If AssetLoader caches by
+    // name, then our mTextureCache is still useful if AssetLoader's name isn't
+    // the full path. For simplicity, we assume
+    // AssetLoader<Texture2D>::get(fullPath) works and might cache. Our
+    // mTextureCache ensures we don't even *try* to load it again via
+    // AssetLoader if already successful for this model.
+    std::shared_ptr<Texture2D> texture(texture_utils::loadImage(fullPath));
+
+    if (!texture) {
+        std::cerr << "[Model] WARNING: Texture not loaded by AssetLoader: " << fullPath
+                  << ". It might not exist or AssetLoader is not configured for "
+                     "path loading."
+                  << std::endl;
+        // You could return a default "missing" texture here:
+        // texture = AssetLoader<Texture2D>::get("default-missing-texture");
+        return nullptr;
+    }
+
+    std::cout << "[Model] Successfully loaded texture: " << fullPath << std::endl;
+    texture_cache[texturePathInModel] = texture; // Cache it using the model-relative path as key
+    return texture;
+}
+
+glm::mat4 Model::aiToGlm(const aiMatrix4x4& m) {
+    return glm::mat4(m.a1, m.b1, m.c1, m.d1, m.a2, m.b2, m.c2, m.d2, m.a3, m.b3, m.c3, m.d3, m.a4, m.b4, m.c4, m.d4);
 }
 
 } // namespace our
