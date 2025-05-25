@@ -175,7 +175,11 @@ class Playstate : public our::State {
         collisionSystem.update(&world, scaledDeltaTime);
 
         float playerDeltaTime = deltaTime;
-        if (!levelFailed) {
+
+        Settings& settings = Settings::getInstance();
+
+        if (!levelFailed && !settings.showImGuiShaderDebugMenu) {
+
             // Update the movement system
             movementSystem.update(&world, scaledDeltaTime);
 
@@ -253,8 +257,10 @@ class Playstate : public our::State {
             auto& mouse = getApp()->getMouse();
             if (settings.showImGuiShaderDebugMenu) {
                 mouse.unlockMouse(getApp()->getWindow());
+                mouse.disable();
             } else {
                 mouse.lockMouse(getApp()->getWindow());
+                mouse.enable(getApp()->getWindow());
             }
         }
     }
