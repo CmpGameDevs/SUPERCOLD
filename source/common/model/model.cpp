@@ -141,6 +141,8 @@ void Model::draw(CameraComponent* camera, const glm::mat4& localToWorld, const g
         return;
     }
 
+    Settings& settings = Settings::getInstance();
+
     // Calculate View and Projection matrices once
     glm::mat4 projectionMatrix = camera->getProjectionMatrix(windowSize);
     glm::mat4 viewMatrix = camera->getViewMatrix();
@@ -197,11 +199,15 @@ void Model::draw(CameraComponent* camera, const glm::mat4& localToWorld, const g
 
         meshRenderer->material->shader->set("bloomBrightnessCutoff", bloomCutoff);
 
-        Settings& settings = Settings::getInstance();
         meshRenderer->material->shader->set("debugMode", settings.shaderDebugModeToInt(settings.shaderDebugMode));
 
+        if (settings.shaderDebugMode == "wireframe") {
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        } else {
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); // Ensure fill mode for other debug modes
+        }
         meshRenderer->mesh->draw();
-    }
+            }
 }
 
 void Model::loadMaterialsFromScene(const aiScene* scene) {
