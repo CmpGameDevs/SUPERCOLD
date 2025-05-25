@@ -377,11 +377,6 @@ std::unique_ptr<Material> Model::processMaterial(const aiMaterial* aiMat, const 
         material->lights.push_back(light_ptr);
     }
 
-    std::cout << "Using texture metallic " << material->useTextureMetallic << std::endl;
-    std::cout << "Using texture roughness " << material->useTextureRoughness << std::endl;
-    std::cout << "Using texture metallic roughness " << material->useTextureMetallicRoughness << std::endl;
-    std::cout << "==========================" << std::endl;
-
     return material;
 }
 
