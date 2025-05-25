@@ -27,7 +27,7 @@ bool Model::loadFromFile(const std::string& path) {
     Assimp::Importer importer;
 
     const aiScene* scene = importer.ReadFile(
-        path, aiProcess_Triangulate | aiProcess_CalcTangentSpace | aiProcess_GenSmoothNormals | aiProcess_FlipUVs |
+        path, aiProcess_Triangulate | aiProcess_CalcTangentSpace | aiProcess_GenSmoothNormals |
                   aiProcess_JoinIdenticalVertices | aiProcess_ImproveCacheLocality | aiProcess_OptimizeMeshes |
                   aiProcess_OptimizeGraph | aiProcess_SortByPType | aiProcess_PopulateArmatureData |
                   aiProcess_GenUVCoords | aiProcess_TransformUVCoords);
@@ -303,7 +303,6 @@ std::unique_ptr<Material> Model::processMaterial(const aiMaterial* aiMat, const 
     }
 
     // occlusion factor
-
 
     // Opacity and Transparency
     float opacity = 1.0f;
