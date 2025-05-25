@@ -165,7 +165,7 @@ void main() {
             roughness = texture(material.textureRoughness, textureCoordinates).r;
         }
     }
-    else {
+    else if (material.useTextureMetallicRoughness) {
         vec3 metallicRoughness = texture(material.textureMetallicRoughness, textureCoordinates).rgb;
         metallic = metallicRoughness.b;
         roughness = metallicRoughness.g;
