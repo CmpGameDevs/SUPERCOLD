@@ -308,7 +308,6 @@ std::unique_ptr<Material> Model::processMaterial(const aiMaterial* aiMat, const 
         material->textureMetallicRoughness = tex.get();
         material->useTextureMetallicRoughness = true;
     } else { // No obvious combined PBR map, try separate
-        std::cout << "[Model] Trying Using separate metallic and roughness textures." << std::endl;
         std::shared_ptr<Texture2D> texM = loadMaterialTexture(aiMat, scene, aiTextureType_METALNESS, 0);
         if (texM) {
             material->textureMetallic = texM.get();
@@ -328,8 +327,7 @@ std::unique_ptr<Material> Model::processMaterial(const aiMaterial* aiMat, const 
     // Normals
     material->textureNormal = loadMaterialTexture(aiMat, scene, aiTextureType_NORMALS).get();
     if (!material->textureNormal)
-        material->textureNormal =
-            loadMaterialTexture(aiMat, scene, aiTextureType_HEIGHT).get();
+        material->textureNormal = loadMaterialTexture(aiMat, scene, aiTextureType_HEIGHT).get();
     if (material->textureNormal)
         material->useTextureNormal = true;
 
@@ -429,34 +427,33 @@ std::shared_ptr<Texture2D> Model::loadMaterialTexture(const aiMaterial* aiMat, c
                     return it->second;
                 }
 
-                // Loading embedded textures:
-                // Assimp stores compressed formats (jpg, png) with mHeight = 0.
-                // mWidth is the buffer size. Uncompressed (raw pixels like
-                // ARGB8888) have mHeight > 0. This requires AssetLoader to have
-                // a method like loadFromMemory. For example:
-                // std::shared_ptr<Texture2D> embedded_texture =
-                // AssetLoader<Texture2D>::loadFromMemory(
-                //     reinterpret_cast<const unsigned char*>(embTex->pcData),
-                //     embTex->mWidth, // This is the size in bytes of pcData if
-                //     mHeight is 0 embTex->achFormatHint // Hint for stb_image
-                //     or similar
-                // );
-                // if (embedded_texture) {
-                //    mTextureCache[texturePathStr] = embedded_texture; // Cache
-                //    it return embedded_texture;
-                // } else {
-                //    std::cerr << "[Model] WARNING: Failed to load embedded
-                //    texture "
-                //    << texturePathStr << ". AssetLoader may not support it."
-                //    << std::endl; return nullptr;
-                // }
-                std::cerr << "[Model] INFO: Embedded texture loading for '" << texturePathStr
-                          << "' is sketched but likely requires "
-                             "AssetLoader<Texture2D>::loadFromMemory to be "
-                             "implemented."
-                          << std::endl;
-                return nullptr; // Placeholder until embedded loading is fully
-                                // supported via AssetLoader
+                std::shared_ptr<Texture2D> embedded_texture;
+
+                if (embTex->mHeight == 0) {
+                    // Compressed format - use loadFromMemory
+                    embedded_texture = std::shared_ptr<Texture2D>(
+                        texture_utils::loadFromMemory(reinterpret_cast<const unsigned char*>(embTex->pcData),
+                                                      embTex->mWidth, // Buffer size in bytes
+                                                      true            // Generate mipmaps
+                                                      ));
+                } else {
+                    // Uncompressed format - direct pixel data
+                    // This is less common but can happen with some formats
+                    std::cerr << "[Model] WARNING: Uncompressed embedded texture format not fully supported yet for "
+                              << texturePathStr << std::endl;
+                    // You could implement this case if needed by directly using glTexImage2D
+                    // with the pixel data from embTex->pcData
+                    return nullptr;
+                }
+
+                if (embedded_texture) {
+                    texture_cache[texturePathStr] = embedded_texture; // Cache it
+                    std::cout << "[Model] Successfully loaded embedded texture: " << texturePathStr << std::endl;
+                    return embedded_texture;
+                } else {
+                    std::cerr << "[Model] ERROR: Failed to load embedded texture " << texturePathStr << std::endl;
+                    return nullptr;
+                }
 
             } else {
                 std::cerr << "[Model] ERROR: Invalid embedded texture index " << embeddedTextureIndex
