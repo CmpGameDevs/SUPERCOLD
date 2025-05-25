@@ -1,7 +1,90 @@
-Language:        Cpp
-BasedOnStyle:  LLVM
-IndentWidth:     4
-UseTab:          Never
-BreakBeforeBraces: Attach
-AllowShortFunctionsOnASingleLine: Inline
-ColumnLimit:     120
+# Based on LLVM, with modifications to match the provided style
+Language: Cpp
+BasedOnStyle: LLVM
+
+#-------------------------------------------------------------------------------
+# Indentation and Spacing
+#-------------------------------------------------------------------------------
+IndentWidth: 4
+TabWidth: 4             # Should generally match IndentWidth when UseTab is Never
+UseTab: Never
+ContinuationIndentWidth: 4
+AccessModifierOffset: 0  # Aligns public:, private: with class indent (LLVM default is -2)
+
+#-------------------------------------------------------------------------------
+# Line Breaking and Wrapping
+#-------------------------------------------------------------------------------
+ColumnLimit: 120
+AllowShortFunctionsOnASingleLine: Empty # Allows 'void foo() {}' and 'Type() = default;'
+AllowShortIfStatementsOnASingleLine: Never
+# AllowShortLoopsOnASingleLine: Never
+AllowShortBlocksOnASingleLine: false    # For '{ dosomething(); }' on one line
+AllowShortCaseLabelsOnASingleLine: false
+
+#-------------------------------------------------------------------------------
+# Brace Wrapping (Key for the mixed Allman/K&R style)
+#-------------------------------------------------------------------------------
+# LLVM's 'BreakBeforeBraces: Attach' is default (braces on same line).
+# We override for classes, namespaces, etc., to put braces on a new line.
+BraceWrapping:
+  AfterClass: true             # class Foo\n{
+  AfterEnum: true              # enum Foo\n{
+  AfterNamespace: true         # namespace Foo\n{
+  AfterStruct: true            # struct Foo\n{
+  AfterUnion: true             # union Foo\n{
+  # For functions and control statements, LLVM 'Attach' style is desired (AfterFunction: false, AfterControlStatement: false)
+  # AfterFunction: false      # Implicit from LLVM (void foo() {)
+  # AfterControlStatement: false # Implicit from LLVM (if (cond) {)
+  BeforeElse: false            # } else {
+  BeforeCatch: false           # } catch {
+  SplitEmptyFunction: false    # Keeps 'void foo() {}' on one line. LLVM default is 'true' (splits to 3 lines)
+  SplitEmptyRecord: false      # Keeps 'struct Foo {};' on one/two lines. LLVM default is 'true'.
+  SplitEmptyNamespace: false   # Keeps 'namespace Foo {};' on one/two lines. LLVM default is 'true'.
+  IndentBraces: false
+
+#-------------------------------------------------------------------------------
+# Pointer and Reference Alignment
+#-------------------------------------------------------------------------------
+PointerAlignment: Left    # Results in Type* ptr (LLVM default is Right: Type *ptr)
+DerivePointerAlignment: false
+
+#-------------------------------------------------------------------------------
+# Include Directive Formatting
+#-------------------------------------------------------------------------------
+# IncludeBlocks: Regroup    # Regroups includes into blocks based on Categories
+IncludeCategories:
+  # Priority: Lower numbers come first.
+  # Main include for the current file (if possible, some IDEs/tools handle this better)
+  # - Regex:           'CorrespondingHeader.h' # Clang-format doesn't have a specific "main include first"
+  #   Priority:        0
+  - Regex:           '^"(components|mesh|material|texture|shader|asset-loader|ecs|pipeline-state|deserialize-utils)/.*\.h(pp)?$'
+    Priority:        1 # Your project's module headers
+  - Regex:           '^".*\.h(pp)?$' # Other project headers (e.g., "model.hpp" itself)
+    Priority:        2
+  - Regex:           '^<(assimp|glm|json)/.*(\.h(pp)?)?>$' # Third-party libraries (e.g. <glm/glm.hpp>, <assimp/scene.h>)
+    Priority:        3
+  - Regex:           '^<.*>$' # C++ standard library & C system headers (grouped after project/libs)
+    Priority:        4
+SortIncludes: CaseSensitive # LLVM default may be case-insensitive. CaseSensitive is stricter.
+
+#-------------------------------------------------------------------------------
+# Blank Lines
+#-------------------------------------------------------------------------------
+# MaxEmptyLinesToKeep: 1
+# EmptyLineBeforeAccessModifier: LogicalBlock # Adds blank line before public/private if context suggests (LLVM default is None)
+# EmptyLineAfterAccessModifier: Always (Not a direct clang-format option, but achieved by other rules)
+# EmptyLineBeforeFunction: Always
+# EmptyLineBeforeNamespace: Always
+
+#-------------------------------------------------------------------------------
+# Other C++ Specifics
+#-------------------------------------------------------------------------------
+# Standard: Cpp17 # Or Cpp14, Cpp20, Auto
+# Cpp11BracedListStyle: true # For `std::vector<int> v = {1,2,3};` (LLVM default)
+# AllowTrailingCommas: false # Your code doesn't use trailing commas (LLVM default is true)
+# ReflowComments: true       # ( LLVM default)
+
+# Spaces (mostly defaults from LLVM, which are good)
+# SpaceBeforeParens: ControlStatements (LLVM default)
+# SpacesInAngles: false (LLVM default for std::vector<int>)
+# SpaceAround...Operators: true (LLVM default)
