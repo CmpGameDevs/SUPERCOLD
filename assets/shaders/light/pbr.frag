@@ -165,15 +165,11 @@ void main() {
             roughness = texture(material.textureRoughness, textureCoordinates).r;
         }
     }
-    else if (material.useTextureMetallicRoughness) {
+    else {
         vec3 metallicRoughness = texture(material.textureMetallicRoughness, textureCoordinates).rgb;
         metallic = metallicRoughness.b;
         roughness = metallicRoughness.g;
     }
-    vec3 metallicRoughness = texture(material.textureMetallicRoughness, textureCoordinates).rgb;
-    metallic = metallicRoughness.b;
-    roughness = metallicRoughness.g;
-
 
     // normal
     vec3 N = normalize(normal);
@@ -315,15 +311,4 @@ void main() {
             FragColor = vec4(color , 1.0);
             break;
     }
-
-
-    // if (material.useTextureMetallic) {
-    //     FragColor = vec4(0.0, 0.0, 1.0, 1.0);
-    // }
-    // if (material.useTextureRoughness) {
-    //     FragColor = vec4(0.0, 1.0, 0.0, 1.0);
-    // }
-    // if (material.useTextureMetallicRoughness) {
-    //     FragColor = vec4(1.0, 0.0, 0.0, 1.0);
-    // }
 }
