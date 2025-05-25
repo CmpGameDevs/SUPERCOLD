@@ -4,6 +4,7 @@
 #include <AL/alc.h>
 #include <glm/vec2.hpp>
 #include <glad/gl.h>
+#include <assimp/Importer.hpp>
 #include <GLFW/glfw3.h>
 #include <imgui.h>
 #include <iostream>
@@ -15,6 +16,8 @@
 #include "input/keyboard.hpp"
 #include "input/mouse.hpp"
 
+
+
 namespace our {
 
     // This struct handles window attributes: (title, size, isFullscreen).
@@ -23,6 +26,7 @@ namespace our {
         glm::i16vec2 size;
         bool isFullscreen;
     };
+
 
     class Application; // Forward declaration
 
@@ -71,6 +75,7 @@ namespace our {
         // OpenAL Context
         ALCdevice* audioDevice;
         ALCcontext* audioContext;
+
 
         // Virtual functions to be overrode and change the default behaviour of the application
         // according to the example needs.

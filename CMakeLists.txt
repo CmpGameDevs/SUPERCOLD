@@ -107,6 +107,7 @@ set(COMMON_SOURCES
     source/common/asset-loader.cpp
     source/common/asset-loader.hpp
     source/common/deserialize-utils.hpp
+    source/common/settings.hpp
     
     # Input
     source/common/input/keyboard.hpp
