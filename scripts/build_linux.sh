@@ -5,8 +5,6 @@
 BUILD_DIR="build"
 # Define your CMake toolchain file path
 VCPKG_TOOLCHAIN_FILE="${HOME}/vcpkg/scripts/buildsystems/vcpkg.cmake"
-# Define your CMake prefix path (adjust if needed)
-CMAKE_PREFIX="/usr/include/"
 BUILD_TYPE="Release"
 
 # --- Functions ---
@@ -15,42 +13,51 @@ BUILD_TYPE="Release"
 usage() {
   echo "Usage: $0 [options]"
   echo "Options:"
-  echo "  -b, --build    Build the project"
+  echo "  -b, --build    Configure and build the project"
+  echo "  -r, --rebuild  Clean then configure and build the project"
   echo "  -c, --clean    Clean the build directory"
+  echo "  -m, --make     Only run make (use after successful configure/build)"
   echo "  -h, --help     Display this help message"
   echo ""
   echo "Example: $0 --build"
   echo "Example: $0 --clean"
+  echo "Example: $0 --rebuild"
 }
 
-# Function to configure and build the project
-build_project() {
+# Function to configure the project
+configure_project() {
   echo "Entering build directory: $BUILD_DIR"
-  # Create build directory if it doesn't exist
   mkdir -p "$BUILD_DIR" || { echo "Error: Failed to create directory '$BUILD_DIR'"; exit 1; }
 
-  # Enter build directory
   cd "$BUILD_DIR" || { echo "Error: Failed to enter directory '$BUILD_DIR'"; exit 1; }
 
-  # Configure with CMake
   echo "Configuring project with CMake..."
   cmake .. \
     -DCMAKE_TOOLCHAIN_FILE="$VCPKG_TOOLCHAIN_FILE" \
-    -DCMAKE_PREFIX_PATH="$CMAKE_PREFIX" \
-    -DCMAKE_BUILD_TYPE=Release \
-    || { echo "Error: CMake configuration failed"; return 1; }
+    -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
+    || { echo "Error: CMake configuration failed"; cd - > /dev/null; return 1; }
 
-  # Build the project
-  echo "Building project..."
-  make -j$(nproc) || { echo "Error: Build failed"; return 1; }
+  cd - > /dev/null
+  return 0
+}
+
+# Function to build the project (run make)
+make_project() {
+  if [ ! -d "$BUILD_DIR" ] || [ ! -f "$BUILD_DIR/Makefile" ]; then
+    echo "Error: Project not configured. Run with -b or --rebuild first."
+    return 1
+  fi
+  echo "Entering build directory: $BUILD_DIR"
+  cd "$BUILD_DIR" || { echo "Error: Failed to enter directory '$BUILD_DIR'"; exit 1; }
+
+  echo "Building project (running make)..."
+  make -j$(nproc) || { echo "Error: Build failed"; cd - > /dev/null; return 1; }
 
   echo "Build completed successfully!"
-  echo "The executable is typically located in the bin directory relative to the build directory."
-
-  # Return to the original directory
   cd - > /dev/null
-  return 0 # Indicate success
+  return 0
 }
+
 
 # Function to clean the build directory
 clean_project() {
@@ -61,7 +68,7 @@ clean_project() {
   else
     echo "Build directory '$BUILD_DIR' does not exist. Nothing to clean."
   fi
-  return 0 # Indicate success
+  return 0
 }
 
 # --- Main Script Logic ---
@@ -75,14 +82,27 @@ if [ $# -eq 0 ]; then
   exit 1
 fi
 
+ACTION_CONFIGURE=0
+ACTION_MAKE=0
+ACTION_CLEAN=0
+
 # Parse command line options
 while [[ "$#" -gt 0 ]]; do
   case $1 in
-    -b|--build)
-      build_project
+    -b|--build) # Configure and build
+      ACTION_CONFIGURE=1
+      ACTION_MAKE=1
+      ;;
+    -r|--rebuild) # Clean, then configure and build
+      ACTION_CLEAN=1
+      ACTION_CONFIGURE=1
+      ACTION_MAKE=1
       ;;
     -c|--clean)
-      clean_project
+      ACTION_CLEAN=1
+      ;;
+    -m|--make) # Only make
+      ACTION_MAKE=1
       ;;
     -h|--help)
       usage
@@ -97,5 +117,21 @@ while [[ "$#" -gt 0 ]]; do
   shift
 done
 
-exit 0
+if [ "$ACTION_CLEAN" -eq 1 ]; then
+  clean_project || exit 1
+fi
 
+if [ "$ACTION_CONFIGURE" -eq 1 ]; then
+  configure_project || exit 1
+fi
+
+if [ "$ACTION_MAKE" -eq 1 ]; then
+  make_project || exit 1
+fi
+
+if [ "$ACTION_CLEAN" -eq 0 ] && [ "$ACTION_CONFIGURE" -eq 0 ] && [ "$ACTION_MAKE" -eq 0 ]; then
+    echo "No action specified (build, clean, make)."
+    usage
+fi
+
+exit 0

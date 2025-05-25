@@ -52,6 +52,9 @@ uniform vec3 cameraPosition;
 uniform Light lights[MAX_LIGHTS];
 uniform int lightCount;
 
+// Debug mode
+uniform int debugMode;
+
 //IBL
 uniform samplerCube irradianceMap;
 uniform samplerCube prefilterMap;
@@ -258,7 +261,7 @@ void main() {
     color = pow(color, vec3(1.0 / 2.2));
 
     // bloom color output
-	// use greyscale conversion here because not all colors are equally "bright"
+    // use greyscale conversion here because not all colors are equally "bright"
     float greyscaleBrightness = dot(color.rgb, GREYSCALE_WEIGHT_VECTOR);
 
     if(greyscaleBrightness > bloomBrightnessCutoff){
@@ -269,5 +272,43 @@ void main() {
         BloomColor = vec4(0.0, 0.0, 0.0, 1.0);
     }
 
-    FragColor = vec4(color , 1.0);
+
+
+    switch(debugMode) {
+        case 0: // no effect
+            FragColor = vec4(color , 1.0);
+            break;
+        case 1: // normal 
+            FragColor = vec4(N * 0.5 + 0.5, 1.0);
+            break;
+        case 2: // albedo 
+            FragColor = vec4(albedo, 1.0);
+            break;
+        case 3: // depth
+            FragColor = vec4(vec3(gl_FragCoord.z) * 0.5 + 0.5, 1.0);
+            break;
+        case 4: // metallic
+            FragColor = vec4(metallic, 0.0, 0.0 , 1.0);
+            break;
+        case 5: // roughness
+            FragColor = vec4(0.0, roughness, 0.0 , 1.0);
+            break;
+        case 6: // emission
+            FragColor = vec4(emission, 1.0);
+            break;
+        case 7: // ambient
+            FragColor = vec4(ambient, 1.0);
+            break;
+        case 8: // metallic roughness 
+            FragColor = vec4(texture(material.textureMetallicRoughness, textureCoordinates).rgb , 1.0);
+            break;
+        case 9: // wireframe
+            break;
+        case 10: // uv texture coordinates
+            FragColor = vec4(textureCoordinates, 0.0, 1.0);
+            break;
+        default:
+            FragColor = vec4(color , 1.0);
+            break;
+    }
 }

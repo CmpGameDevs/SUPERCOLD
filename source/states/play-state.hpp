@@ -11,20 +11,22 @@
 #include <systems/fps-controller.hpp>
 #include <systems/movement.hpp>
 #include <systems/text-renderer.hpp>
+#include <settings.hpp>
+#include "imgui.h"
 
 class Playstate : public our::State {
     static bool initialized;
     our::World world;
-    our::CollisionSystem &collisionSystem = our::CollisionSystem::getInstance();
-    our::ForwardRenderer &renderer = our::ForwardRenderer::getInstance();
-    our::WeaponsSystem &weaponsSystem = our::WeaponsSystem::getInstance();
+    our::CollisionSystem& collisionSystem = our::CollisionSystem::getInstance();
+    our::ForwardRenderer& renderer = our::ForwardRenderer::getInstance();
+    our::WeaponsSystem& weaponsSystem = our::WeaponsSystem::getInstance();
     our::MovementSystem movementSystem;
     our::FPSControllerSystem fpsController;
     game::TimeScaler timeScaler;
     float timeScale;
-    our::TextRenderer &textRenderer = our::TextRenderer::getInstance();
-    our::AudioSystem &audioSystem = our::AudioSystem::getInstance();
-    our::EnemySystem &enemySystem = our::EnemySystem::getInstance();
+    our::TextRenderer& textRenderer = our::TextRenderer::getInstance();
+    our::AudioSystem& audioSystem = our::AudioSystem::getInstance();
+    our::EnemySystem& enemySystem = our::EnemySystem::getInstance();
     bool gameEnded = false;
 
     void initializeGame() {
@@ -35,7 +37,7 @@ class Playstate : public our::State {
         initialized = true;
 
         // Retrieve scene configuration from the app config
-        auto &config = getApp()->getConfig()["scene"];
+        auto& config = getApp()->getConfig()["scene"];
 
         // Deserialize all assets from the configuration if present
         if (config.contains("assets")) {
@@ -47,13 +49,13 @@ class Playstate : public our::State {
         renderer.initialize(size, config["renderer"]);
 
         // Initialize Bullet physics system
-        btDefaultCollisionConfiguration *collisionConfig = new btDefaultCollisionConfiguration();
-        btCollisionDispatcher *dispatcher = new btCollisionDispatcher(collisionConfig);
-        btBroadphaseInterface *broadphase = new btDbvtBroadphase();
-        btSequentialImpulseConstraintSolver *solver = new btSequentialImpulseConstraintSolver();
+        btDefaultCollisionConfiguration* collisionConfig = new btDefaultCollisionConfiguration();
+        btCollisionDispatcher* dispatcher = new btCollisionDispatcher(collisionConfig);
+        btBroadphaseInterface* broadphase = new btDbvtBroadphase();
+        btSequentialImpulseConstraintSolver* solver = new btSequentialImpulseConstraintSolver();
 
         // Create the dynamics world
-        btDiscreteDynamicsWorld *physicsWorld =
+        btDiscreteDynamicsWorld* physicsWorld =
             new btDiscreteDynamicsWorld(dispatcher, broadphase, solver, collisionConfig);
 
         // Initialize the collision system with the physics world
@@ -67,7 +69,7 @@ class Playstate : public our::State {
     void onInitialize() override {
         initializeGame();
 
-        auto &levelConfig = getApp()->getLevelConfig();
+        auto& levelConfig = getApp()->getLevelConfig();
 
         if (levelConfig.contains("world")) {
             world.deserialize(levelConfig["world"]);
@@ -81,6 +83,48 @@ class Playstate : public our::State {
 
         timeScale = 1.0f;
         gameEnded = false;
+    }
+
+    void onImmediateGui() {
+        // Shader Debugger
+        Settings& settings = Settings::getInstance();
+        if (settings.showImGuiShaderDebugMenu) {
+
+            ImGui::ShowMetricsWindow();
+
+            ImGui::Begin("Model Shader Debugger");
+
+            // Select shader mode using a drop down select
+            const char* shaderModes[] = {"none",
+                "normal",
+                "albedo", 
+                "depth",
+                "metallic",
+                "roughness",
+                "emission",
+                "ambient",
+                "metailic_roughness",
+                "wireframe",
+                "texture_coordinates"
+            };
+
+            if (ImGui::BeginCombo("Debug View Mode", settings.shaderDebugMode.c_str())) {
+                for (const auto& mode : shaderModes) {
+                    bool isSelected = (mode == settings.shaderDebugMode);
+                    if (ImGui::Selectable(mode, isSelected)) {
+                        settings.shaderDebugMode = mode;
+                    }
+                    if (isSelected) {
+                        ImGui::SetItemDefaultFocus();
+                    }
+                }
+                ImGui::EndCombo();
+            }
+
+            ImGui::Text("Press F9 to close this window");
+
+            ImGui::End();
+        }
     }
 
     void handleGameEnd() {
@@ -101,8 +145,7 @@ class Playstate : public our::State {
         if (gameEnded) {
             auto windowSize = getApp()->getWindowSize();
             std::string text = fpsController.isPlayerDead() ? "Press R to restart" : "Press ENTER to continue";
-            textRenderer.renderText(text, "game", windowSize.x / 2.0f - 150.0f, 50.0f,
-                                    0.011f, glm::vec4(1.0f));
+            textRenderer.renderText(text, "game", windowSize.x / 2.0f - 150.0f, 50.0f, 0.011f, glm::vec4(1.0f));
         }
     }
 
@@ -121,7 +164,7 @@ class Playstate : public our::State {
 
         bool levelPassed = !fpsController.isPlayerDead() && enemySystem.getEnemyCount() == 0;
         bool levelFailed = fpsController.isPlayerDead() && gameEnded;
-        
+
         // Apply the time scale to the delta time
         float scaledDeltaTime = (float)deltaTime * (!gameEnded ? timeScale : 1.0f);
 
@@ -130,9 +173,13 @@ class Playstate : public our::State {
 
         // Update the collision system
         collisionSystem.update(&world, scaledDeltaTime);
-        
+
         float playerDeltaTime = deltaTime;
-        if (!levelFailed) {
+
+        Settings& settings = Settings::getInstance();
+
+        if (!levelFailed && !settings.showImGuiShaderDebugMenu) {
+
             // Update the movement system
             movementSystem.update(&world, scaledDeltaTime);
 
@@ -155,7 +202,7 @@ class Playstate : public our::State {
                     // Player moved again, fade out
                     targetIntensity = 0.0f;
                 }
-            
+
                 float lerpSpeed = 5.0f * deltaTime; // deltaTime is frame time in seconds
                 vignetteIntensity += (targetIntensity - vignetteIntensity) * lerpSpeed;
 
@@ -170,7 +217,7 @@ class Playstate : public our::State {
                 renderer.postprocess->setEffectParameter("vignetteIntensity", vignetteIntensity);
             }
         }
-        
+
         renderer.render(&world);
 
         // Debug draw the collision world
@@ -184,7 +231,7 @@ class Playstate : public our::State {
         fpsController.update(&world, (float)playerDeltaTime, (float)deltaTime);
 
         // Handle keyboard input (escape key to transition between levels)
-        auto &keyboard = getApp()->getKeyboard();
+        auto& keyboard = getApp()->getKeyboard();
 
         if (gameEnded && levelPassed && keyboard.justPressed(GLFW_KEY_ENTER)) {
             audioSystem.stopSfx("SUPERHOT");
@@ -201,6 +248,20 @@ class Playstate : public our::State {
             textRenderer.clearTextQueue();
             fpsController.exit();
             getApp()->changeState("menu");
+        }
+        if (keyboard.justPressed(GLFW_KEY_F9)) {
+            // Toggle the shader debug menu
+            Settings& settings = Settings::getInstance();
+            settings.showImGuiShaderDebugMenu = !settings.showImGuiShaderDebugMenu;
+            // unlock the mouse
+            auto& mouse = getApp()->getMouse();
+            if (settings.showImGuiShaderDebugMenu) {
+                mouse.unlockMouse(getApp()->getWindow());
+                mouse.disable();
+            } else {
+                mouse.lockMouse(getApp()->getWindow());
+                mouse.enable(getApp()->getWindow());
+            }
         }
     }
 

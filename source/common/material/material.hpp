@@ -71,8 +71,8 @@ namespace our {
             bool useTextureEmissive = false;
         
             glm::vec3 albedo = glm::vec3(1.0, 1.0, 1.0);
-            float metallic = 1.0f;
-            float roughness = 0.0f;
+            float metallic = 0.2f;
+            float roughness = 0.2f;
             float ambientOcclusion = 1.0f;
             glm::vec3 emission = glm::vec3(0.0, 0.0, 0.0);
         
