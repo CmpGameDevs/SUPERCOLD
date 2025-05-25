@@ -1,12 +1,18 @@
 #include "model.hpp"
 #include <assimp/Importer.hpp>
+#include <assimp/material.h>
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <asset-loader.hpp>
 #include <ecs/entity.hpp>
+#include <settings.hpp>
+#include "application.hpp"
+#include "glad/gl.h"
+#include "glm/common.hpp"
 #include "material/material.hpp"
 #include "texture/texture-utils.hpp"
+#include "texture/texture2d.hpp"
 
 namespace our {
 
@@ -23,7 +29,8 @@ bool Model::loadFromFile(const std::string& path) {
     const aiScene* scene = importer.ReadFile(
         path, aiProcess_Triangulate | aiProcess_CalcTangentSpace | aiProcess_GenSmoothNormals | aiProcess_FlipUVs |
                   aiProcess_JoinIdenticalVertices | aiProcess_ImproveCacheLocality | aiProcess_OptimizeMeshes |
-                  aiProcess_OptimizeGraph | aiProcess_SortByPType | aiProcess_PopulateArmatureData);
+                  aiProcess_OptimizeGraph | aiProcess_SortByPType | aiProcess_PopulateArmatureData |
+                  aiProcess_GenUVCoords | aiProcess_TransformUVCoords);
 
     if (!scene || !scene->mRootNode && (scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE)) {
         std::cerr << "[Model] ERROR: Failed to load model: " << path << " (" << importer.GetErrorString() << ")"
@@ -77,8 +84,9 @@ MeshRendererComponent* Model::processMesh(const aiMesh* mesh, const aiScene* sce
             v.tex_coord = glm::vec2(mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y);
 
         if (mesh->mColors[0])
-            v.color =
-                glm::vec4(mesh->mColors[0][i].r, mesh->mColors[0][i].g, mesh->mColors[0][i].b, mesh->mColors[0][i].a);
+            v.color = glm::vec4(1.0f);
+        // v.color =
+        // glm::vec4(mesh->mColors[0][i].r, mesh->mColors[0][i].g, mesh->mColors[0][i].b, mesh->mColors[0][i].a);
 
         verts.push_back(v);
     }
@@ -201,8 +209,10 @@ void Model::draw(CameraComponent* camera, const glm::mat4& localToWorld, const g
         // Application-specific uniforms (like bloom)
         // Check if the uniform exists before setting to avoid OpenGL errors if
         // shader doesn't declare it
-        meshRenderer->material->shader->set("bloomCutoff", bloomCutoff);
         meshRenderer->material->shader->set("bloomBrightnessCutoff", bloomCutoff);
+
+        Settings& settings = Settings::getInstance();
+        meshRenderer->material->shader->set("debugMode", settings.shaderDebugModeToInt(settings.shaderDebugMode));
 
         // Note: If LitMaterial (or other materials) sets its own specific
         // matrices or camera position in its `setup()` method, there might be
@@ -230,6 +240,17 @@ std::unique_ptr<Material> Model::processMaterial(const aiMaterial* aiMat, const 
     // aiMaterial properties.
     auto material = std::make_unique<LitMaterial>();
 
+    material->transparent = false; // Default to opaque
+    material->useTextureAlbedo = false;
+    material->useTextureMetallicRoughness = false;
+    material->useTextureNormal = false;
+    material->useTextureAmbientOcclusion = false;
+    material->useTextureEmissive = false;
+    material->useTextureMetallic = false;
+    material->useTextureRoughness = false;
+    material->metallic = 0.95f;
+    material->roughness = 0.1f;
+
     aiString matName;
     if (aiMat->Get(AI_MATKEY_NAME, matName) == AI_SUCCESS) {
         std::cout << "[Model] Processing material: " << aiToStr(matName) << std::endl;
@@ -256,19 +277,33 @@ std::unique_ptr<Material> Model::processMaterial(const aiMaterial* aiMat, const 
     } else if (aiMat->Get(AI_MATKEY_COLOR_DIFFUSE, color) == AI_SUCCESS) { // Fallback for non-PBR
         material->albedo = glm::vec3(color.r, color.g, color.b);
         material->tint.a = color.a;
+    } else {
+        material->albedo = glm::vec3(0.8f, 1.0f, 1.0f); // Default white
+        material->tint.a = 1.0f;                        // Default opaque
     }
 
     if (aiMat->Get(AI_MATKEY_METALLIC_FACTOR, factor) == AI_SUCCESS) {
         material->metallic = factor;
+    } else {
+        material->metallic = 0.95f; // Default metallic
     }
+
     if (aiMat->Get(AI_MATKEY_ROUGHNESS_FACTOR, factor) == AI_SUCCESS) {
         material->roughness = factor;
+    } else {
+        material->roughness = 0.1f; // Default roughness
     }
+
+    material->metallic = glm::clamp(material->metallic, 0.0f, 1.0f);
+    material->roughness = glm::clamp(material->roughness, 0.04f, 1.0f);
 
     aiColor3D emissiveColor(0.0f, 0.0f, 0.0f);
     if (aiMat->Get(AI_MATKEY_COLOR_EMISSIVE, emissiveColor) == AI_SUCCESS) {
         material->emission = aiToGlm(emissiveColor);
     }
+
+    // occlusion factor
+
 
     // Opacity and Transparency
     float opacity = 1.0f;
@@ -277,36 +312,90 @@ std::unique_ptr<Material> Model::processMaterial(const aiMaterial* aiMat, const 
     }
     material->transparent = (material->tint.a < 0.999f);
 
+    float ambientOcclusion = 1.0f;
+    if (aiMat->Get(AI_MATKEY_OPACITY, ambientOcclusion) == AI_SUCCESS) {
+        material->ambientOcclusion = ambientOcclusion;
+    } else {
+        material->ambientOcclusion = 1.0f; // Default ambient occlusion
+    }
+
     // --- Load Textures ---
     // Albedo / Base Color
     material->textureAlbedo = loadMaterialTexture(aiMat, scene, aiTextureType_BASE_COLOR).get();
     if (!material->textureAlbedo)
         material->textureAlbedo = loadMaterialTexture(aiMat, scene, aiTextureType_DIFFUSE).get(); // Fallback
-    if (material->textureAlbedo)
-        material->useTextureAlbedo = true;
+    material->useTextureAlbedo = (material->textureAlbedo != nullptr);
 
     // Metallic-Roughness or Separate Metallic and Roughness
-    aiString pathMetallicStr, pathRoughnessStr;
-    bool hasMetallicPath = (aiMat->GetTexture(aiTextureType_METALNESS, 0, &pathMetallicStr) == AI_SUCCESS);
-    bool hasRoughnessPath = (aiMat->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, 0, &pathRoughnessStr) == AI_SUCCESS);
+    // aiString pathMetallicStr, pathRoughnessStr;
+    // bool hasMetallicPath = (aiMat->GetTexture(aiTextureType_METALNESS, 0, &pathMetallicStr) == AI_SUCCESS);
+    //
+    // bool hasRoughnessPath = (aiMat->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, 0, &pathRoughnessStr) == AI_SUCCESS);
+    //
+    // bool hasCombinedPath =
+    //     (aiMat->GetTexture(aiTextureType_UNKNOWN, 0, &pathMetallicStr) == AI_SUCCESS); // Check for combined texture
+    // //
+    //
+    // if (hasMetallicPath && hasRoughnessPath &&
+    //     std::string(pathMetallicStr.C_Str()) == std::string(pathRoughnessStr.C_Str())) {
+    //
+    //     // Same path, likely a combined MetallicRoughness texture (common in
+    //     // glTF)
+    //     std::cout << "[Model] Using combined metallic-roughness texture." << std::endl;
+    //     material->textureMetallicRoughness = loadMaterialTexture(aiMat, scene, aiTextureType_UNKNOWN).get();
+    //     material->useTextureMetallicRoughness = true;
+    // } else {
+    //     std::cout << "[Model] Using separate metallic and roughness textures. hasMetallicPath: " << hasMetallicPath
+    //               << ", hasRoughnessPath: " << hasRoughnessPath << "hasCombinedPath: " << hasCombinedPath <<
+    //               std::endl;
+    //     if (hasMetallicPath) {
+    //         material->textureMetallic = loadMaterialTexture(aiMat, scene, aiTextureType_METALNESS).get();
+    //         if (material->textureMetallic)
+    //             material->useTextureMetallic = true;
+    //     }
+    //     if (hasRoughnessPath) {
+    //         material->textureRoughness = loadMaterialTexture(aiMat, scene, aiTextureType_DIFFUSE_ROUGHNESS).get();
+    //         if (material->textureRoughness)
+    //             material->useTextureRoughness = true;
+    //     }
+    //     if (!hasMetallicPath && !hasRoughnessPath) {
+    //         material->textureMetallicRoughness = loadMaterialTexture(aiMat, scene, aiTextureType_UNKNOWN).get();
+    //         if (material->textureMetallicRoughness)
+    //             material->useTextureMetallicRoughness = true;
+    //     }
+    // }
+    //
+    std::shared_ptr<Texture2D> tex;
 
-    if (hasMetallicPath && hasRoughnessPath &&
-        std::string(pathMetallicStr.C_Str()) == std::string(pathRoughnessStr.C_Str())) {
-        // Same path, likely a combined MetallicRoughness texture (common in
-        // glTF)
-        material->textureMetallicRoughness = loadMaterialTexture(aiMat, scene, aiTextureType_METALNESS).get();
-        if (material->textureMetallicRoughness)
-            material->useTextureMetallicRoughness = true;
-    } else {
-        if (hasMetallicPath) {
-            material->textureMetallic = loadMaterialTexture(aiMat, scene, aiTextureType_METALNESS).get();
-            if (material->textureMetallic)
-                material->useTextureMetallic = true;
+    tex = loadMaterialTexture(aiMat, scene, aiTextureType_UNKNOWN, 0); // GLTF ORM texture
+    if (!tex)
+        tex = loadMaterialTexture(aiMat, scene, aiTextureType_SPECULAR,
+                                  0); // Some formats pack roughness in specular alpha, metallic can be separate
+    if (!tex)
+        tex = loadMaterialTexture(aiMat, scene, aiTextureType_METALNESS,
+                                  0); // Some formats use this for combined or just metallic
+
+    if (tex) {
+        // Heuristic: if it's UNKNOWN it's likely ORM. If METALNESS or SPECULAR, might be combined or just one
+        // component. This part is tricky and format-dependent. For simplicity, assume if one of these is found, it's
+        // the PBR primary.
+        material->textureMetallicRoughness = tex.get();
+        material->useTextureMetallicRoughness = true;
+    } else { // No obvious combined PBR map, try separate
+        std::cout << "[Model] Trying Using separate metallic and roughness textures." << std::endl;
+        std::shared_ptr<Texture2D> texM = loadMaterialTexture(aiMat, scene, aiTextureType_METALNESS, 0);
+        if (texM) {
+            material->textureMetallic = texM.get();
+            material->useTextureMetallic = true;
         }
-        if (hasRoughnessPath) {
-            material->textureRoughness = loadMaterialTexture(aiMat, scene, aiTextureType_DIFFUSE_ROUGHNESS).get();
-            if (material->textureRoughness)
-                material->useTextureRoughness = true;
+
+        std::shared_ptr<Texture2D> texR = loadMaterialTexture(aiMat, scene, aiTextureType_DIFFUSE_ROUGHNESS, 0);
+        if (!texR)
+            texR = loadMaterialTexture(aiMat, scene, aiTextureType_SHININESS,
+                                       0); // Shininess needs conversion to roughness
+        if (texR) {
+            material->textureRoughness = texR.get();
+            material->useTextureRoughness = true;
         }
     }
 
@@ -360,11 +449,35 @@ std::unique_ptr<Material> Model::processMaterial(const aiMaterial* aiMat, const 
     // This part is retained from your LitMaterial's previous deserialize logic
     auto lightsFromLoader = AssetLoader<Light>::getAll();
     for (const auto& [name, light_ptr] : lightsFromLoader) {
-        if (light_ptr)
-            material->lights.push_back(light_ptr);
+        material->lights.push_back(light_ptr);
     }
 
+    std::cout << "Using texture metallic " << material->useTextureMetallic << std::endl;
+    std::cout << "Using texture roughness " << material->useTextureRoughness << std::endl;
+    std::cout << "Using texture metallic roughness " << material->useTextureMetallicRoughness << std::endl;
+    std::cout << "==========================" << std::endl;
+
     return material;
+}
+
+// Helper function to convert Assimp texture map mode to OpenGL GLenum
+GLenum assimpTextureMapModeToOpenGL(aiTextureMapMode mode) {
+    switch (mode) {
+    case aiTextureMapMode_Wrap:
+        return GL_REPEAT;
+    case aiTextureMapMode_Clamp:
+        return GL_CLAMP_TO_EDGE;
+    case aiTextureMapMode_Mirror:
+        return GL_MIRRORED_REPEAT;
+    case aiTextureMapMode_Decal:
+        // For decal, you might choose GL_CLAMP_TO_EDGE or GL_REPEAT
+        // or handle it specifically in your shader.
+        // GL_CLAMP_TO_BORDER also exists if you set a border color.
+        return GL_CLAMP_TO_EDGE;
+    default:
+        // Default to GL_REPEAT if mode is unknown or not specified
+        return GL_REPEAT;
+    }
 }
 
 std::shared_ptr<Texture2D> Model::loadMaterialTexture(const aiMaterial* aiMat, const aiScene* scene, aiTextureType type,
@@ -432,7 +545,33 @@ std::shared_ptr<Texture2D> Model::loadMaterialTexture(const aiMaterial* aiMat, c
             }
         } else {
             // Regular file path (relative to model file)
-            return loadTexture(texturePathStr);
+            std::shared_ptr<Texture2D> texture = loadTexture(texturePathStr);
+
+            GLenum wrapS = GL_REPEAT;
+            GLenum wrapT = GL_REPEAT;
+
+            if (texture) {
+                aiTextureMapMode aiWrapS;
+                if (aiMat->Get(AI_MATKEY_MAPPINGMODE_U(type, index), aiWrapS) == AI_SUCCESS) {
+                    wrapS = assimpTextureMapModeToOpenGL(aiWrapS);
+                }
+
+                aiTextureMapMode aiWrapT;
+                if (aiMat->Get(AI_MATKEY_MAPPINGMODE_V(type, index), aiWrapT) == AI_SUCCESS) {
+                    wrapT = assimpTextureMapModeToOpenGL(aiWrapT);
+                }
+
+                texture->bind();
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrapS);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrapT);
+                texture->unbind();
+
+            } else {
+                std::cerr << "[Model] WARNING: Failed to load texture: " << texturePathStr << std::endl;
+            }
+            return texture;
         }
     }
     return nullptr; // No texture of this type found
@@ -458,7 +597,7 @@ std::shared_ptr<Texture2D> Model::loadTexture(const std::string& texturePathInMo
     // AssetLoader<Texture2D>::get(fullPath) works and might cache. Our
     // mTextureCache ensures we don't even *try* to load it again via
     // AssetLoader if already successful for this model.
-    std::shared_ptr<Texture2D> texture(texture_utils::loadImage(fullPath));
+    std::shared_ptr<Texture2D> texture(texture_utils::loadImage(fullPath, true));
 
     if (!texture) {
         std::cerr << "[Model] WARNING: Texture not loaded by AssetLoader: " << fullPath
