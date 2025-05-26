@@ -7,6 +7,7 @@
 #include <asset-loader.hpp>
 #include <ecs/entity.hpp>
 #include <settings.hpp>
+#include "animation/animation.hpp"
 #include "glad/gl.h"
 #include "glm/common.hpp"
 #include "material/material.hpp"
@@ -14,6 +15,93 @@
 #include "texture/texture2d.hpp"
 
 namespace our {
+
+template <typename TKey> static unsigned int findKeyIndex(float animationTime, const TKey* keys, unsigned int numKeys) {
+    if (numKeys <= 1)
+        return 0;
+
+    for (unsigned int i = 0; i < numKeys - 1; ++i) {
+        if (animationTime < keys[i + 1].mTime) {
+            return i;
+        }
+    }
+    return numKeys - 1;
+}
+
+static glm::vec3 interpolatePosition(float animationTime, const aiVectorKey* keys, unsigned int numKeys) {
+    if (numKeys == 0)
+        return glm::vec3(0.0f);
+    if (numKeys == 1)
+        return Model::aiToGlm(keys[0].mValue);
+
+    unsigned int keyIndex = findKeyIndex(animationTime, keys, numKeys);
+    unsigned int nextKeyIndex = keyIndex + 1;
+
+    if (nextKeyIndex >= numKeys) {
+        return Model::aiToGlm(keys[numKeys - 1].mValue);
+    }
+
+    const aiVectorKey& key1 = keys[keyIndex];
+    const aiVectorKey& key2 = keys[nextKeyIndex];
+
+    float deltaTime = static_cast<float>(key2.mTime - key1.mTime);
+    float factor = 0.0f;
+    if (deltaTime > 0.00001f) {
+        factor = static_cast<float>(animationTime - key1.mTime) / deltaTime;
+    }
+
+    return glm::mix(Model::aiToGlm(key1.mValue), Model::aiToGlm(key2.mValue), factor);
+}
+
+static glm::quat interpolateRotation(float animationTime, const aiQuatKey* keys, unsigned int numKeys) {
+    if (numKeys == 0)
+        return glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+    if (numKeys == 1)
+        return Model::aiToGlm(keys[0].mValue);
+
+    unsigned int keyIndex = findKeyIndex(animationTime, keys, numKeys);
+    unsigned int nextKeyIndex = keyIndex + 1;
+
+    if (nextKeyIndex >= numKeys) {
+        return Model::aiToGlm(keys[numKeys - 1].mValue);
+    }
+
+    const aiQuatKey& key1 = keys[keyIndex];
+    const aiQuatKey& key2 = keys[nextKeyIndex];
+
+    float deltaTime = static_cast<float>(key2.mTime - key1.mTime);
+    float factor = 0.0f;
+    if (deltaTime > 0.00001f) {
+        factor = static_cast<float>(animationTime - key1.mTime) / deltaTime;
+    }
+
+    return glm::slerp(Model::aiToGlm(key1.mValue), Model::aiToGlm(key2.mValue), factor);
+}
+
+static glm::vec3 interpolateScale(float animationTime, const aiVectorKey* keys, unsigned int numKeys) {
+    if (numKeys == 0)
+        return glm::vec3(1.0f);
+    if (numKeys == 1)
+        return Model::aiToGlm(keys[0].mValue);
+
+    unsigned int keyIndex = findKeyIndex(animationTime, keys, numKeys);
+    unsigned int nextKeyIndex = keyIndex + 1;
+
+    if (nextKeyIndex >= numKeys) {
+        return Model::aiToGlm(keys[numKeys - 1].mValue);
+    }
+
+    const aiVectorKey& key1 = keys[keyIndex];
+    const aiVectorKey& key2 = keys[nextKeyIndex];
+
+    float deltaTime = static_cast<float>(key2.mTime - key1.mTime);
+    float factor = 0.0f;
+    if (deltaTime > 0.00001f) {
+        factor = static_cast<float>(animationTime - key1.mTime) / deltaTime;
+    }
+
+    return glm::mix(Model::aiToGlm(key1.mValue), Model::aiToGlm(key2.mValue), factor);
+}
 
 Model::~Model() {
     for (auto* mr : meshRenderers)
@@ -45,7 +133,7 @@ bool Model::loadFromFile(const std::string& path) {
 
     directory = path.substr(0, path.find_last_of("/\\") + 1);
 
-    if (scene->HasAnimations() || scene->mNumMeshes > 0) { // Check if there's potential for a skeleton
+    if (scene->HasAnimations() || scene->mNumMeshes > 0) {
         bool hasAnyBones = false;
         for (unsigned int i = 0; i < scene->mNumMeshes; ++i) {
             if (scene->mMeshes[i]->HasBones()) {
@@ -58,6 +146,13 @@ bool Model::loadFromFile(const std::string& path) {
         } else {
             std::cout << "[Model] No bones found in any mesh, skipping skeleton loading." << std::endl;
         }
+    }
+
+    // Load Animations
+    if (scene->HasAnimations()) {
+        loadAnimationsFromScene(scene);
+    } else {
+        std::cout << "[Model] Scene contains no animations to load." << std::endl;
     }
 
     loadMaterialsFromScene(scene);
@@ -106,8 +201,8 @@ MeshRendererComponent* Model::processMesh(const aiMesh* mesh, const aiScene* sce
 
         // bone data
         for (int j = 0; j < MAX_BONE_INFLUENCE; ++j) {
-            v.bone_ids[j] = -1;  // Initialize bone IDs to -1
-            v.weights[j] = 0.0f; // Initialize weights to 0
+            v.bone_ids[j] = -1;
+            v.weights[j] = 0.0f;
         }
 
         verts.push_back(v);
@@ -197,7 +292,6 @@ void Model::draw(CameraComponent* camera, const glm::mat4& localToWorld, const g
             continue;
         }
 
-        // Setup material (sets pipeline state and uses shader)
         meshRenderer->material->setup();
 
         // Calculate Model matrix for this specific mesh component
@@ -221,7 +315,6 @@ void Model::draw(CameraComponent* camera, const glm::mat4& localToWorld, const g
         meshRenderer->material->shader->set("VP", viewProjectionMatrix);
         meshRenderer->material->shader->set("transform", modelViewProjectionMatrix);
 
-        // Other common uniforms
         meshRenderer->material->shader->set("cameraPosition", cameraWorldPosition);
 
         meshRenderer->material->shader->set("bloomBrightnessCutoff", bloomCutoff);
@@ -231,7 +324,7 @@ void Model::draw(CameraComponent* camera, const glm::mat4& localToWorld, const g
         if (settings.shaderDebugMode == "wireframe") {
             glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         } else {
-            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); // Ensure fill mode for other debug modes
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         }
         meshRenderer->mesh->draw();
     }
@@ -690,6 +783,110 @@ void Model::processVertexBoneData(const aiMesh* mesh, std::vector<Vertex>& verti
             // For now, we take the first MAX_BONE_INFLUENCE.
         }
     }
+}
+
+void Model::loadAnimationsFromScene(const aiScene* scene) {
+    if (!scene->HasAnimations()) {
+        std::cout << "[Model] Scene has no animations." << std::endl;
+        return;
+    }
+
+    std::cout << "[Model] Loading " << scene->mNumAnimations << " animation(s)..." << std::endl;
+    this->animations.reserve(scene->mNumAnimations);
+
+    for (unsigned int i = 0; i < scene->mNumAnimations; ++i) {
+        const aiAnimation* assimpAnimation = scene->mAnimations[i];
+        Animation currentLoadedAnimation;
+
+        currentLoadedAnimation.name = aiToStr(assimpAnimation->mName);
+        currentLoadedAnimation.duration = static_cast<float>(assimpAnimation->mDuration);
+        currentLoadedAnimation.ticksPerSecond = static_cast<float>(assimpAnimation->mTicksPerSecond);
+        if (currentLoadedAnimation.ticksPerSecond == 0) {
+            currentLoadedAnimation.ticksPerSecond = 25.0f; // Default to 25 FPS if not specified
+            std::cout << "[Model] Animation '" << currentLoadedAnimation.name
+                      << "' has 0 ticksPerSecond, defaulting to " << currentLoadedAnimation.ticksPerSecond << std::endl;
+        }
+
+        std::cout << "[Model]  Loading Animation: '" << currentLoadedAnimation.name
+                  << "', Duration: " << currentLoadedAnimation.duration << " ticks"
+                  << ", Ticks/Sec: " << currentLoadedAnimation.ticksPerSecond
+                  << ", Channels: " << assimpAnimation->mNumChannels << std::endl;
+
+        currentLoadedAnimation.boneAnimations.reserve(assimpAnimation->mNumChannels);
+
+        for (unsigned int j = 0; j < assimpAnimation->mNumChannels; ++j) {
+            const aiNodeAnim* nodeAnim = assimpAnimation->mChannels[j];
+            BoneAnimation boneAnimTrack;
+            boneAnimTrack.boneName = aiToStr(nodeAnim->mNodeName);
+
+            if (this->skeleton.findBoneIndex(boneAnimTrack.boneName) == -1) {
+                std::cout << "[Model]   Warning: Animation channel for node '" << boneAnimTrack.boneName
+                          << "' which is not in the loaded skeleton. Still loading channel." << std::endl;
+            }
+
+            // Collect all unique timestamps from position, rotation, and scale keys
+            std::set<float> uniqueTimestamps;
+            for (unsigned int k = 0; k < nodeAnim->mNumPositionKeys; ++k)
+                uniqueTimestamps.insert(static_cast<float>(nodeAnim->mPositionKeys[k].mTime));
+            for (unsigned int k = 0; k < nodeAnim->mNumRotationKeys; ++k)
+                uniqueTimestamps.insert(static_cast<float>(nodeAnim->mRotationKeys[k].mTime));
+            for (unsigned int k = 0; k < nodeAnim->mNumScalingKeys; ++k)
+                uniqueTimestamps.insert(static_cast<float>(nodeAnim->mScalingKeys[k].mTime));
+
+            if (uniqueTimestamps.empty() &&
+                (nodeAnim->mNumPositionKeys > 0 || nodeAnim->mNumRotationKeys > 0 || nodeAnim->mNumScalingKeys > 0)) {
+                // This case implies keys exist but their times weren't inserted, unlikely with float conversion.
+                // Or all keys are at time 0.
+                // If all keys are at time 0 and uniqueTimestamps is empty (e.g. if keys were non-float before casting),
+                // we might need to manually add 0.0f if any keys exist.
+                // However, `std::set<float>` from `double` times should be fine.
+            }
+            if (uniqueTimestamps.empty() && nodeAnim->mNumPositionKeys == 0 && nodeAnim->mNumRotationKeys == 0 &&
+                nodeAnim->mNumScalingKeys == 0) {
+                // This channel has no keyframes for this bone.
+                // std::cout << "[Model]   Channel '" << boneAnimTrack.boneName << "' has no keyframes." << std::endl;
+                // continue; // Skip if no keyframes for this bone at all
+            }
+
+            // If uniqueTimestamps is empty but there's at least one key (e.g., a single static pose key at time 0),
+            // add time 0.0f to ensure at least one KeyFrame is generated.
+            // This handles static poses defined by a single keyframe at t=0.
+            if (uniqueTimestamps.empty() &&
+                (nodeAnim->mNumPositionKeys > 0 || nodeAnim->mNumRotationKeys > 0 || nodeAnim->mNumScalingKeys > 0)) {
+                uniqueTimestamps.insert(0.0f);
+            }
+
+            boneAnimTrack.keyFrames.reserve(uniqueTimestamps.size());
+
+            // For each unique timestamp, create a KeyFrame by interpolating P, R, S
+            for (float t : uniqueTimestamps) {
+                KeyFrame keyFrame;
+                keyFrame.timeStamp = t;
+                keyFrame.position = interpolatePosition(t, nodeAnim->mPositionKeys, nodeAnim->mNumPositionKeys);
+                keyFrame.rotation = interpolateRotation(t, nodeAnim->mRotationKeys, nodeAnim->mNumRotationKeys);
+                keyFrame.scale = interpolateScale(t, nodeAnim->mScalingKeys, nodeAnim->mNumScalingKeys);
+                boneAnimTrack.keyFrames.push_back(keyFrame);
+            }
+
+            currentLoadedAnimation.boneAnimations.push_back(boneAnimTrack);
+            std::cout << "[Model]    Channel for bone: '" << boneAnimTrack.boneName << "' loaded with "
+                      << boneAnimTrack.keyFrames.size() << " combined keyframes." << std::endl;
+        }
+        this->animations.push_back(currentLoadedAnimation);
+    }
+    std::cout << "[Model] Finished loading animations." << std::endl;
+
+    // Verification Step
+    std::cout << "[Model] === Animation Data Verification ===" << std::endl;
+    for (const auto& anim : this->animations) {
+        std::cout << "Animation Name: " << anim.name << ", Duration (ticks): " << anim.duration
+                  << ", Ticks/Sec: " << anim.ticksPerSecond << ", Bone Animation Tracks: " << anim.boneAnimations.size()
+                  << std::endl;
+        for (const auto& boneAnim : anim.boneAnimations) {
+            std::cout << "  Bone: " << boneAnim.boneName << ", Keyframes: " << boneAnim.keyFrames.size() << std::endl;
+        }
+    }
+    std::cout << "[Model] ===================================" << std::endl;
 }
 
 glm::mat4 Model::aiToGlm(const aiMatrix4x4& m) {

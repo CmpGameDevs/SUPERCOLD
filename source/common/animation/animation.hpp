@@ -18,8 +18,11 @@ struct BoneAnimation {
 };
 
 class Animation {
+public:
     std::string name;
     float duration;
     float ticksPerSecond;
     std::vector<BoneAnimation> boneAnimations;
+
+    Animation(): name(""), duration(0.0f), ticksPerSecond(0.0f) {}
 };

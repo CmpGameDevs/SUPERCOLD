@@ -11,6 +11,7 @@
 #include <set>
 #include <string>
 #include <vector>
+#include "animation/animation.hpp"
 #include "animation/skeleton.hpp"
 #include "texture/texture2d.hpp"
 
@@ -18,7 +19,8 @@ namespace our {
 
 class Model {
     public:
-    Skeleton skeleton; // Skeleton for this model, if it has one
+    Skeleton skeleton;
+    std::vector<Animation> animations; // List of animations associated with this model
 
     Model() = default;
     ~Model();
@@ -69,8 +71,19 @@ class Model {
                                 const std::set<std::string>& boneNamesFromMeshes);
     void processVertexBoneData(const aiMesh* mesh, std::vector<Vertex>& vertices);
 
+    // Animation
+    void loadAnimationsFromScene(const aiScene* scene);
+    template <typename TKey> static int findKeyFrameIndex(float animationTime, const TKey* keys, unsigned int numKeys);
+
     // Helpers
+    public:
     static glm::mat4 aiToGlm(const aiMatrix4x4& m);
+    static glm::vec3 aiToGlm(const aiVector3D& v) {
+        return {v.x, v.y, v.z};
+    }
+    static glm::quat aiToGlm(const aiQuaternion& q) {
+        return glm::quat(q.w, q.x, q.y, q.z);
+    }
     static glm::vec3 aiToGlm(const aiColor3D& c) {
         return {c.r, c.g, c.b};
     }
