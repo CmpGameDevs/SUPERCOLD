@@ -6,6 +6,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <asset-loader.hpp>
 #include <ecs/entity.hpp>
+#include <iomanip>
 #include <settings.hpp>
 #include "animation/animation.hpp"
 #include "glad/gl.h"
@@ -736,54 +737,103 @@ void Model::processVertexBoneData(const aiMesh* mesh, std::vector<Vertex>& verti
         return;
     }
 
-    // Initialize bone data for all vertices in this mesh first
-    for (size_t i = 0; i < vertices.size(); ++i) {
-        for (int j = 0; j < MAX_BONE_INFLUENCE; ++j) {
-            vertices[i].bone_ids[j] = -1; // Or 0 if 0 is a valid root bone ID and -1 is problematic for ivec
-            vertices[i].weights[j] = 0.0f;
-        }
-    }
 
-    for (unsigned int meshBoneIdx = 0; meshBoneIdx < mesh->mNumBones; ++meshBoneIdx) {
-        const aiBone* assimpBone = mesh->mBones[meshBoneIdx];
-        std::string boneName = assimpBone->mName.C_Str();
+    std::cout << "[Model] [Bone Mapping] Processing vertex bone data for mesh: '" << aiToStr(mesh->mName)
+              << "' (contains " << mesh->mNumBones << " bones in its local list)." << std::endl;
+
+    for (unsigned int meshLocalBoneIdx = 0; meshLocalBoneIdx < mesh->mNumBones; ++meshLocalBoneIdx) {
+        const aiBone* assimpBone = mesh->mBones[meshLocalBoneIdx];
+        std::string boneName = aiToStr(assimpBone->mName);
 
         int skeletonGlobalBoneIdx = this->skeleton.findBoneIndex(boneName);
 
         if (skeletonGlobalBoneIdx == -1) {
-            // This bone from the mesh is not found in our loaded skeleton.
-            // This might happen if processNodeForSkeleton decided not to add it,
-            // or if there's a mismatch.
-            // std::cout << "[Model] Warning: Bone '" << boneName << "' from mesh '" << mesh->mName.C_Str()
-            //           << "' not found in the main skeleton. Skipping its vertex weights." << std::endl;
+            // This is an important check: a bone defined in the mesh's bone list
+            // is not found in the globally constructed skeleton. This could happen if
+            // the bone wasn't part of the main hierarchy traversal (e.g., an unattached bone)
+            // or if there's a naming mismatch not caught earlier.
+            std::cout << "[Model] [Bone Mapping]  WARNING: Mesh bone '" << boneName
+                      << "' (local mesh bone index: " << meshLocalBoneIdx << ") from mesh '" << aiToStr(mesh->mName)
+                      << "' was NOT FOUND in the global skeleton. Vertex weights for this bone will be SKIPPED."
+                      << std::endl;
             continue;
         }
+
+        // Verification Print: "Print bone mapping for a simple rigged model"
+        // This shows the mapping from a bone's name (and its local index in the aiMesh)
+        // to its global index in your `Model::skeleton`.
+        // std::cout << "[Model] [Bone Mapping]  Mesh '" << aiToStr(mesh->mName) << "': Bone '" << boneName
+        //           << "' (local mesh idx " << meshLocalBoneIdx
+        //           << ") ==> Global Skeleton Index: " << skeletonGlobalBoneIdx << std::endl;
 
         for (unsigned int weightIdx = 0; weightIdx < assimpBone->mNumWeights; ++weightIdx) {
             const aiVertexWeight& assimpWeight = assimpBone->mWeights[weightIdx];
             unsigned int vertexId = assimpWeight.mVertexId;
 
             if (vertexId >= vertices.size()) {
-                std::cerr << "[Model] ERROR: Invalid vertexId " << vertexId << " from bone weights for mesh '"
-                          << mesh->mName.C_Str() << "'." << std::endl;
+                std::cerr << "[Model] [Bone Mapping]  ERROR: Invalid vertexId " << vertexId
+                          << " from bone weights for bone '" << boneName << "' in mesh '" << aiToStr(mesh->mName)
+                          << "'." << std::endl;
                 continue;
             }
 
             Vertex& targetVertex = vertices[vertexId];
+            bool influenceAdded = false;
             for (int influenceSlot = 0; influenceSlot < MAX_BONE_INFLUENCE; ++influenceSlot) {
-                // Find an empty slot to add this bone's influence
-                if (targetVertex.weights[influenceSlot] == 0.0f) {
+                if (targetVertex.bone_ids[influenceSlot] == -1) { // Check if slot is empty (assuming -1 means empty)
+                                                                  // Or use targetVertex.weights[influenceSlot] == 0.0f
+                    // if -1 is a valid bone ID (e.g. for non-influenced root)
                     targetVertex.bone_ids[influenceSlot] = skeletonGlobalBoneIdx;
                     targetVertex.weights[influenceSlot] = assimpWeight.mWeight;
-                    break; // Break from influenceSlot loop, process next assimpWeight
+                    influenceAdded = true;
+                    break;
                 }
             }
-            // TODO: Consider normalizing weights for each vertex if they don't sum to 1.0
-            // or if more than MAX_BONE_INFLUENCE bones affect a vertex.
-            // For now, we take the first MAX_BONE_INFLUENCE.
+            if (!influenceAdded) {
+            }
         }
     }
+
+    // Verification Print: "Verify that vertex bone indices reference valid skeleton bones"
+    // This can be done by checking a sample of vertices after all bones for the mesh are processed.
+    if (!vertices.empty() && mesh->HasBones()) {
+        std::cout << "[Model] [Bone Mapping]  Vertex Bone ID/Weight Verification for first few vertices of mesh '"
+                  << aiToStr(mesh->mName) << "':" << std::endl;
+        int numVerticesToInspect = std::min((int)vertices.size(), 3); // Inspect up to 3 vertices
+        for (int vIdx = 0; vIdx < numVerticesToInspect; ++vIdx) {
+            const auto& vert = vertices[vIdx];
+            std::cout << "[Model] [Bone Mapping]    Vertex " << vIdx << ": IDs=[";
+            float totalWeight = 0.0f;
+            for (int j = 0; j < MAX_BONE_INFLUENCE; ++j) {
+                std::cout << vert.bone_ids[j];
+                if (vert.bone_ids[j] != -1) { // If the bone ID is not "unused"
+                    if (vert.bone_ids[j] < 0 || vert.bone_ids[j] >= (int)this->skeleton.getBoneCount()) {
+                        std::cout << "(INVALID_ID!)"; // Critical error if an ID is out of bounds
+                    }
+                    totalWeight += vert.weights[j];
+                }
+                if (j < MAX_BONE_INFLUENCE - 1)
+                    std::cout << ", ";
+            }
+            std::cout << "], Weights=[";
+            for (int j = 0; j < MAX_BONE_INFLUENCE; ++j) {
+                std::cout << std::fixed << std::setprecision(2) << vert.weights[j] << std::fixed
+                          << std::setprecision(6); // Show weights with precision
+                if (j < MAX_BONE_INFLUENCE - 1)
+                    std::cout << ", ";
+            }
+            std::cout << "], TotalWeight=" << std::fixed << std::setprecision(3) << totalWeight << std::fixed
+                      << std::setprecision(6) << std::endl;
+            if (totalWeight > 0.0f && (totalWeight < 0.99f || totalWeight > 1.01f)) {
+                std::cout << "[Model] [Bone Mapping]      WARNING: Vertex " << vIdx << " weights sum to " << totalWeight
+                          << ", not ~1.0." << std::endl;
+            }
+        }
+    }
+    std::cout << "[Model] [Bone Mapping] Finished processing vertex bone data for mesh: '" << aiToStr(mesh->mName)
+              << "'" << std::endl;
 }
+
 
 void Model::loadAnimationsFromScene(const aiScene* scene) {
     if (!scene->HasAnimations()) {
