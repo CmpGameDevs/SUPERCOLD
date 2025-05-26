@@ -207,7 +207,7 @@ void Model::draw(CameraComponent* camera, const glm::mat4& localToWorld, const g
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); // Ensure fill mode for other debug modes
         }
         meshRenderer->mesh->draw();
-            }
+    }
 }
 
 void Model::loadMaterialsFromScene(const aiScene* scene) {

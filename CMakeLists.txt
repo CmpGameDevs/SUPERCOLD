@@ -145,6 +145,10 @@ set(COMMON_SOURCES
     source/common/material/pipeline-state.cpp
     source/common/material/material.hpp
     source/common/material/material.cpp
+
+    # Animation
+    source/common/animation/bone.hpp
+    source/common/animation/animation.hpp
     
     # IBL
     source/common/ibl/cubemap-buffer.hpp
