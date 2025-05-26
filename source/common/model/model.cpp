@@ -21,6 +21,8 @@ Model::~Model() {
 }
 
 bool Model::loadFromFile(const std::string& path) {
+    std::cout << "\x1b[32m" << std::string(120, '=') << "\x1b[0m" << std::endl;
+
     std::cout << "[Model] Loading model from: " << path << std::endl;
 
     Assimp::Importer importer;
@@ -43,6 +45,21 @@ bool Model::loadFromFile(const std::string& path) {
 
     directory = path.substr(0, path.find_last_of("/\\") + 1);
 
+    if (scene->HasAnimations() || scene->mNumMeshes > 0) { // Check if there's potential for a skeleton
+        bool hasAnyBones = false;
+        for (unsigned int i = 0; i < scene->mNumMeshes; ++i) {
+            if (scene->mMeshes[i]->HasBones()) {
+                hasAnyBones = true;
+                break;
+            }
+        }
+        if (hasAnyBones) {
+            loadSkeletonFromScene(scene);
+        } else {
+            std::cout << "[Model] No bones found in any mesh, skipping skeleton loading." << std::endl;
+        }
+    }
+
     loadMaterialsFromScene(scene);
 
     processNode(scene->mRootNode, scene, glm::mat4(1.0f));
@@ -50,6 +67,8 @@ bool Model::loadFromFile(const std::string& path) {
     generateCombinedMesh();
     std::cout << "[Model] Generated combined mesh with " << (combinedMesh ? combinedMesh->cpuVertices.size() : 0)
               << " vertices." << std::endl;
+
+    std::cout << "\x1b[32m" << std::string(120, '=') << "\x1b[0m" << std::endl;
     return true;
 }
 
@@ -87,31 +106,14 @@ MeshRendererComponent* Model::processMesh(const aiMesh* mesh, const aiScene* sce
 
         // bone data
         for (int j = 0; j < MAX_BONE_INFLUENCE; ++j) {
-            v.bone_ids[j] = -1; // Initialize bone IDs to -1
+            v.bone_ids[j] = -1;  // Initialize bone IDs to -1
             v.weights[j] = 0.0f; // Initialize weights to 0
-        }
-
-        if (mesh->mNumBones > 0) {
-            for (unsigned int j = 0; j < mesh->mNumBones; ++j) {
-                const aiBone* bone = mesh->mBones[j];
-                for (unsigned int k = 0; k < bone->mNumWeights; ++k) {
-                    unsigned int vertexId = bone->mWeights[k].mVertexId;
-                    float weight = bone->mWeights[k].mWeight;
-
-                    // Find an empty slot in the vertex's bone influence
-                    for (int b = 0; b < MAX_BONE_INFLUENCE; ++b) {
-                        if (v.bone_ids[b] == -1) { // Empty slot found
-                            v.bone_ids[b] = static_cast<int>(j); // Store bone index
-                            v.weights[b] = weight;               // Store weight
-                            break;
-                        }
-                    }
-                }
-            }
         }
 
         verts.push_back(v);
     }
+
+    processVertexBoneData(mesh, verts);
 
     for (unsigned int f = 0; f < mesh->mNumFaces; ++f) {
         const aiFace& face = mesh->mFaces[f];
@@ -547,6 +549,147 @@ std::shared_ptr<Texture2D> Model::loadTexture(const std::string& texturePathInMo
     std::cout << "[Model] Successfully loaded texture: " << fullPath << std::endl;
     texture_cache[texturePathInModel] = texture; // Cache it using the model-relative path as key
     return texture;
+}
+
+void Model::loadSkeletonFromScene(const aiScene* scene) {
+    std::cout << "[Model] Loading skeleton from scene..." << std::endl;
+
+    std::map<std::string, glm::mat4> boneOffsetMatrices;
+    std::set<std::string> boneNamesFromMeshes;
+
+    // Stage 1: Collect all bones from meshes and their offset matrices
+    for (unsigned int i = 0; i < scene->mNumMeshes; ++i) {
+        const aiMesh* mesh = scene->mMeshes[i];
+        for (unsigned int j = 0; j < mesh->mNumBones; ++j) {
+            const aiBone* assimpBone = mesh->mBones[j];
+            std::string boneName = assimpBone->mName.C_Str();
+
+            boneNamesFromMeshes.insert(boneName);
+            if (boneOffsetMatrices.find(boneName) == boneOffsetMatrices.end()) {
+                boneOffsetMatrices[boneName] = aiToGlm(assimpBone->mOffsetMatrix);
+            }
+        }
+    }
+
+    if (boneNamesFromMeshes.empty()) {
+        std::cout << "[Model] No bones found in meshes for skeleton." << std::endl;
+        return;
+    }
+    std::cout << "[Model] Found " << boneNamesFromMeshes.size() << " unique bones in meshes." << std::endl;
+
+    // Stage 2: Recursively build the skeleton hierarchy from the aiNode tree
+    // The skeleton member 'this->skeleton' will be populated by processNodeForSkeleton
+    processNodeForSkeleton(scene->mRootNode, -1, boneOffsetMatrices, boneNamesFromMeshes);
+
+    // Optional: Initialize bind pose transforms if your Skeleton class requires it
+    // this->skeleton.calculateBoneTransforms(); // If you want to pre-calculate bind pose
+
+    // Verification: Print skeleton hierarchy
+    std::cout << "[Model] Skeleton loaded. Hierarchy:" << std::endl;
+    this->skeleton.printHierarchy();
+    this->skeleton.validateHierarchy();
+    this->skeleton.logSkeletonInfo();
+}
+
+void Model::processNodeForSkeleton(const aiNode* assimpNode, int parentBoneIndexInSkeleton,
+                                   const std::map<std::string, glm::mat4>& boneOffsetMatrices,
+                                   const std::set<std::string>& boneNamesFromMeshes) {
+    std::string nodeName = assimpNode->mName.C_Str();
+    int currentBoneIndexInSkeleton = parentBoneIndexInSkeleton; // Pass down parent's ID by default
+
+    // Check if this node corresponds to a bone that affects meshes
+    if (boneNamesFromMeshes.count(nodeName)) {
+        Bone newBone; // Use your Bone struct
+        newBone.name = nodeName;
+        newBone.localBindTransform = aiToGlm(assimpNode->mTransformation);
+
+        // Check if offset matrix exists for this bone (it should if it's in boneNamesFromMeshes)
+        auto it = boneOffsetMatrices.find(nodeName);
+        if (it != boneOffsetMatrices.end()) {
+            newBone.offsetMatrix = it->second;
+        } else {
+            // This case should ideally not happen if boneNamesFromMeshes was populated correctly
+            // Or this node is part of the hierarchy but doesn't directly have weights (e.g. an empty).
+            // For now, let's give it an identity offset matrix if not found, though this might be an error.
+            std::cerr << "[Model] WARNING: Offset matrix not found for bone: " << nodeName << ". Using identity."
+                      << std::endl;
+            newBone.offsetMatrix = glm::mat4(1.0f);
+        }
+
+        newBone.parentIndex = parentBoneIndexInSkeleton;
+        // The ID and children will be set by skeleton.addBone()
+
+        currentBoneIndexInSkeleton = this->skeleton.addBone(newBone);
+    } else {
+        // This node is not a bone itself but part of the hierarchy.
+        // Its transform will be accumulated by its children that are bones.
+        // No change to currentBoneIndexInSkeleton, so children of this node
+        // will be parented to parentBoneIndexInSkeleton (or its bone ancestor).
+        // This behavior is correct if we only want bones that deform meshes in the 'bones' list.
+        // If we want all nodes that are part of an armature to be "bones", even if they don't deform,
+        // the logic would need to check node type or rely on aiProcess_PopulateArmatureData differently.
+        // For now, we stick to plan: bones are those in aiMesh->mBones.
+    }
+
+    // Recursively process children
+    for (unsigned int i = 0; i < assimpNode->mNumChildren; ++i) {
+        processNodeForSkeleton(assimpNode->mChildren[i], currentBoneIndexInSkeleton, boneOffsetMatrices,
+                               boneNamesFromMeshes);
+    }
+}
+
+void Model::processVertexBoneData(const aiMesh* mesh, std::vector<Vertex>& vertices) {
+    if (!mesh->HasBones()) {
+        return;
+    }
+
+    // Initialize bone data for all vertices in this mesh first
+    for (size_t i = 0; i < vertices.size(); ++i) {
+        for (int j = 0; j < MAX_BONE_INFLUENCE; ++j) {
+            vertices[i].bone_ids[j] = -1; // Or 0 if 0 is a valid root bone ID and -1 is problematic for ivec
+            vertices[i].weights[j] = 0.0f;
+        }
+    }
+
+    for (unsigned int meshBoneIdx = 0; meshBoneIdx < mesh->mNumBones; ++meshBoneIdx) {
+        const aiBone* assimpBone = mesh->mBones[meshBoneIdx];
+        std::string boneName = assimpBone->mName.C_Str();
+
+        int skeletonGlobalBoneIdx = this->skeleton.findBoneIndex(boneName);
+
+        if (skeletonGlobalBoneIdx == -1) {
+            // This bone from the mesh is not found in our loaded skeleton.
+            // This might happen if processNodeForSkeleton decided not to add it,
+            // or if there's a mismatch.
+            // std::cout << "[Model] Warning: Bone '" << boneName << "' from mesh '" << mesh->mName.C_Str()
+            //           << "' not found in the main skeleton. Skipping its vertex weights." << std::endl;
+            continue;
+        }
+
+        for (unsigned int weightIdx = 0; weightIdx < assimpBone->mNumWeights; ++weightIdx) {
+            const aiVertexWeight& assimpWeight = assimpBone->mWeights[weightIdx];
+            unsigned int vertexId = assimpWeight.mVertexId;
+
+            if (vertexId >= vertices.size()) {
+                std::cerr << "[Model] ERROR: Invalid vertexId " << vertexId << " from bone weights for mesh '"
+                          << mesh->mName.C_Str() << "'." << std::endl;
+                continue;
+            }
+
+            Vertex& targetVertex = vertices[vertexId];
+            for (int influenceSlot = 0; influenceSlot < MAX_BONE_INFLUENCE; ++influenceSlot) {
+                // Find an empty slot to add this bone's influence
+                if (targetVertex.weights[influenceSlot] == 0.0f) {
+                    targetVertex.bone_ids[influenceSlot] = skeletonGlobalBoneIdx;
+                    targetVertex.weights[influenceSlot] = assimpWeight.mWeight;
+                    break; // Break from influenceSlot loop, process next assimpWeight
+                }
+            }
+            // TODO: Consider normalizing weights for each vertex if they don't sum to 1.0
+            // or if more than MAX_BONE_INFLUENCE bones affect a vertex.
+            // For now, we take the first MAX_BONE_INFLUENCE.
+        }
+    }
 }
 
 glm::mat4 Model::aiToGlm(const aiMatrix4x4& m) {

@@ -38,7 +38,7 @@ struct Vertex {
      * @brief Parameterized constructor for basic attributes.
      * Initializes skeletal animation attributes to default (no influence).
      */
-    Vertex(const glm::vec3 &position, const Color &color, const glm::vec2 &texCoords, const glm::vec3 &normal)
+    Vertex(const glm::vec3& position, const Color& color, const glm::vec2& texCoords, const glm::vec3& normal)
         : position(position), color(color), normal(normal), tex_coord(texCoords) {
         for (int i = 0; i < MAX_BONE_INFLUENCE; ++i) {
             bone_ids[i] = 0;
@@ -46,7 +46,7 @@ struct Vertex {
         }
     }
 
-    Vertex(const glm::vec3 &position, const Color &color, const glm::vec2 &texCoords, const glm::vec3 &normal,
+    Vertex(const glm::vec3& position, const Color& color, const glm::vec2& texCoords, const glm::vec3& normal,
            const int boneIdsIn[MAX_BONE_INFLUENCE], const float weightsIn[MAX_BONE_INFLUENCE])
         : position(position), color(color), normal(normal), tex_coord(texCoords) {
         for (int i = 0; i < MAX_BONE_INFLUENCE; ++i) {
@@ -56,7 +56,7 @@ struct Vertex {
     }
 
     // We plan to use this as a key for a map so we need to define the equality operator
-    bool operator==(const Vertex &other) const {
+    bool operator==(const Vertex& other) const {
         return position == other.position && color == other.color && tex_coord == other.tex_coord &&
                normal == other.normal;
     }
@@ -73,7 +73,7 @@ inline size_t hash_combine(size_t h1, size_t h2) {
 
 // A Hash function for struct Vertex
 template <> struct hash<our::Vertex> {
-    size_t operator()(our::Vertex const &vertex) const {
+    size_t operator()(our::Vertex const& vertex) const {
         size_t combined = hash<glm::vec3>()(vertex.position);
         combined = hash_combine(combined, hash<our::Color>()(vertex.color));
         combined = hash_combine(combined, hash<glm::vec2>()(vertex.tex_coord));
