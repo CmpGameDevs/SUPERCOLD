@@ -83,7 +83,32 @@ MeshRendererComponent* Model::processMesh(const aiMesh* mesh, const aiScene* sce
             v.tex_coord = glm::vec2(mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y);
 
         if (mesh->mColors[0])
-            glm::vec4(mesh->mColors[0][i].r, mesh->mColors[0][i].g, mesh->mColors[0][i].b, mesh->mColors[0][i].a);
+            v.color = Color(mesh->mColors[0][i].r, mesh->mColors[0][i].g, mesh->mColors[0][i].b, mesh->mColors[0][i].a);
+
+        // bone data
+        for (int j = 0; j < MAX_BONE_INFLUENCE; ++j) {
+            v.bone_ids[j] = -1; // Initialize bone IDs to -1
+            v.weights[j] = 0.0f; // Initialize weights to 0
+        }
+
+        if (mesh->mNumBones > 0) {
+            for (unsigned int j = 0; j < mesh->mNumBones; ++j) {
+                const aiBone* bone = mesh->mBones[j];
+                for (unsigned int k = 0; k < bone->mNumWeights; ++k) {
+                    unsigned int vertexId = bone->mWeights[k].mVertexId;
+                    float weight = bone->mWeights[k].mWeight;
+
+                    // Find an empty slot in the vertex's bone influence
+                    for (int b = 0; b < MAX_BONE_INFLUENCE; ++b) {
+                        if (v.bone_ids[b] == -1) { // Empty slot found
+                            v.bone_ids[b] = static_cast<int>(j); // Store bone index
+                            v.weights[b] = weight;               // Store weight
+                            break;
+                        }
+                    }
+                }
+            }
+        }
 
         verts.push_back(v);
     }
