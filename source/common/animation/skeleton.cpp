@@ -56,13 +56,13 @@ int Skeleton::addBone(const Bone& bone) {
         rootBones.push_back(boneIndex);
     }
 
-    std::cout << "[Skeleton] Added bone '" << bone.name << "' at index " << boneIndex;
-    if (bone.parentIndex >= 0) {
-        std::cout << " (parent: '" << bones[bone.parentIndex].name << "')";
-    } else {
-        std::cout << " (root bone)";
-    }
-    std::cout << std::endl;
+    // std::cout << "[Skeleton] Added bone '" << bone.name << "' at index " << boneIndex;
+    // if (bone.parentIndex >= 0) {
+    //     std::cout << " (parent: '" << bones[bone.parentIndex].name << "')";
+    // } else {
+    //     std::cout << " (root bone)";
+    // }
+    // std::cout << std::endl;
 
     return boneIndex;
 }
