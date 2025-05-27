@@ -4,6 +4,8 @@
 #include <components/crosshair.hpp>
 #include <core/time-scale.hpp>
 #include <ecs/world.hpp>
+#include <settings.hpp>
+#include <systems/animation-system.hpp>
 #include <systems/audio-system.hpp>
 #include <systems/collision-system.hpp>
 #include <systems/enemy-system.hpp>
@@ -11,7 +13,6 @@
 #include <systems/fps-controller.hpp>
 #include <systems/movement.hpp>
 #include <systems/text-renderer.hpp>
-#include <settings.hpp>
 #include "imgui.h"
 
 class Playstate : public our::State {
@@ -28,6 +29,7 @@ class Playstate : public our::State {
     our::AudioSystem& audioSystem = our::AudioSystem::getInstance();
     our::EnemySystem& enemySystem = our::EnemySystem::getInstance();
     bool gameEnded = false;
+    our::AnimationSystem animationSystem;
 
     void initializeGame() {
         // Only initialize the game one time
@@ -96,17 +98,16 @@ class Playstate : public our::State {
 
             // Select shader mode using a drop down select
             const char* shaderModes[] = {"none",
-                "normal",
-                "albedo", 
-                "depth",
-                "metallic",
-                "roughness",
-                "emission",
-                "ambient",
-                "metailic_roughness",
-                "wireframe",
-                "texture_coordinates"
-            };
+                                         "normal",
+                                         "albedo",
+                                         "depth",
+                                         "metallic",
+                                         "roughness",
+                                         "emission",
+                                         "ambient",
+                                         "metailic_roughness",
+                                         "wireframe",
+                                         "texture_coordinates"};
 
             if (ImGui::BeginCombo("Debug View Mode", settings.shaderDebugMode.c_str())) {
                 for (const auto& mode : shaderModes) {
@@ -173,6 +174,7 @@ class Playstate : public our::State {
 
         // Update the collision system
         collisionSystem.update(&world, scaledDeltaTime);
+        animationSystem.update(&world, scaledDeltaTime);
 
         float playerDeltaTime = deltaTime;
 

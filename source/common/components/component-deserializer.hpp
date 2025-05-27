@@ -2,6 +2,7 @@
 
 #include "../ecs/entity.hpp"
 #include "camera.hpp"
+#include "components/animation-component.hpp"
 #include "fps-controller.hpp"
 #include "free-camera-controller.hpp"
 #include "mesh-renderer.hpp"
@@ -40,6 +41,11 @@ inline void deserializeComponent(const nlohmann::json &data, Entity *entity) {
         component = entity->addComponent<WeaponComponent>();
     } else if (type == EnemyControllerComponent::getID()) {
         component = entity->addComponent<EnemyControllerComponent>();
+    } else if (type == AnimationComponent::getID()) {
+        component = entity->addComponent<AnimationComponent>();
+    } else {
+        std::cerr << "[Deserialize] Unknown component type: " << type << std::endl;
+        return;
     }
 
     if (component)

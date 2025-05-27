@@ -6,7 +6,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <asset-loader.hpp>
 #include <ecs/entity.hpp>
+#include <iomanip>
 #include <settings.hpp>
+#include "animation/animation.hpp"
 #include "glad/gl.h"
 #include "glm/common.hpp"
 #include "material/material.hpp"
@@ -15,12 +17,101 @@
 
 namespace our {
 
+template <typename TKey> static unsigned int findKeyIndex(float animationTime, const TKey* keys, unsigned int numKeys) {
+    if (numKeys <= 1)
+        return 0;
+
+    for (unsigned int i = 0; i < numKeys - 1; ++i) {
+        if (animationTime < keys[i + 1].mTime) {
+            return i;
+        }
+    }
+    return numKeys - 1;
+}
+
+static glm::vec3 interpolatePosition(float animationTime, const aiVectorKey* keys, unsigned int numKeys) {
+    if (numKeys == 0)
+        return glm::vec3(0.0f);
+    if (numKeys == 1)
+        return Model::aiToGlm(keys[0].mValue);
+
+    unsigned int keyIndex = findKeyIndex(animationTime, keys, numKeys);
+    unsigned int nextKeyIndex = keyIndex + 1;
+
+    if (nextKeyIndex >= numKeys) {
+        return Model::aiToGlm(keys[numKeys - 1].mValue);
+    }
+
+    const aiVectorKey& key1 = keys[keyIndex];
+    const aiVectorKey& key2 = keys[nextKeyIndex];
+
+    float deltaTime = static_cast<float>(key2.mTime - key1.mTime);
+    float factor = 0.0f;
+    if (deltaTime > 0.00001f) {
+        factor = static_cast<float>(animationTime - key1.mTime) / deltaTime;
+    }
+
+    return glm::mix(Model::aiToGlm(key1.mValue), Model::aiToGlm(key2.mValue), factor);
+}
+
+static glm::quat interpolateRotation(float animationTime, const aiQuatKey* keys, unsigned int numKeys) {
+    if (numKeys == 0)
+        return glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+    if (numKeys == 1)
+        return Model::aiToGlm(keys[0].mValue);
+
+    unsigned int keyIndex = findKeyIndex(animationTime, keys, numKeys);
+    unsigned int nextKeyIndex = keyIndex + 1;
+
+    if (nextKeyIndex >= numKeys) {
+        return Model::aiToGlm(keys[numKeys - 1].mValue);
+    }
+
+    const aiQuatKey& key1 = keys[keyIndex];
+    const aiQuatKey& key2 = keys[nextKeyIndex];
+
+    float deltaTime = static_cast<float>(key2.mTime - key1.mTime);
+    float factor = 0.0f;
+    if (deltaTime > 0.00001f) {
+        factor = static_cast<float>(animationTime - key1.mTime) / deltaTime;
+    }
+
+    return glm::slerp(Model::aiToGlm(key1.mValue), Model::aiToGlm(key2.mValue), factor);
+}
+
+static glm::vec3 interpolateScale(float animationTime, const aiVectorKey* keys, unsigned int numKeys) {
+    if (numKeys == 0)
+        return glm::vec3(1.0f);
+    if (numKeys == 1)
+        return Model::aiToGlm(keys[0].mValue);
+
+    unsigned int keyIndex = findKeyIndex(animationTime, keys, numKeys);
+    unsigned int nextKeyIndex = keyIndex + 1;
+
+    if (nextKeyIndex >= numKeys) {
+        return Model::aiToGlm(keys[numKeys - 1].mValue);
+    }
+
+    const aiVectorKey& key1 = keys[keyIndex];
+    const aiVectorKey& key2 = keys[nextKeyIndex];
+
+    float deltaTime = static_cast<float>(key2.mTime - key1.mTime);
+    float factor = 0.0f;
+    if (deltaTime > 0.00001f) {
+        factor = static_cast<float>(animationTime - key1.mTime) / deltaTime;
+    }
+
+    return glm::mix(Model::aiToGlm(key1.mValue), Model::aiToGlm(key2.mValue), factor);
+}
+
 Model::~Model() {
     for (auto* mr : meshRenderers)
         delete mr;
 }
 
 bool Model::loadFromFile(const std::string& path) {
+    std::cout << "\x1b[32m" << std::string(120, '=') << "\x1b[0m" << std::endl;
+
     std::cout << "[Model] Loading model from: " << path << std::endl;
 
     Assimp::Importer importer;
@@ -43,6 +134,28 @@ bool Model::loadFromFile(const std::string& path) {
 
     directory = path.substr(0, path.find_last_of("/\\") + 1);
 
+    if (scene->HasAnimations() || scene->mNumMeshes > 0) {
+        bool hasAnyBones = false;
+        for (unsigned int i = 0; i < scene->mNumMeshes; ++i) {
+            if (scene->mMeshes[i]->HasBones()) {
+                hasAnyBones = true;
+                break;
+            }
+        }
+        if (hasAnyBones) {
+            loadSkeletonFromScene(scene);
+        } else {
+            std::cout << "[Model] No bones found in any mesh, skipping skeleton loading." << std::endl;
+        }
+    }
+
+    // Load Animations
+    if (scene->HasAnimations()) {
+        loadAnimationsFromScene(scene);
+    } else {
+        std::cout << "[Model] Scene contains no animations to load." << std::endl;
+    }
+
     loadMaterialsFromScene(scene);
 
     processNode(scene->mRootNode, scene, glm::mat4(1.0f));
@@ -50,6 +163,8 @@ bool Model::loadFromFile(const std::string& path) {
     generateCombinedMesh();
     std::cout << "[Model] Generated combined mesh with " << (combinedMesh ? combinedMesh->cpuVertices.size() : 0)
               << " vertices." << std::endl;
+
+    std::cout << "\x1b[32m" << std::string(120, '=') << "\x1b[0m" << std::endl;
     return true;
 }
 
@@ -83,10 +198,18 @@ MeshRendererComponent* Model::processMesh(const aiMesh* mesh, const aiScene* sce
             v.tex_coord = glm::vec2(mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y);
 
         if (mesh->mColors[0])
-            glm::vec4(mesh->mColors[0][i].r, mesh->mColors[0][i].g, mesh->mColors[0][i].b, mesh->mColors[0][i].a);
+            v.color = Color(mesh->mColors[0][i].r, mesh->mColors[0][i].g, mesh->mColors[0][i].b, mesh->mColors[0][i].a);
+
+        // bone data
+        for (int j = 0; j < MAX_BONE_INFLUENCE; ++j) {
+            v.bone_ids[j] = -1;
+            v.weights[j] = 0.0f;
+        }
 
         verts.push_back(v);
     }
+
+    processVertexBoneData(mesh, verts);
 
     for (unsigned int f = 0; f < mesh->mNumFaces; ++f) {
         const aiFace& face = mesh->mFaces[f];
@@ -170,7 +293,6 @@ void Model::draw(CameraComponent* camera, const glm::mat4& localToWorld, const g
             continue;
         }
 
-        // Setup material (sets pipeline state and uses shader)
         meshRenderer->material->setup();
 
         // Calculate Model matrix for this specific mesh component
@@ -194,20 +316,29 @@ void Model::draw(CameraComponent* camera, const glm::mat4& localToWorld, const g
         meshRenderer->material->shader->set("VP", viewProjectionMatrix);
         meshRenderer->material->shader->set("transform", modelViewProjectionMatrix);
 
-        // Other common uniforms
         meshRenderer->material->shader->set("cameraPosition", cameraWorldPosition);
 
         meshRenderer->material->shader->set("bloomBrightnessCutoff", bloomCutoff);
+
+        // set bone transforms if skeleton is present
+        if (skeleton.getBoneCount() > 0) {
+
+            auto& boneTransforms = skeleton.getFinalTransforms();
+            for (unsigned int i = 0; i < boneTransforms.size(); ++i) {
+                meshRenderer->material->shader->set("boneFinalTransforms[" + std::to_string(i) + "]",
+                                                    boneTransforms[i]);
+            }
+        }
 
         meshRenderer->material->shader->set("debugMode", settings.shaderDebugModeToInt(settings.shaderDebugMode));
 
         if (settings.shaderDebugMode == "wireframe") {
             glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         } else {
-            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); // Ensure fill mode for other debug modes
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         }
         meshRenderer->mesh->draw();
-            }
+    }
 }
 
 void Model::loadMaterialsFromScene(const aiScene* scene) {
@@ -522,6 +653,298 @@ std::shared_ptr<Texture2D> Model::loadTexture(const std::string& texturePathInMo
     std::cout << "[Model] Successfully loaded texture: " << fullPath << std::endl;
     texture_cache[texturePathInModel] = texture; // Cache it using the model-relative path as key
     return texture;
+}
+
+void Model::loadSkeletonFromScene(const aiScene* scene) {
+    std::cout << "[Model] Loading skeleton from scene..." << std::endl;
+
+    std::map<std::string, glm::mat4> boneOffsetMatrices;
+    std::set<std::string> boneNamesFromMeshes;
+
+    // Stage 1: Collect all bones from meshes and their offset matrices
+    for (unsigned int i = 0; i < scene->mNumMeshes; ++i) {
+        const aiMesh* mesh = scene->mMeshes[i];
+        for (unsigned int j = 0; j < mesh->mNumBones; ++j) {
+            const aiBone* assimpBone = mesh->mBones[j];
+            std::string boneName = assimpBone->mName.C_Str();
+
+            boneNamesFromMeshes.insert(boneName);
+            if (boneOffsetMatrices.find(boneName) == boneOffsetMatrices.end()) {
+                boneOffsetMatrices[boneName] = aiToGlm(assimpBone->mOffsetMatrix);
+            }
+        }
+    }
+
+    if (boneNamesFromMeshes.empty()) {
+        std::cout << "[Model] No bones found in meshes for skeleton." << std::endl;
+        return;
+    }
+    std::cout << "[Model] Found " << boneNamesFromMeshes.size() << " unique bones in meshes." << std::endl;
+
+    // Stage 2: Recursively build the skeleton hierarchy from the aiNode tree
+    // The skeleton member 'this->skeleton' will be populated by processNodeForSkeleton
+    processNodeForSkeleton(scene->mRootNode, -1, boneOffsetMatrices, boneNamesFromMeshes);
+
+    // Optional: Initialize bind pose transforms if your Skeleton class requires it
+    // this->skeleton.calculateBoneTransforms(); // If you want to pre-calculate bind pose
+
+    // Verification: Print skeleton hierarchy
+    std::cout << "[Model] Skeleton loaded. Hierarchy:" << std::endl;
+    this->skeleton.printHierarchy();
+    this->skeleton.validateHierarchy();
+    this->skeleton.logSkeletonInfo();
+}
+
+void Model::processNodeForSkeleton(const aiNode* assimpNode, int parentBoneIndexInSkeleton,
+                                   const std::map<std::string, glm::mat4>& boneOffsetMatrices,
+                                   const std::set<std::string>& boneNamesFromMeshes) {
+    std::string nodeName = assimpNode->mName.C_Str();
+    int currentBoneIndexInSkeleton = parentBoneIndexInSkeleton; // Pass down parent's ID by default
+
+    // Check if this node corresponds to a bone that affects meshes
+    if (boneNamesFromMeshes.count(nodeName)) {
+        Bone newBone; // Use your Bone struct
+        newBone.name = nodeName;
+        newBone.localBindTransform = aiToGlm(assimpNode->mTransformation);
+
+        // Check if offset matrix exists for this bone (it should if it's in boneNamesFromMeshes)
+        auto it = boneOffsetMatrices.find(nodeName);
+        if (it != boneOffsetMatrices.end()) {
+            newBone.offsetMatrix = it->second;
+        } else {
+            // This case should ideally not happen if boneNamesFromMeshes was populated correctly
+            // Or this node is part of the hierarchy but doesn't directly have weights (e.g. an empty).
+            // For now, let's give it an identity offset matrix if not found, though this might be an error.
+            std::cerr << "[Model] WARNING: Offset matrix not found for bone: " << nodeName << ". Using identity."
+                      << std::endl;
+            newBone.offsetMatrix = glm::mat4(1.0f);
+        }
+
+        newBone.parentIndex = parentBoneIndexInSkeleton;
+        // The ID and children will be set by skeleton.addBone()
+
+        currentBoneIndexInSkeleton = this->skeleton.addBone(newBone);
+    } else {
+        // This node is not a bone itself but part of the hierarchy.
+        // Its transform will be accumulated by its children that are bones.
+        // No change to currentBoneIndexInSkeleton, so children of this node
+        // will be parented to parentBoneIndexInSkeleton (or its bone ancestor).
+        // This behavior is correct if we only want bones that deform meshes in the 'bones' list.
+        // If we want all nodes that are part of an armature to be "bones", even if they don't deform,
+        // the logic would need to check node type or rely on aiProcess_PopulateArmatureData differently.
+        // For now, we stick to plan: bones are those in aiMesh->mBones.
+    }
+
+    // Recursively process children
+    for (unsigned int i = 0; i < assimpNode->mNumChildren; ++i) {
+        processNodeForSkeleton(assimpNode->mChildren[i], currentBoneIndexInSkeleton, boneOffsetMatrices,
+                               boneNamesFromMeshes);
+    }
+}
+
+void Model::processVertexBoneData(const aiMesh* mesh, std::vector<Vertex>& vertices) {
+    if (!mesh->HasBones()) {
+        return;
+    }
+
+    std::cout << "[Model] [Bone Mapping] Processing vertex bone data for mesh: '" << aiToStr(mesh->mName)
+              << "' (contains " << mesh->mNumBones << " bones in its local list)." << std::endl;
+
+    for (unsigned int meshLocalBoneIdx = 0; meshLocalBoneIdx < mesh->mNumBones; ++meshLocalBoneIdx) {
+        const aiBone* assimpBone = mesh->mBones[meshLocalBoneIdx];
+        std::string boneName = aiToStr(assimpBone->mName);
+
+        int skeletonGlobalBoneIdx = this->skeleton.findBoneIndex(boneName);
+
+        if (skeletonGlobalBoneIdx == -1) {
+            // This is an important check: a bone defined in the mesh's bone list
+            // is not found in the globally constructed skeleton. This could happen if
+            // the bone wasn't part of the main hierarchy traversal (e.g., an unattached bone)
+            // or if there's a naming mismatch not caught earlier.
+            std::cout << "[Model] [Bone Mapping]  WARNING: Mesh bone '" << boneName
+                      << "' (local mesh bone index: " << meshLocalBoneIdx << ") from mesh '" << aiToStr(mesh->mName)
+                      << "' was NOT FOUND in the global skeleton. Vertex weights for this bone will be SKIPPED."
+                      << std::endl;
+            continue;
+        }
+
+        // Verification Print: "Print bone mapping for a simple rigged model"
+        // This shows the mapping from a bone's name (and its local index in the aiMesh)
+        // to its global index in your `Model::skeleton`.
+        // std::cout << "[Model] [Bone Mapping]  Mesh '" << aiToStr(mesh->mName) << "': Bone '" << boneName
+        //           << "' (local mesh idx " << meshLocalBoneIdx
+        //           << ") ==> Global Skeleton Index: " << skeletonGlobalBoneIdx << std::endl;
+
+        for (unsigned int weightIdx = 0; weightIdx < assimpBone->mNumWeights; ++weightIdx) {
+            const aiVertexWeight& assimpWeight = assimpBone->mWeights[weightIdx];
+            unsigned int vertexId = assimpWeight.mVertexId;
+
+            if (vertexId >= vertices.size()) {
+                std::cerr << "[Model] [Bone Mapping]  ERROR: Invalid vertexId " << vertexId
+                          << " from bone weights for bone '" << boneName << "' in mesh '" << aiToStr(mesh->mName)
+                          << "'." << std::endl;
+                continue;
+            }
+
+            Vertex& targetVertex = vertices[vertexId];
+            bool influenceAdded = false;
+            for (int influenceSlot = 0; influenceSlot < MAX_BONE_INFLUENCE; ++influenceSlot) {
+                if (targetVertex.bone_ids[influenceSlot] == -1) { // Check if slot is empty (assuming -1 means empty)
+                                                                  // Or use targetVertex.weights[influenceSlot] == 0.0f
+                    // if -1 is a valid bone ID (e.g. for non-influenced root)
+                    targetVertex.bone_ids[influenceSlot] = skeletonGlobalBoneIdx;
+                    targetVertex.weights[influenceSlot] = assimpWeight.mWeight;
+                    influenceAdded = true;
+                    break;
+                }
+            }
+            if (!influenceAdded) {
+            }
+        }
+    }
+
+    // Verification Print: "Verify that vertex bone indices reference valid skeleton bones"
+    // This can be done by checking a sample of vertices after all bones for the mesh are processed.
+    if (!vertices.empty() && mesh->HasBones()) {
+        std::cout << "[Model] [Bone Mapping]  Vertex Bone ID/Weight Verification for first few vertices of mesh '"
+                  << aiToStr(mesh->mName) << "':" << std::endl;
+        int numVerticesToInspect = std::min((int)vertices.size(), 3); // Inspect up to 3 vertices
+        for (int vIdx = 0; vIdx < numVerticesToInspect; ++vIdx) {
+            const auto& vert = vertices[vIdx];
+            std::cout << "[Model] [Bone Mapping]    Vertex " << vIdx << ": IDs=[";
+            float totalWeight = 0.0f;
+            for (int j = 0; j < MAX_BONE_INFLUENCE; ++j) {
+                std::cout << vert.bone_ids[j];
+                if (vert.bone_ids[j] != -1) { // If the bone ID is not "unused"
+                    if (vert.bone_ids[j] < 0 || vert.bone_ids[j] >= (int)this->skeleton.getBoneCount()) {
+                        std::cout << "(INVALID_ID!)"; // Critical error if an ID is out of bounds
+                    }
+                    totalWeight += vert.weights[j];
+                }
+                if (j < MAX_BONE_INFLUENCE - 1)
+                    std::cout << ", ";
+            }
+            std::cout << "], Weights=[";
+            for (int j = 0; j < MAX_BONE_INFLUENCE; ++j) {
+                std::cout << std::fixed << std::setprecision(2) << vert.weights[j] << std::fixed
+                          << std::setprecision(6); // Show weights with precision
+                if (j < MAX_BONE_INFLUENCE - 1)
+                    std::cout << ", ";
+            }
+            std::cout << "], TotalWeight=" << std::fixed << std::setprecision(3) << totalWeight << std::fixed
+                      << std::setprecision(6) << std::endl;
+            if (totalWeight > 0.0f && (totalWeight < 0.99f || totalWeight > 1.01f)) {
+                std::cout << "[Model] [Bone Mapping]      WARNING: Vertex " << vIdx << " weights sum to " << totalWeight
+                          << ", not ~1.0." << std::endl;
+            }
+        }
+    }
+    std::cout << "[Model] [Bone Mapping] Finished processing vertex bone data for mesh: '" << aiToStr(mesh->mName)
+              << "'" << std::endl;
+}
+
+void Model::loadAnimationsFromScene(const aiScene* scene) {
+    if (!scene->HasAnimations()) {
+        std::cout << "[Model] Scene has no animations." << std::endl;
+        return;
+    }
+
+    std::cout << "[Model] Loading " << scene->mNumAnimations << " animation(s)..." << std::endl;
+    this->animations.reserve(scene->mNumAnimations);
+
+    for (unsigned int i = 0; i < scene->mNumAnimations; ++i) {
+        const aiAnimation* assimpAnimation = scene->mAnimations[i];
+        Animation currentLoadedAnimation;
+
+        currentLoadedAnimation.name = aiToStr(assimpAnimation->mName);
+        currentLoadedAnimation.duration = static_cast<float>(assimpAnimation->mDuration);
+        currentLoadedAnimation.ticksPerSecond = static_cast<float>(assimpAnimation->mTicksPerSecond);
+        if (currentLoadedAnimation.ticksPerSecond == 0) {
+            currentLoadedAnimation.ticksPerSecond = 25.0f; // Default to 25 FPS if not specified
+            std::cout << "[Model] Animation '" << currentLoadedAnimation.name
+                      << "' has 0 ticksPerSecond, defaulting to " << currentLoadedAnimation.ticksPerSecond << std::endl;
+        }
+
+        std::cout << "[Model]  Loading Animation: '" << currentLoadedAnimation.name
+                  << "', Duration: " << currentLoadedAnimation.duration << " ticks"
+                  << ", Ticks/Sec: " << currentLoadedAnimation.ticksPerSecond
+                  << ", Channels: " << assimpAnimation->mNumChannels << std::endl;
+
+        currentLoadedAnimation.boneAnimations.reserve(assimpAnimation->mNumChannels);
+
+        for (unsigned int j = 0; j < assimpAnimation->mNumChannels; ++j) {
+            const aiNodeAnim* nodeAnim = assimpAnimation->mChannels[j];
+            BoneAnimation boneAnimTrack;
+            boneAnimTrack.boneName = aiToStr(nodeAnim->mNodeName);
+
+            if (this->skeleton.findBoneIndex(boneAnimTrack.boneName) == -1) {
+                std::cout << "[Model]   Warning: Animation channel for node '" << boneAnimTrack.boneName
+                          << "' which is not in the loaded skeleton. Still loading channel." << std::endl;
+            }
+
+            // Collect all unique timestamps from position, rotation, and scale keys
+            std::set<float> uniqueTimestamps;
+            for (unsigned int k = 0; k < nodeAnim->mNumPositionKeys; ++k)
+                uniqueTimestamps.insert(static_cast<float>(nodeAnim->mPositionKeys[k].mTime));
+            for (unsigned int k = 0; k < nodeAnim->mNumRotationKeys; ++k)
+                uniqueTimestamps.insert(static_cast<float>(nodeAnim->mRotationKeys[k].mTime));
+            for (unsigned int k = 0; k < nodeAnim->mNumScalingKeys; ++k)
+                uniqueTimestamps.insert(static_cast<float>(nodeAnim->mScalingKeys[k].mTime));
+
+            if (uniqueTimestamps.empty() &&
+                (nodeAnim->mNumPositionKeys > 0 || nodeAnim->mNumRotationKeys > 0 || nodeAnim->mNumScalingKeys > 0)) {
+                // This case implies keys exist but their times weren't inserted, unlikely with float conversion.
+                // Or all keys are at time 0.
+                // If all keys are at time 0 and uniqueTimestamps is empty (e.g. if keys were non-float before casting),
+                // we might need to manually add 0.0f if any keys exist.
+                // However, `std::set<float>` from `double` times should be fine.
+            }
+            if (uniqueTimestamps.empty() && nodeAnim->mNumPositionKeys == 0 && nodeAnim->mNumRotationKeys == 0 &&
+                nodeAnim->mNumScalingKeys == 0) {
+                // This channel has no keyframes for this bone.
+                // std::cout << "[Model]   Channel '" << boneAnimTrack.boneName << "' has no keyframes." << std::endl;
+                // continue; // Skip if no keyframes for this bone at all
+            }
+
+            // If uniqueTimestamps is empty but there's at least one key (e.g., a single static pose key at time 0),
+            // add time 0.0f to ensure at least one KeyFrame is generated.
+            // This handles static poses defined by a single keyframe at t=0.
+            if (uniqueTimestamps.empty() &&
+                (nodeAnim->mNumPositionKeys > 0 || nodeAnim->mNumRotationKeys > 0 || nodeAnim->mNumScalingKeys > 0)) {
+                uniqueTimestamps.insert(0.0f);
+            }
+
+            boneAnimTrack.keyFrames.reserve(uniqueTimestamps.size());
+
+            // For each unique timestamp, create a KeyFrame by interpolating P, R, S
+            for (float t : uniqueTimestamps) {
+                KeyFrame keyFrame;
+                keyFrame.timeStamp = t;
+                keyFrame.position = interpolatePosition(t, nodeAnim->mPositionKeys, nodeAnim->mNumPositionKeys);
+                keyFrame.rotation = interpolateRotation(t, nodeAnim->mRotationKeys, nodeAnim->mNumRotationKeys);
+                keyFrame.scale = interpolateScale(t, nodeAnim->mScalingKeys, nodeAnim->mNumScalingKeys);
+                boneAnimTrack.keyFrames.push_back(keyFrame);
+            }
+
+            currentLoadedAnimation.boneAnimations.push_back(boneAnimTrack);
+            std::cout << "[Model]    Channel for bone: '" << boneAnimTrack.boneName << "' loaded with "
+                      << boneAnimTrack.keyFrames.size() << " combined keyframes." << std::endl;
+        }
+        this->animations.push_back(currentLoadedAnimation);
+    }
+    std::cout << "[Model] Finished loading animations." << std::endl;
+
+    // Verification Step
+    std::cout << "[Model] === Animation Data Verification ===" << std::endl;
+    for (const auto& anim : this->animations) {
+        std::cout << "Animation Name: " << anim.name << ", Duration (ticks): " << anim.duration
+                  << ", Ticks/Sec: " << anim.ticksPerSecond << ", Bone Animation Tracks: " << anim.boneAnimations.size()
+                  << std::endl;
+        for (const auto& boneAnim : anim.boneAnimations) {
+            std::cout << "  Bone: " << boneAnim.boneName << ", Keyframes: " << boneAnim.keyFrames.size() << std::endl;
+        }
+    }
+    std::cout << "[Model] ===================================" << std::endl;
 }
 
 glm::mat4 Model::aiToGlm(const aiMatrix4x4& m) {
