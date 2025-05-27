@@ -13,6 +13,7 @@
 #include <systems/fps-controller.hpp>
 #include <systems/movement.hpp>
 #include <systems/text-renderer.hpp>
+#include <systems/trail-system.hpp>
 #include "imgui.h"
 
 class Playstate : public our::State {
@@ -28,6 +29,7 @@ class Playstate : public our::State {
     our::TextRenderer& textRenderer = our::TextRenderer::getInstance();
     our::AudioSystem& audioSystem = our::AudioSystem::getInstance();
     our::EnemySystem& enemySystem = our::EnemySystem::getInstance();
+    our::TrailSystem& trailSystem = our::TrailSystem::getInstance();
     bool gameEnded = false;
     our::AnimationSystem animationSystem;
 
@@ -66,6 +68,7 @@ class Playstate : public our::State {
         textRenderer.initialize(windowSize.x, windowSize.y);
 
         audioSystem.initialize(getApp()->getAudioContext());
+        trailSystem.initialize();
     }
 
     void onInitialize() override {
@@ -124,6 +127,16 @@ class Playstate : public our::State {
 
             ImGui::Text("Press F9 to close this window");
 
+            ImGui::End();
+
+            // Audio Debugger
+            ImGui::Begin("Audio Debugger");
+            if (ImGui::SliderFloat("Music Volume", &audioSystem.musicVolume, 0.0f, 1.0f)) {
+                audioSystem.setCategoryVolume("music", audioSystem.musicVolume);
+            }
+            if (ImGui::SliderFloat("SFX Volume", &audioSystem.sfxVolume, 0.0f, 1.0f)) {
+                audioSystem.setCategoryVolume("sfx", audioSystem.sfxVolume);
+            }
             ImGui::End();
         }
     }
@@ -187,6 +200,9 @@ class Playstate : public our::State {
 
             // Update the weapons system
             weaponsSystem.update(&world, scaledDeltaTime);
+
+            // Update the trail system
+            trailSystem.processTrails(&world, scaledDeltaTime);
 
             // Update the enemies system
             enemySystem.update(&world, scaledDeltaTime);

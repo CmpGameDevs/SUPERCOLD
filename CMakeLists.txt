@@ -207,6 +207,8 @@ set(COMMON_SOURCES
     source/common/components/weapon.cpp
     source/common/components/crosshair.hpp
     source/common/components/crosshair.cpp
+    source/common/components/trail-renderer.hpp
+    source/common/components/trail-renderer.cpp
     
     # Model
     source/common/model/model.hpp
@@ -226,6 +228,8 @@ set(COMMON_SOURCES
     source/common/systems/free-camera-controller.hpp
     source/common/systems/fps-controller.hpp
     source/common/systems/movement.hpp
+    source/common/systems/trail-system.hpp
+    source/common/systems/trail-system.cpp
 )
 
 # --- Game state files ---
