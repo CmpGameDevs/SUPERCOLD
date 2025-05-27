@@ -153,6 +153,8 @@ set(COMMON_SOURCES
     source/common/animation/skeleton.cpp
     source/common/animation/animation-player.hpp
     source/common/animation/animation-player.cpp
+    source/common/components/animation-component.hpp
+    source/common/components/animation-component.cpp
     
     # IBL
     source/common/ibl/cubemap-buffer.hpp
