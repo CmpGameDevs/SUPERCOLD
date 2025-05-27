@@ -3,6 +3,7 @@
 #include <components/collision.hpp>
 #include <components/enemy-controller.hpp>
 #include <components/model-renderer.hpp>
+#include <components/trail-renderer.hpp>
 #include <components/weapon.hpp>
 #include <systems/audio-system.hpp>
 #include <systems/collision-system.hpp>
@@ -234,6 +235,8 @@ Entity *WeaponsSystem::_createProjectile(World *world, Entity *owner, glm::vec3 
             return;
         world->markForRemoval(projectileEntity);
     };
+    // Add trail effect for the bullet
+    TrailRenderer *trail = projectileEntity->addComponent<TrailRenderer>();
     return projectileEntity;
 }
 

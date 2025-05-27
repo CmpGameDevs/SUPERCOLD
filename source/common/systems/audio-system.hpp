@@ -39,6 +39,9 @@ private:
     std::unique_ptr<AudioComponent> globalSfxHandler = nullptr;
 
 public:
+    float sfxVolume = 1.0f;
+    float musicVolume = 0.2f;
+
     static AudioSystem& getInstance() {
         static AudioSystem instance;
         return instance;

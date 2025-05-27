@@ -1,6 +1,7 @@
 #include "forward-renderer.hpp"
 #include "../mesh/mesh-utils.hpp"
 #include "../texture/texture-utils.hpp"
+#include <systems/trail-system.hpp>
 
 namespace our {
 
@@ -235,6 +236,24 @@ void ForwardRenderer::render(World *world) {
         command.model->draw(camera, command.localToWorld, windowSize, bloomBrightnessCutoff);
     }
 
+    //! The order of the hdrSystem is important
+    if (this->hdrSystem) {
+        // Render the background if the HDR system is enabled
+        hdrSystem->renderBackground(projection, view, 10);
+    }
+    
+    // Trails act similar to transparent objects
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glDepthMask(GL_FALSE);
+    
+    glm::vec3 cameraRight = glm::vec3(glm::inverse(view)[0]);
+    TrailSystem &trailSystem = TrailSystem::getInstance();
+    trailSystem.renderTrails(world, view, projection, cameraRight, bloomBrightnessCutoff);
+
+    glDepthMask(GL_TRUE); // Re-enable writing to depth buffer
+    glDisable(GL_BLEND);
+
     // TODO: (Req 9) Draw all the transparent commands
     //  Don't forget to set the "transform" uniform to be equal the model-view-projection matrix for each render command
     for (auto &command : transparentCommands) {
@@ -247,12 +266,6 @@ void ForwardRenderer::render(World *world) {
         command.material->shader->set("model", command.localToWorld);
         command.material->shader->set("bloomBrightnessCutoff", bloomBrightnessCutoff);
         command.mesh->draw();
-    }
-
-    //! The order of the hdrSystem is important
-    if (this->hdrSystem) {
-        // Render the background if the HDR system is enabled
-        hdrSystem->renderBackground(projection, view, 10);
     }
 
     // If there is a postprocess material, apply postprocessing

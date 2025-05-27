@@ -132,7 +132,7 @@ class Menustate: public our::State {
 
     void onDraw(double deltaTime) override {
         // Play the background music
-        audioSystem.playBackgroundMusic("background", 0.2f);
+        audioSystem.playBackgroundMusic("background", audioSystem.musicVolume);
         audioSystem.update(nullptr, deltaTime);
 
         // Get a reference to the keyboard object
