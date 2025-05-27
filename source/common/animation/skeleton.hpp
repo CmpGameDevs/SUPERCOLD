@@ -6,8 +6,8 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include "animation-player.hpp"
 #include "bone.hpp"
-
 
 namespace our {
 
@@ -20,6 +20,10 @@ class Skeleton {
 
     // Root bone indices (bones with no parent)
     std::vector<int> rootBones;
+
+    void calculateBoneTransformsRecursive(int boneIndex, const glm::mat4& parentTransform);
+
+    void calculateAnimatedPoseRecursive(AnimationPlayer* player, int boneIndex, const glm::mat4& parentTransform);
 
     public:
     Skeleton();
@@ -52,7 +56,7 @@ class Skeleton {
 
     // Transform calculations
     void calculateBoneTransforms(const glm::mat4& rootTransform = glm::mat4(1.0f));
-    void calculateBoneTransformsRecursive(int boneIndex, const glm::mat4& parentTransform);
+    void calculateAnimatedPose(AnimationPlayer* player, const glm::mat4& rootTransform = glm::mat4(1.0f));
     void calculateFinalTransforms();
 
     // Utility functions

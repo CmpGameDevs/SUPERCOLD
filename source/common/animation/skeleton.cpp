@@ -21,49 +21,41 @@ int Skeleton::addBone(const Bone& bone) {
         std::cerr << "[Skeleton] ERROR: Cannot add bone with empty name" << std::endl;
         return -1;
     }
-
-    // Check if bone name already exists
     if (boneNameToIndex.find(bone.name) != boneNameToIndex.end()) {
         std::cerr << "[Skeleton] ERROR: Bone with name '" << bone.name << "' already exists" << std::endl;
         return -1;
     }
-
-    // Validate parent index
     if (bone.parentIndex >= static_cast<int>(bones.size())) {
         std::cerr << "[Skeleton] ERROR: Invalid parent index " << bone.parentIndex << " for bone '" << bone.name << "'"
                   << std::endl;
         return -1;
     }
 
-    // Add the bone
     int boneIndex = static_cast<int>(bones.size());
     Bone newBone = bone;
-    newBone.id = boneIndex; // Ensure ID matches index
+    newBone.id = boneIndex;
 
     bones.push_back(newBone);
     boneNameToIndex[bone.name] = boneIndex;
 
-    // Resize transform arrays
+    // Resize transform arrays when a new bone is added.
+    // Initialize with identity matrix.
     boneTransforms.resize(bones.size(), glm::mat4(1.0f));
     finalTransforms.resize(bones.size(), glm::mat4(1.0f));
 
-    // Update parent-child relationships
     if (bone.parentIndex >= 0) {
-        // Add this bone as a child to its parent
-        bones[bone.parentIndex].children.push_back(boneIndex);
+        if (isValidBoneIndex(bone.parentIndex)) { // Additional check
+            bones[bone.parentIndex].children.push_back(boneIndex);
+        } else {
+            // This case should be caught by the earlier parentIndex validation, but good to be defensive
+            std::cerr << "[Skeleton] ERROR: Parent index " << bone.parentIndex << " for bone '" << bone.name
+                      << "' is out of bounds for parent's children list update." << std::endl;
+            // Potentially revert the addBone operation or handle error
+        }
     } else {
-        // This is a root bone
         rootBones.push_back(boneIndex);
     }
-
-    // std::cout << "[Skeleton] Added bone '" << bone.name << "' at index " << boneIndex;
-    // if (bone.parentIndex >= 0) {
-    //     std::cout << " (parent: '" << bones[bone.parentIndex].name << "')";
-    // } else {
-    //     std::cout << " (root bone)";
-    // }
-    // std::cout << std::endl;
-
+    // std::cout << ... (your existing logging)
     return boneIndex;
 }
 
@@ -109,37 +101,64 @@ void Skeleton::calculateBoneTransforms(const glm::mat4& rootTransform) {
     if (bones.empty()) {
         return;
     }
-
-    // Calculate transforms starting from root bones
     for (int rootBoneIndex : rootBones) {
         calculateBoneTransformsRecursive(rootBoneIndex, rootTransform);
     }
-
-    // Calculate final transforms for the shader
     calculateFinalTransforms();
 }
 
 void Skeleton::calculateBoneTransformsRecursive(int boneIndex, const glm::mat4& parentTransform) {
     if (!isValidBoneIndex(boneIndex)) {
-        std::cerr << "[Skeleton] ERROR: Invalid bone index " << boneIndex << " in transform calculation" << std::endl;
+        std::cerr << "[Skeleton] ERROR: Invalid bone index " << boneIndex << " in BIND POSE transform calculation"
+                  << std::endl;
         return;
     }
-
     const Bone& bone = bones[boneIndex];
-
-    // Calculate this bone's world transform
-    // parentTransform * localBindTransform gives us the bone's world space transform
     boneTransforms[boneIndex] = parentTransform * bone.localBindTransform;
 
-    // Recursively calculate transforms for all children
     for (int childIndex : bone.children) {
         calculateBoneTransformsRecursive(childIndex, boneTransforms[boneIndex]);
     }
 }
 
+void Skeleton::calculateAnimatedPoseRecursive(AnimationPlayer* player, int boneIndex,
+                                              const glm::mat4& parentTransform) {
+    if (!isValidBoneIndex(boneIndex) || !player) {
+        std::cerr << "[Skeleton] ERROR: Invalid bone index " << boneIndex
+                  << " or null player in ANIMATED POSE transform calculation" << std::endl;
+        return;
+    }
+    const Bone& bone = bones[boneIndex];
+
+    glm::mat4 localAnimatedTransform = player->getCurrentBoneTransform(bone.name);
+
+    boneTransforms[boneIndex] = parentTransform * localAnimatedTransform;
+
+    for (int childIndex : bone.children) {
+        calculateAnimatedPoseRecursive(player, childIndex, boneTransforms[boneIndex]);
+    }
+}
+
+void Skeleton::calculateAnimatedPose(AnimationPlayer* player, const glm::mat4& rootTransform) {
+    if (bones.empty()) {
+        return;
+    }
+    if (!player || !player->isCurrentlyPlaying() || !player->getCurrentAnimation()) {
+        calculateBoneTransforms(rootTransform);
+        return;
+    }
+
+    for (int rootBoneIndex : rootBones) {
+        calculateAnimatedPoseRecursive(player, rootBoneIndex, rootTransform);
+    }
+    calculateFinalTransforms();
+}
+
 void Skeleton::calculateFinalTransforms() {
-    // Final transform = bone's world transform * offset matrix
-    // This transforms vertices from mesh space to the bone's current position
+    if (boneTransforms.size() != bones.size() || finalTransforms.size() != bones.size()) {
+        boneTransforms.resize(bones.size(), glm::mat4(1.0f));
+        finalTransforms.resize(bones.size(), glm::mat4(1.0f));
+    }
     for (size_t i = 0; i < bones.size(); ++i) {
         finalTransforms[i] = boneTransforms[i] * bones[i].offsetMatrix;
     }

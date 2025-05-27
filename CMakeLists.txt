@@ -155,6 +155,8 @@ set(COMMON_SOURCES
     source/common/animation/animation-player.cpp
     source/common/components/animation-component.hpp
     source/common/components/animation-component.cpp
+    source/common/systems/animation-system.hpp
+    source/common/systems/animation-system.cpp
     
     # IBL
     source/common/ibl/cubemap-buffer.hpp
