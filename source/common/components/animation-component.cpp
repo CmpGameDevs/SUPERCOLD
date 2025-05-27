@@ -12,6 +12,7 @@ void AnimationComponent::initialize() {
     if (autoPlay && !initialAnimationName.empty()) {
         playAnimation(initialAnimationName, true);
     }
+    initialized = true;
 }
 
 void AnimationComponent::update(float deltaTime) {
@@ -21,6 +22,7 @@ void AnimationComponent::update(float deltaTime) {
 }
 
 bool AnimationComponent::playAnimation(const std::string& animationName, bool loop) {
+    std::cout << "[AnimationComponent] Attempting to play animation: '" << animationName << "'" << std::endl;
     if (!modelAsset) {
         std::cerr << "[AnimationComponent] Cannot play animation '" << animationName << "': modelAsset is null."
                   << std::endl;

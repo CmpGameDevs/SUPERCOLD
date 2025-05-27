@@ -26,7 +26,9 @@ void AnimationPlayer::playAnimation(Animation* animation, bool loop) {
 }
 
 void AnimationPlayer::update(float deltaTimeInSeconds) {
+
     if (!m_IsPlaying || !m_CurrentAnimation) {
+        std::cout << "[AnimationPlayer] No animation is currently playing. Update skipped." << std::endl;
         return;
     }
 

@@ -320,6 +320,16 @@ void Model::draw(CameraComponent* camera, const glm::mat4& localToWorld, const g
 
         meshRenderer->material->shader->set("bloomBrightnessCutoff", bloomCutoff);
 
+        // set bone transforms if skeleton is present
+        if (skeleton.getBoneCount() > 0) {
+
+            auto& boneTransforms = skeleton.getFinalTransforms();
+            for (unsigned int i = 0; i < boneTransforms.size(); ++i) {
+                meshRenderer->material->shader->set("boneFinalTransforms[" + std::to_string(i) + "]",
+                                                    boneTransforms[i]);
+            }
+        }
+
         meshRenderer->material->shader->set("debugMode", settings.shaderDebugModeToInt(settings.shaderDebugMode));
 
         if (settings.shaderDebugMode == "wireframe") {
@@ -737,7 +747,6 @@ void Model::processVertexBoneData(const aiMesh* mesh, std::vector<Vertex>& verti
         return;
     }
 
-
     std::cout << "[Model] [Bone Mapping] Processing vertex bone data for mesh: '" << aiToStr(mesh->mName)
               << "' (contains " << mesh->mNumBones << " bones in its local list)." << std::endl;
 
@@ -833,7 +842,6 @@ void Model::processVertexBoneData(const aiMesh* mesh, std::vector<Vertex>& verti
     std::cout << "[Model] [Bone Mapping] Finished processing vertex bone data for mesh: '" << aiToStr(mesh->mName)
               << "'" << std::endl;
 }
-
 
 void Model::loadAnimationsFromScene(const aiScene* scene) {
     if (!scene->HasAnimations()) {

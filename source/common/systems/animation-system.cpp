@@ -22,6 +22,11 @@ void AnimationSystem::update(World* world, float deltaTime) {
             continue;
         }
 
+        if (animComp->initialized == false) {
+            animComp->initialize();
+            std::cout << "[AnimationSystem] Initialized AnimationComponent for entity: '" << entity->name << "'" << std::endl;
+        }
+
         animComp->update(deltaTime);
 
         Skeleton* skeleton = &(animComp->modelAsset->skeleton);

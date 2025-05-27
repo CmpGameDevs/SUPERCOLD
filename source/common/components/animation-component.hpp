@@ -15,7 +15,8 @@ class AnimationComponent : public Component {
     AnimationPlayer player;
 
     std::string initialAnimationName = "";
-    bool autoPlay = false;
+    bool autoPlay = true;
+    bool initialized = false;
 
     static std::string getID() {
         return "Animation";
